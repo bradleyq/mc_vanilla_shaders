@@ -19,5 +19,5 @@ void main() {
         color.rgb = mix(color.rgb, colortmp.rgb, colortmp.a);
     }
 
-    gl_FragColor = color;
+    gl_FragColor = vec4(color.rgb, 1.0);
 }
