@@ -1,0 +1,150 @@
+{
+    "targets": [
+        "ping",
+        "pong",
+        "translucent",
+        "itemEntity",
+        "particles",
+        "clouds",
+        "weather"
+    ],
+    "passes": [
+        {
+            "name": "composite0",
+            "intarget": "minecraft:main",
+            "outtarget": "ping",
+            "auxtargets": [
+                {
+                    "name": "DiffuseDepthSampler",
+                    "id": "minecraft:main:depth"
+                },
+                {
+                    "name": "CloudsSampler",
+                    "id": "clouds"
+                },
+                {
+                    "name": "CloudsDepthSampler",
+                    "id": "clouds:depth"
+                }
+            ]
+        },
+        {
+            "name": "water",
+            "intarget": "minecraft:main",
+            "outtarget": "pong",
+            "auxtargets": [
+                {
+                    "name": "DiffuseDepthSampler",
+                    "id": "minecraft:main:depth"
+                },
+                {
+                    "name": "TranslucentSampler",
+                    "id": "translucent"
+                },
+                {
+                    "name": "TranslucentDepthSampler",
+                    "id": "translucent:depth"
+                },
+                {
+                    "name": "ItemEntitySampler",
+                    "id": "itemEntity"
+                },
+                {
+                    "name": "ItemEntityDepthSampler",
+                    "id": "itemEntity:depth"
+                },
+                {
+                    "name": "ParticlesSampler",
+                    "id": "particles"
+                },
+                {
+                    "name": "ParticlesDepthSampler",
+                    "id": "particles:depth"
+                },
+                {
+                    "name": "WeatherSampler",
+                    "id": "weather"
+                },
+                {
+                    "name": "WeatherDepthSampler",
+                    "id": "weather:depth"
+                },
+                {
+                    "name": "TerrainCloudsSampler",
+                    "id": "ping"
+                }
+            ]
+        },
+        {
+            "name": "composite1",
+            "intarget": "minecraft:main",
+            "outtarget": "ping",
+            "auxtargets": [
+                {
+                    "name": "DiffuseDepthSampler",
+                    "id": "minecraft:main:depth"
+                },
+                {
+                    "name": "TranslucentSampler",
+                    "id": "pong"
+                },
+                {
+                    "name": "TranslucentDepthSampler",
+                    "id": "translucent:depth"
+                },
+                {
+                    "name": "ItemEntitySampler",
+                    "id": "itemEntity"
+                },
+                {
+                    "name": "ItemEntityDepthSampler",
+                    "id": "itemEntity:depth"
+                },
+                {
+                    "name": "ParticlesSampler",
+                    "id": "particles"
+                },
+                {
+                    "name": "ParticlesDepthSampler",
+                    "id": "particles:depth"
+                },
+                {
+                    "name": "WeatherSampler",
+                    "id": "weather"
+                },
+                {
+                    "name": "WeatherDepthSampler",
+                    "id": "weather:depth"
+                },
+                {
+                    "name": "CloudsSampler",
+                    "id": "clouds"
+                },
+                {
+                    "name": "CloudsDepthSampler",
+                    "id": "clouds:depth"
+                }
+            ]
+        },
+        {
+            "name": "fxaa",
+            "intarget": "ping",
+            "outtarget": "pong",
+            "uniforms": [
+                { "name": "SpanMax",       "type": "float",     "count": 1,  "values": [ 8.0 ] },
+                { "name": "SubPixelShift", "type": "float",     "count": 1,  "values": [ 0.25 ] },
+                { "name": "ReduceMul",     "type": "float",     "count": 1,  "values": [ 0.2 ] }
+            ]
+        },
+        {
+            "name": "bloom",
+            "intarget": "pong",
+            "outtarget": "ping"
+        },
+        {
+            "name": "tonemap",
+            "intarget": "ping",
+            "outtarget": "minecraft:main"
+        }
+    ]
+}
