@@ -9,11 +9,11 @@
         <tr>
             <td align="middle">
               <img src="images/non.png" width="400px" />
-              <figcaption align="middle">BSL</figcaption>
+              <figcaption align="middle">vanilla</figcaption>
             </td>
             <td align="middle">
               <img src="images/shader.png" width="400px" /> 
-              <figcaption align="middle">BSL++</figcaption>
+              <figcaption align="middle">1.16 shader</figcaption>
             </td>
         </tr>
     </table>
