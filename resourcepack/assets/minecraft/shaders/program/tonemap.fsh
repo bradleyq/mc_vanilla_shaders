@@ -7,9 +7,9 @@ varying vec2 oneTexel;
 varying float aspectRatio;
 
 #define TonemapExposure 1.1 
-#define TonemapWhiteCurve 2.0 
+#define TonemapWhiteCurve 70.4 
 #define TonemapLowerCurve 1.0 
-#define TonemapUpperCurve 1.0 
+#define TonemapUpperCurve 0.5 
 
 #define Saturation 1.00 
 #define Vibrance 1.00 

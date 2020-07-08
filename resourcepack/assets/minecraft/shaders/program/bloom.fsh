@@ -7,10 +7,11 @@ varying vec2 oneTexel;
 varying float aspectRatio;
 
 float luminance(vec3 rgb) {
-    return dot(rgb, vec3(0.2126, 0.7152, 0.0722));
+    float redness = clamp(dot(rgb, vec3(1.0, -0.3, -1.0)), 0.0, 1.0);
+    return (1.0 - redness) * dot(rgb, vec3(0.2126, 0.7152, 0.0722)) + redness * 1.4;
 }
 
-#define TAPS 32
+#define TAPS 64
 #define AMT 1.0 / 128.0
 
 void main() {

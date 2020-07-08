@@ -72,6 +72,10 @@
                 {
                     "name": "TerrainCloudsSampler",
                     "id": "ping"
+                },
+                {
+                    "name": "CloudsDepthSampler",
+                    "id": "clouds:depth"
                 }
             ]
         },
