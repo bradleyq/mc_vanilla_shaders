@@ -16,19 +16,19 @@ Basic shader that adds as much as possible from OptiFine shaders to the vanilla 
     <table style="width:100%">
         <tr>
             <td align="middle">
-              <img src="images/0.png" width="800px" />
+              <img src="images/0.png"/>
               <figcaption align="middle">vanilla</figcaption>
             </td>
         </tr>
         <tr>
             <td align="middle">
-              <img src="images/1.png" width="800px" /> 
+              <img src="images/1.png"/> 
               <figcaption align="middle">shader v1</figcaption>
             </td>
         </tr>
         <tr>
             <td align="middle">
-              <img src="images/2.png" width="800px" /> 
+              <img src="images/2.png"/> 
               <figcaption align="middle">shader v2</figcaption>
             </td>
         </tr>
@@ -36,4 +36,5 @@ Basic shader that adds as much as possible from OptiFine shaders to the vanilla 
 </div>
 
 ## Usage
-See License.md for licensing. This pack requires FOV 70 with Fabulous graphics on. FOV is adjustible from within `resourcepack/assets/minecraft/shaders/post/transparency.json`
+See License.md for licensing. This pack requires FOV 70 with Fabulous graphics on. 
+FOV is adjustible from within `resourcepack/assets/minecraft/shaders/post/transparency.json`
