@@ -38,3 +38,7 @@ Basic shader that adds as much as possible from OptiFine shaders to the vanilla 
 ## Usage
 See License.md for licensing. This pack requires FOV 70 with Fabulous graphics on. 
 FOV is adjustible from within `resourcepack/assets/minecraft/shaders/post/transparency.json`
+
+## Credits
+BSL shaders - capttatsu
+For reference code for some of the features (SSR, Tonemapping).
