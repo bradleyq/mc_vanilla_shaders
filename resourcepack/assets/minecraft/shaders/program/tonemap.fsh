@@ -12,7 +12,7 @@ varying float aspectRatio;
 #define TonemapUpperCurve 0.5 
 
 #define Saturation 1.00 
-#define Vibrance 1.00 
+#define Vibrance 1.30 
 
 vec3 BSLTonemap(vec3 x){
 	x = TonemapExposure * x;

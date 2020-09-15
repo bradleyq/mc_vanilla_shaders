@@ -159,8 +159,8 @@ void main() {
         vec4 fragpos  = gbPI * vec4(texCoord, ldpeth, 1.0);
         fragpos *= ldpeth;
 
-        const int samples       = 28;
-        const int maxRefinement = 10;
+        const int samples       = 38;
+        const int maxRefinement = 20;
         const float stepSize    = 0.001;
         const float stepRefine  = 0.28;
         const float stepIncrease = 1.2;
@@ -197,8 +197,8 @@ void main() {
             rayPos          = rayStart+rayRefine;
 
         }
-
-        reflection = mix(texture2D(TerrainCloudsSampler, pos.xy), reflection, clamp(pow(max(abs(pos.x - 0.5), abs(pos.y - 0.5)) * 2.0, 4.0), 0.0, 1.0));
+        vec3 candidate = mix(texture2D(TerrainCloudsSampler, pos.xy).rgb, sky, clamp(pos.z, 0.0, 1.0));
+        reflection = mix(vec4(candidate, 1.0), reflection, clamp(pow(max(abs(pos.x - 0.5), abs(pos.y - 0.5)) * 2.0, 4.0), 0.0, 1.0));
         
         float fresnel = 1.0 - abs(dot(normalize(fragpos.xyz), vec3(normal.x, -normal.y, normal.z)));
         fresnel = clamp(exp((fresnel - 1.0) * (4.0 + clamp(exp(clamp(0.95 - ndu, 0.0, 1.0) * 6.0) - 1.0, 0.0, 1.0) * 25.0)), 0.0, 1.0);

@@ -6,7 +6,8 @@
         "itemEntity",
         "particles",
         "clouds",
-        "weather"
+        "weather",
+        "temporal"
     ],
     "passes": [
         {
@@ -141,14 +142,68 @@
             ]
         },
         {
-            "name": "bloom",
+            "name": "exposure_apply",
             "intarget": "pong",
-            "outtarget": "ping"
+            "outtarget": "ping",
+            "auxtargets": [
+                {
+                    "name": "ExposureSampler",
+                    "id": "temporal"
+                }
+            ]
+
+        },
+        {
+            "name": "bloom",
+            "intarget": "ping",
+            "outtarget": "pong"
+
         },
         {
             "name": "tonemap",
-            "intarget": "ping",
+            "intarget": "pong",
             "outtarget": "minecraft:main"
+        },
+        {
+            "name": "exposure",
+            "intarget": "minecraft:main",
+            "outtarget": "ping",
+            "auxtargets": [
+                {
+                    "name": "ExposureSampler",
+                    "id": "temporal"
+                }
+            ]
+        },
+        {
+            "name": "blur",
+            "intarget": "ping",
+            "outtarget": "pong",
+            "uniforms": [
+                {
+                    "name": "BlurDir",
+                    "values": [ 0.0, 1.0 ]
+                },
+                {
+                    "name": "Radius",
+                    "values": [ 40.0 ]
+                }
+            ]
+        },
+        {
+            "name": "blur",
+            "intarget": "pong",
+            "outtarget": "temporal",
+            "uniforms": [
+                {
+                    "name": "BlurDir",
+                    "values": [ 1.0, 0.0 ]
+                },
+                {
+                    "name": "Radius",
+                    "values": [ 40.0 ]
+                }
+            ]
         }
     ]
 }
