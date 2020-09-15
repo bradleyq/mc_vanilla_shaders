@@ -1,9 +1,16 @@
 # Basic shaders for vanilla 1.16
+<img src="images/3.png" /> 
+## Overview
+Basic shader that adds as much as possible from OptiFine shaders to the vanilla transparency shader. Due to limited material, light, time, and shadow information, most advanced features are not possible. A good number, however, are. I have ported them here. Most samples are from the BSL shader, however much of it is heavily modified to fit with the vanilla pipeline.
+
+## Features
 - FXAA
 - Bloom
+- Adaptive exposure
 - SSR + approximate
 - Tonemapping
 
+## Examples
 <div>
     <table style="width:100%">
         <tr>
@@ -26,3 +33,6 @@
         </tr>
     </table>
 </div>
+
+## Usage
+See License.md for licensing. This pack requires FOV 70 with Fabulous graphics on. FOV is adjustible from within resourcepack/assets/minecraft/shaders/post/transparency.json
