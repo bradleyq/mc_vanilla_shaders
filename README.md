@@ -10,6 +10,7 @@ Basic shader that adds as much as possible from OptiFine shaders to the vanilla 
 - Adaptive exposure
 - SSR + approximate
 - Tonemapping
+- Multiplicative transparency blending
 
 ### Comparisons
 <div>
