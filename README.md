@@ -40,4 +40,4 @@ See License.md for licensing. This pack requires FOV 70 with Fabulous graphics o
 FOV is adjustible from within `resourcepack/assets/minecraft/shaders/post/transparency.json`
 
 ## Credits
--**BSL shaders - capttatsu** for reference code for some of the features (SSR, Tonemapping).
+- **BSL shaders - capttatsu** for reference code for some of the features (SSR, Tonemapping).
