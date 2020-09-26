@@ -1,4 +1,4 @@
-#version 110
+#version 120
 
 uniform sampler2D DiffuseSampler;
 
@@ -89,7 +89,7 @@ void main() {
     vec3 colortmp = vec3(0.0);
     float lumtmp = 0.0;
     for (int ii = 0; ii < TAPS; ++ii) {
-        colortmp = texture2DLod(DiffuseSampler, texCoord + poissonDisk[ii] * tapScale, 4.0).rgb;
+        colortmp = texture2D(DiffuseSampler, texCoord + poissonDisk[ii] * tapScale).rgb;
         lumtmp = luminance(colortmp);
         bloomAccumulator += colortmp / clamp(exp((1.0 - lumtmp) * 5.0), 1.0, 100.0) * (1.0 - pow(length(poissonDisk[ii]), 4.0));
     }
