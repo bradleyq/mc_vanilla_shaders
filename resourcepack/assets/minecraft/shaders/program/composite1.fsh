@@ -15,8 +15,6 @@ uniform sampler2D CloudsSampler;
 uniform sampler2D CloudsDepthSampler;
 
 varying vec2 texCoord;
-varying vec2 oneTexel;
-varying float aspectRatio;
 
 struct Layer {
     vec4 color;

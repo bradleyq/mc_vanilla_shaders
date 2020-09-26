@@ -3,7 +3,6 @@
 uniform sampler2D DiffuseSampler;
 
 varying vec2 texCoord;
-varying vec2 oneTexel;
 varying float aspectRatio;
 
 float luminance(vec3 rgb) {

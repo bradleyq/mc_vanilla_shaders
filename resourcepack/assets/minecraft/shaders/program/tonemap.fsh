@@ -3,8 +3,6 @@
 uniform sampler2D DiffuseSampler;
 
 varying vec2 texCoord;
-varying vec2 oneTexel;
-varying float aspectRatio;
 
 #define TonemapExposure 1.1 
 #define TonemapWhiteCurve 70.4 

@@ -4,8 +4,6 @@ uniform sampler2D DiffuseSampler;
 uniform sampler2D ExposureSampler;
 
 varying vec2 texCoord;
-varying vec2 oneTexel;
-varying float aspectRatio;
 
 float luminance(vec3 rgb) {
     return max(max(rgb.r, rgb.g), rgb.b);

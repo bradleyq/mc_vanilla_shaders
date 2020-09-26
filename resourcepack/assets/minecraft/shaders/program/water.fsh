@@ -1,27 +1,17 @@
 #version 110
 
-uniform float FOV;
-uniform vec2 InSize;
-uniform mat4 ProjMat;
-
 uniform sampler2D DiffuseSampler;
 uniform sampler2D DiffuseDepthSampler;
 uniform sampler2D TranslucentSampler;
 uniform sampler2D TranslucentDepthSampler;
-uniform sampler2D ItemEntitySampler;
-uniform sampler2D ItemEntityDepthSampler;
-uniform sampler2D ParticlesSampler;
-uniform sampler2D ParticlesDepthSampler;
-uniform sampler2D WeatherSampler;
-uniform sampler2D WeatherDepthSampler;
 uniform sampler2D TerrainCloudsSampler;
-uniform sampler2D CloudsDepthSampler;
 
-varying mat4 ProjMatInverse;
 varying vec2 texCoord;
-varying vec2 oneTexel;
 varying float aspectRatio;
+varying float cosFOVrad;
 varying vec3 normal;
+varying mat4 gbPI;
+varying mat4 gbP;
 
 #define TAPS 32
 #define SKYTAPS 64
@@ -129,7 +119,7 @@ void main() {
         
         float ndu = abs(dot(normal, vec3(0.0, 1.0, 0.0)));
         float horizon = clamp(dot(normal, vec3(0.0, 0.0, 1.0)) * 1000.0, -1.0, 1.0);
-        reflectApprox = vec2(texCoord.x, 0.95 - texCoord.y + horizon * pow(clamp((1.0 - ndu) / (1.0 - cos(FOV / 360.0 * 3.1415926)), 0.0, 1.0), 0.5) * 1.0);
+        reflectApprox = vec2(texCoord.x, 0.95 - texCoord.y + horizon * pow(clamp((1.0 - ndu) / (1.0 - cosFOVrad), 0.0, 1.0), 0.5) * 1.0);
         for (int i = 0; i < TAPS; i++) {
             vec2 ratmp = reflectApprox + poissonDisk[i] * vec2(1.0 / aspectRatio, 1.0) * 0.01;
             float tdepth = texture2D(DiffuseDepthSampler, ratmp).r;
@@ -140,29 +130,16 @@ void main() {
         reflection /= float(TAPS);
         if (reflectApprox.y > 1.0 && dot(sky, vec3(1.0)) > 0.0) {
             reflection.rgb = mix(reflection.rgb, sky, clamp((reflectApprox.y - 1.0) * 20.0, 0.0, 1.0));
-            //reflection.rgb = vec3(1.0, 0.0 ,0.0);
         }
 
         float ldpeth = LinearizeDepth(wdepth);
-
-        float k = tan(FOV / 360.0 * 3.1415926);
-        mat4 gbPI = mat4(2.0 * k / aspectRatio, 0.0, 0.0, 0.0,
-                        0.0, 2.0 * k, 0.0, 0.0,
-                        0.0, 0.0, 0.0, 0.0,
-                        -k / aspectRatio, -k, 1.0, 1.0);
-
-        mat4 gbP = mat4(aspectRatio / (2.0 * k), 0.0, 0.0, 0.0,
-                        0.0, 1.0 / (2.0 * k), 0.0, 0.0,
-                        0.5, 0.5, 1.0, 0.0,
-                        0.0, 0.0, 0.0, 1.0);
-
         vec4 fragpos  = gbPI * vec4(texCoord, ldpeth, 1.0);
         fragpos *= ldpeth;
 
-        const int samples       = 38;
-        const int maxRefinement = 20;
-        const float stepSize    = 0.001;
-        const float stepRefine  = 0.28;
+        const int samples       = 25;
+        const int maxRefinement = 12;
+        const float stepSize    = 0.0015;
+        const float stepRefine  = 0.26;
         const float stepIncrease = 1.2;
 
         vec3 col        = vec3(0.0);

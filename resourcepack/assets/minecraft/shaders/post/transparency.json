@@ -47,36 +47,14 @@
                     "id": "translucent:depth"
                 },
                 {
-                    "name": "ItemEntitySampler",
-                    "id": "itemEntity"
-                },
-                {
-                    "name": "ItemEntityDepthSampler",
-                    "id": "itemEntity:depth"
-                },
-                {
-                    "name": "ParticlesSampler",
-                    "id": "particles"
-                },
-                {
-                    "name": "ParticlesDepthSampler",
-                    "id": "particles:depth"
-                },
-                {
-                    "name": "WeatherSampler",
-                    "id": "weather"
-                },
-                {
-                    "name": "WeatherDepthSampler",
-                    "id": "weather:depth"
-                },
-                {
                     "name": "TerrainCloudsSampler",
                     "id": "ping"
-                },
+                }
+            ],
+            "uniforms": [
                 {
-                    "name": "CloudsDepthSampler",
-                    "id": "clouds:depth"
+                    "name": "FOV",
+                    "values": [ 70.0 ]
                 }
             ]
         },

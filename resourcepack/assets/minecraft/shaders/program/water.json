@@ -12,19 +12,11 @@
         { "name": "DiffuseDepthSampler" },
         { "name": "TranslucentSampler" },
         { "name": "TranslucentDepthSampler" },
-        { "name": "ItemEntitySampler" },
-        { "name": "ItemEntityDepthSampler" },
-        { "name": "ParticlesSampler" },
-        { "name": "ParticlesDepthSampler" },
-        { "name": "WeatherSampler" },
-        { "name": "WeatherDepthSampler" },
-        { "name": "TerrainCloudsSampler" },
-        { "name": "CloudsDepthSampler" }
+        { "name": "TerrainCloudsSampler" }
     ],
     "uniforms": [
         { "name": "ProjMat",    "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
         { "name": "InSize",     "type": "float",     "count": 2,  "values": [ 1.0, 1.0 ] },
-        { "name": "OutSize",    "type": "float",     "count": 2,  "values": [ 1.0, 1.0 ] },
-        { "name": "FOV",        "type": "float",     "count": 1,  "values": [ 70.0 ] }
+        { "name": "FOV",        "type": "float",     "count": 1,  "values": [ 1.0 ] }
     ]
 }
