@@ -1,5 +1,11 @@
-# Basic shaders for vanilla 1.16
+# Basic shaders for vanilla 1.16 DEV BRANCH!!!!!
 <img src="images/3.png" /> 
+
+## TIS HOT DEV BRANCH!!! STUFF MAY NOT WORK!!!
+CL:
+- clean up SSR code and tune parameters
+- multi sample SSR! cool reflection blur!!!!!
+- pseudo HDR reflections. Sun should now be bright in reflections!
 
 ## Overview
 Basic shader that adds as much as possible from OptiFine shaders to the vanilla transparency shader available in "Fabulous" graphics setting. Due to limited material, light, time, and shadow information, most advanced features are not possible. A good number, however, are. I have ported them here. Most samples are from the BSL shader, however much of it is heavily modified to fit with the vanilla pipeline. Requires FOV 70 out of the box!
