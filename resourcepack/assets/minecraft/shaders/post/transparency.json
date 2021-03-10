@@ -2,12 +2,14 @@
     "targets": [
         "ping",
         "pong",
+        "pang",
         "translucent",
         "itemEntity",
         "particles",
         "clouds",
         "weather",
-        "temporal"
+        "temporal",
+        { "name": "temporals", "width": 10, "height": 1, "bilinear": false }
     ],
     "passes": [
         {
@@ -47,7 +49,7 @@
                     "id": "translucent:depth"
                 },
                 {
-                    "name": "TerrainCloudsSampler",
+                    "name": "CloudsSampler",
                     "id": "ping"
                 }
             ],
@@ -61,7 +63,7 @@
         {
             "name": "composite1",
             "intarget": "minecraft:main",
-            "outtarget": "ping",
+            "outtarget": "pang",
             "auxtargets": [
                 {
                     "name": "DiffuseDepthSampler",
@@ -69,7 +71,7 @@
                 },
                 {
                     "name": "TranslucentSampler",
-                    "id": "pong"
+                    "id": "translucent"
                 },
                 {
                     "name": "TranslucentDepthSampler",
@@ -102,6 +104,53 @@
                 {
                     "name": "CloudsSampler",
                     "id": "clouds"
+                },
+                {
+                    "name": "CloudsDepthSampler",
+                    "id": "clouds:depth"
+                }
+            ]
+        },
+        {
+            "name": "composite2",
+            "intarget": "minecraft:main",
+            "outtarget": "ping",
+            "auxtargets": [
+                {
+                    "name": "DiffuseDepthSampler",
+                    "id": "minecraft:main:depth"
+                },
+                {
+                    "name": "TranslucentSampler",
+                    "id": "translucent"
+                },
+                {
+                    "name": "TranslucentSpecSampler",
+                    "id": "pong"
+                },
+                {
+                    "name": "TranslucentDepthSampler",
+                    "id": "translucent:depth"
+                },
+                {
+                    "name": "ParticlesSampler",
+                    "id": "particles"
+                },
+                {
+                    "name": "ParticlesDepthSampler",
+                    "id": "particles:depth"
+                },
+                {
+                    "name": "PartialCompositeSampler",
+                    "id": "pang"
+                },
+                {
+                    "name": "ItemEntityDepthSampler",
+                    "id": "itemEntity:depth"
+                },
+                {
+                    "name": "WeatherDepthSampler",
+                    "id": "weather:depth"
                 },
                 {
                     "name": "CloudsDepthSampler",
@@ -164,7 +213,7 @@
                 },
                 {
                     "name": "Radius",
-                    "values": [ 40.0 ]
+                    "values": [ 20.0 ]
                 }
             ]
         },
@@ -179,7 +228,7 @@
                 },
                 {
                     "name": "Radius",
-                    "values": [ 40.0 ]
+                    "values": [ 20.0 ]
                 }
             ]
         }

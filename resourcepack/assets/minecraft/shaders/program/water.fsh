@@ -8,6 +8,7 @@ uniform sampler2D TerrainCloudsSampler;
 
 varying vec2 texCoord;
 varying vec2 oneTexel;
+varying vec3 approxNormal;
 varying float aspectRatio;
 varying float cosFOVrad;
 varying float tanFOVrad;
@@ -16,8 +17,9 @@ varying mat4 gbP;
 
 #define TAPS 16
 #define SKYTAPS 64
-#define SCATTER 0.005
-#define NORMDEPTHTOLERANCE 0.0005
+#define SCATTER 0.004
+#define SSR_TAPS 3
+#define NORMRAD 5
 
 #define near 0.00004882812 
 #define far 1.0
@@ -27,7 +29,10 @@ varying mat4 gbP;
 #define SSR_STEPSIZE 0.002
 #define SSR_STEPREFINE 0.2
 #define SSR_STEPINCREASE 1.2
-#define SSR_IGNORETHRESH 0.01
+#define SSR_IGNORETHRESH 0.001
+#define SSR_BLURR 0.005
+#define SSR_BLURTAPS 3
+#define SSR_BLURSAMPLEOFFSET 17
   
 float LinearizeDepth(float depth) 
 {
@@ -43,7 +48,7 @@ float luminance(vec3 rgb) {
     return ((1.0 - redness) * dot(rgb, vec3(0.2126, 0.7152, 0.0722)) + redness * 1.4) * 4.0;
 }
 
-vec3 SSR(vec3 fragpos, float fragdepth, vec3 surfacenorm, vec3 skycol, vec3 approxreflection) {
+vec4 SSR(vec3 fragpos, float fragdepth, vec3 surfacenorm, vec4 skycol, vec4 approxreflection, vec2 randsamples[64]) {
     vec3 rayStart   = fragpos.xyz;
     vec3 rayDir     = reflect(normalize(fragpos.xyz), vec3(surfacenorm.x, surfacenorm.y, surfacenorm.z));
     vec3 rayStep    = (SSR_STEPSIZE + SSR_STEPSIZE * 0.05 * (ditherGradNoise()-0.5)) * rayDir;
@@ -56,7 +61,7 @@ vec3 SSR(vec3 fragpos, float fragdepth, vec3 surfacenorm, vec3 skycol, vec3 appr
     float edge  = 0.0;
     float dtmp  = 0.0;
 
-    for (int i = 0; i < SSR_SAMPLES; i++) {
+    for (int i = 0; i < SSR_SAMPLES; i += 1) {
         pos = (gbP * vec4(rayPos.xyz, 1.0)).xyz;
         pos.xy /= rayPos.z;
         if (pos.x < -1.0 || pos.x > 1.0 || pos.y < -1.0 || pos.y > 1.0 || pos.z < 0.0 || pos.z > 1.0) break;
@@ -76,10 +81,24 @@ vec3 SSR(vec3 fragpos, float fragdepth, vec3 surfacenorm, vec3 skycol, vec3 appr
         rayPos          = rayStart+rayRefine;
 
     }
-    vec3 candidate = skycol;
-    if (fragdepth < dtmp + SSR_IGNORETHRESH) {
-        candidate = mix(texture2D(TerrainCloudsSampler, pos.xy).rgb, skycol, float(dtmp + SSR_IGNORETHRESH < 1.0) * clamp(pos.z * 1.1, 0.0, 1.0));
+    vec4 candidate = skycol;
+    if (fragdepth < dtmp + SSR_IGNORETHRESH && pos.y <= 1.0) {
+        vec3 colortmp = texture2D(TerrainCloudsSampler, pos.xy).rgb;
+        float count = 1.0;
+        float dtmptmp = 0.0;
+        vec2 postmp = vec2(0.0);
+        for (int i = 0; i < SSR_BLURTAPS; i += 1) {
+            postmp = pos.xy + randsamples[i + SSR_BLURSAMPLEOFFSET] * SSR_BLURR * vec2(1.0 / aspectRatio, 1.0);
+            dtmptmp = LinearizeDepth(texture2D(DiffuseDepthSampler, postmp).r);
+            if (abs(dtmp - dtmptmp) < SSR_IGNORETHRESH) {
+                colortmp += texture2D(TerrainCloudsSampler, postmp).rgb;
+                count += 1.0;
+            }
+        }
+        colortmp /= count;
+        candidate = mix(vec4(colortmp, 1.0), skycol, float(dtmp + SSR_IGNORETHRESH < 1.0) * clamp(pos.z * 1.1, 0.0, 1.0));
     }
+    
     candidate = mix(candidate, approxreflection, clamp(pow(max(abs(pos.x - 0.5), abs(pos.y - 0.5)) * 2.0, 8.0), 0.0, 1.0));
     return candidate;
 }
@@ -152,28 +171,29 @@ void main() {
     poissonDisk[62] = vec2(-0.545396, 0.538133);
     poissonDisk[63] = vec2(-0.178564, -0.596057);
 
+    vec4 outColor = vec4(0.0);
     vec4 color = texture2D(TranslucentSampler, texCoord);
-    float wdepth = texture2D(TranslucentDepthSampler, texCoord).r;
-    float wdepth2 = texture2D(TranslucentDepthSampler, texCoord + vec2(0.0, oneTexel.y)).r;
-    float wdepth3 = texture2D(TranslucentDepthSampler, texCoord + vec2(oneTexel.x, 0.0)).r;
-    float gdepth = texture2D(DiffuseDepthSampler, texCoord).r;
-    float ldepth = LinearizeDepth(wdepth);
-    float ldepth2 = LinearizeDepth(wdepth2);
-    float ldepth3 = LinearizeDepth(wdepth3);
-    ldepth2 = abs(ldepth - ldepth2) > NORMDEPTHTOLERANCE ? ldepth : ldepth2;
-    ldepth3 = abs(ldepth - ldepth3) > NORMDEPTHTOLERANCE ? ldepth : ldepth3;
 
-    vec3 reflection = vec3(0.0);
-
-    if (color.a > 0.01) {
-        vec3 sky = vec3(0.0);
-        float successes = 0.01;
+    if (color.a > 0.0) {
+        float wdepth = texture2D(TranslucentDepthSampler, texCoord).r;
+        float ldepth = LinearizeDepth(wdepth);
+        float ldepth2 = LinearizeDepth(texture2D(TranslucentDepthSampler, texCoord + vec2(0.0, oneTexel.y)).r);
+        float ldepth3 = LinearizeDepth(texture2D(TranslucentDepthSampler, texCoord + vec2(oneTexel.x, 0.0)).r);
+        float ldepth4 = LinearizeDepth(texture2D(TranslucentDepthSampler, texCoord - vec2(0.0, oneTexel.y)).r);
+        float ldepth5 = LinearizeDepth(texture2D(TranslucentDepthSampler, texCoord - vec2(oneTexel.x, 0.0)).r);
+        float gdepth2 = LinearizeDepth(texture2D(DiffuseDepthSampler, texCoord + vec2(0.0, oneTexel.y)).r);
+        float gdepth3 = LinearizeDepth(texture2D(DiffuseDepthSampler, texCoord + vec2(oneTexel.x, 0.0)).r);
+        float gdepth4 = LinearizeDepth(texture2D(DiffuseDepthSampler, texCoord - vec2(0.0, oneTexel.y)).r);
+        float gdepth5 = LinearizeDepth(texture2D(DiffuseDepthSampler, texCoord - vec2(oneTexel.x, 0.0)).r);
+        vec4 reflection = vec4(0.0);
+        vec4 sky = vec4(0.0);
+        float successes = 0.0001;
         for (int i = SKYTAPS - 1; i > -1; i--) {
             vec2 ctmp = (poissonDisk[i] + vec2(1.0, 3.0)) * vec2(0.5, 0.25);
             float depth = texture2D(DiffuseDepthSampler, ctmp).r;
             if (depth >= 1.0) {
                 successes += 1.0;
-                sky += texture2D(DiffuseSampler, ctmp).rgb;
+                sky += vec4(texture2D(DiffuseSampler, ctmp).rgb, 1.0);
             }
         }
 
@@ -184,39 +204,50 @@ void main() {
         vec3 fragpos = (gbPI * vec4(texCoord, ldepth, 1.0)).xyz;
         fragpos *= ldepth;
         vec3 p2 = (gbPI * vec4(texCoord + vec2(0.0, oneTexel.y), ldepth2, 1.0)).xyz;
-        p2 *= ldepth2;
+        p2 = p2 * ldepth2 - fragpos;
         vec3 p3 = (gbPI * vec4(texCoord + vec2(oneTexel.x, 0.0), ldepth3, 1.0)).xyz;
-        p3 *= ldepth3;
-        vec3 normal = -normalize(cross(p2 - fragpos, p3 - fragpos));
+        p3 = p3 * ldepth3 - fragpos;
+        vec3 p4 = (gbPI * vec4(texCoord - vec2(0.0, oneTexel.y), ldepth4, 1.0)).xyz;
+        p4 = p4 * ldepth4 - fragpos;
+        vec3 p5 = (gbPI * vec4(texCoord - vec2(oneTexel.x, 0.0), ldepth5, 1.0)).xyz;
+        p5 = p5 * ldepth5 - fragpos;
+        vec3 normal = normalize(cross(p2, p3)) * float(ldepth2 < gdepth2 && ldepth3 < gdepth3) 
+                    + normalize(cross(-p4, p3)) * float(ldepth4 < gdepth4 && ldepth3 < gdepth3) 
+                    + normalize(cross(p2, -p5)) * float(ldepth2 < gdepth2 && ldepth5 < gdepth5) 
+                    + normalize(cross(-p4, -p5)) * float(ldepth4 < gdepth4 && ldepth5 < gdepth5);
+        normal = normal == vec3(0.0) ? approxNormal : normalize(-normal);
         
         float ndlsq = dot(normal, vec3(0.0, 0.0, 1.0));
-        float horizon = clamp(ndlsq * 1000.0, -1.0, 1.0);
+        float horizon = clamp(ndlsq * 100000.0, -1.0, 1.0);
         ndlsq = ndlsq * ndlsq;
-        reflectApprox = vec2(texCoord.x, 0.95 - texCoord.y + horizon * pow(clamp(ndlsq / (1.0 - cosFOVrad * cosFOVrad), 0.0, 1.0), 0.5));
+        reflectApprox = vec2(texCoord.x, 0.9 - texCoord.y + horizon * pow(clamp(ndlsq / (1.0 - cosFOVrad * cosFOVrad), 0.0, 1.0), 0.5));
         for (int i = 0; i < TAPS; i++) {
-            vec2 ratmp = reflectApprox + poissonDisk[i] * vec2(1.0 / aspectRatio, 1.0) * 0.01;
+            vec2 ratmp = clamp(reflectApprox + poissonDisk[i] * vec2(1.0 / aspectRatio, 1.0) * 0.01, vec2(0.0), vec2(1.0) - oneTexel / 2.0);
             float tdepth = texture2D(DiffuseDepthSampler, ratmp).r;
             if (tdepth > wdepth) {
-                reflection += texture2D(TerrainCloudsSampler, ratmp).rgb;
+                reflection += vec4(texture2D(TerrainCloudsSampler, ratmp).rgb, 1.0);
             }
         }
         reflection /= float(TAPS);
-        if (reflectApprox.y > 1.0 && dot(sky, vec3(1.0)) > 0.0) {
+        if (reflectApprox.y > 1.0 && sky.a > 0.0) {
             reflection = mix(reflection, sky, clamp((reflectApprox.y - 1.0) * 20.0, 0.0, 1.0));
         }
 
-        vec3 r1 = SSR(fragpos, ldepth, normal, sky, reflection);
-        vec3 r2 = SSR(fragpos, ldepth, normalize(normal + SCATTER * vec3(poissonDisk[1].x, 0, poissonDisk[1].y)), sky, reflection);
-        vec3 r3 = SSR(fragpos, ldepth, normalize(normal + SCATTER * vec3(poissonDisk[2].x, 0, poissonDisk[2].y)), sky, reflection);
-        vec3 r4 = SSR(fragpos, ldepth, normalize(normal + SCATTER * vec3(poissonDisk[3].x, 0, poissonDisk[3].y)), sky, reflection);
-        reflection = (r1 + r2 + r3 + r4) / 4.0;
+        vec4 r = vec4(0.0);
+        for (int i = 0; i < SSR_TAPS; i += 1) {
+            r += SSR(fragpos, ldepth, normalize(normal + SCATTER * (normalize(p2) * poissonDisk[i].x + normalize(p3) * poissonDisk[i].y)), sky, reflection, poissonDisk);
+        }
+        reflection = r / SSR_TAPS;
         
-        float fresnel = pow(1.0 - pow(dot(normalize(fragpos), normal), 0.8), 3.0);
-        fresnel = clamp(exp((fresnel - 1.0) * (4.0 + clamp(exp(clamp(ndlsq - 0.05, 0.0, 1.0) * 2.0) - 1.0, 0.0, 1.0) * 25.0)), 0.0, 1.0);
+        float fresnel = exp(-35 * pow(dot(normalize(fragpos), normal), 2.0));
+        float lookfresnel = clamp(exp(-25 * clamp(ndlsq * horizon, 0.0, 1.0) + 3.0), 0.0, 1.0);
+        // fresnel = clamp(exp((fresnel - 1.0) * (4.0 + clamp(exp(clamp(ndlsq * horizon - 0.05, 0.0, 1.0) * 2.0) - 1.0, 0.0, 1.0) * 25.0)), 0.0, 1.0);
 
-        color = vec4(mix(color.rgb, reflection, clamp(length(reflection) * max(luminance(reflection), 1.0) * fresnel, 0.0, 1.0)), mix(color.a, 1.0, pow(fresnel, 0.25) * clamp(luminance(reflection) - 2.5, 0.0, 1.0)));
+        // color = vec4(mix(vec3(0.0), reflection, clamp(length(reflection) * max(luminance(reflection), 1.0) * fresnel, 0.0, 1.0)), mix(color.a, 1.0, pow(fresnel, 0.25) * clamp(luminance(reflection) - 2.5, 0.0, 1.0)));
+        outColor = vec4(reflection.rgb, min(fresnel * lookfresnel, reflection.a));
+        // outColor = vec4(reflection, 1.0);
 
-        gl_FragColor = color;
     }
 
+    gl_FragColor = outColor;
 }

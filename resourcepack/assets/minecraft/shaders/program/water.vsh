@@ -8,6 +8,7 @@ uniform float FOV;
 
 varying vec2 texCoord;
 varying vec2 oneTexel;
+varying vec3 approxNormal;
 varying float aspectRatio;
 varying float cosFOVrad;
 varying float tanFOVrad;
@@ -18,7 +19,8 @@ void main(){
     vec4 outPos = ProjMat * vec4(Position.xy, 0.0, 1.0);
     gl_Position = vec4(outPos.xy, 0.2, 1.0);
 
-	// normal = normalize(gl_NormalMatrix * normalize(vec3(0.0, 1.0, 0.0)));
+	approxNormal = normalize(gl_NormalMatrix * normalize(vec3(0.0, 1.0, 0.0)));
+    approxNormal.y *= -1;
     aspectRatio = InSize.x / InSize.y;
     texCoord = outPos.xy * 0.5 + 0.5;
 

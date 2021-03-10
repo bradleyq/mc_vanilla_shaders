@@ -7,13 +7,15 @@ uniform sampler2D CloudsDepthSampler;
 
 varying vec2 texCoord;
 
+#define CLOUD_MULT vec4(1.25, 1.25, 1.25, 0.5)
+
 void main() {
     float d0 = texture2D(DiffuseDepthSampler, texCoord).r;
     float d1 = texture2D(CloudsDepthSampler, texCoord).r;
 
     vec4 color = texture2D(DiffuseSampler, texCoord);
     if (d1 < d0) {
-        vec4 colortmp = texture2D(CloudsSampler, texCoord);
+        vec4 colortmp = texture2D(CloudsSampler, texCoord) * CLOUD_MULT;
         color.rgb = mix(color.rgb, colortmp.rgb, colortmp.a);
     }
 
