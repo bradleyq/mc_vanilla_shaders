@@ -21,16 +21,15 @@ struct Layer {
     float op;
 };
 
-#define NUM_LAYERS 4
+#define NUM_LAYERS 3
 
 Layer layers[NUM_LAYERS];
 int layerIndices[NUM_LAYERS];
 
 void init_arrays() {
-    layers[0] = Layer(vec4(texture2D(DiffuseSampler, texCoord).rgb, 1.0), vec4(0.0), texture2D(DiffuseDepthSampler, texCoord).r, 1.0);
-    layers[1] = Layer(texture2D(TranslucentSampler, texCoord), texture2D(TranslucentSpecSampler, texCoord), texture2D(TranslucentDepthSampler, texCoord).r, 0.5);
-    layers[2] = Layer(texture2D(ParticlesSampler, texCoord), vec4(0.0), texture2D(ParticlesDepthSampler, texCoord).r, 1.0);
-    layers[3] = Layer(texture2D(PartialCompositeSampler, texCoord), vec4(0.0), min(min(texture2D(ItemEntityDepthSampler, texCoord).r, texture2D(WeatherDepthSampler, texCoord).r), texture2D(CloudsDepthSampler, texCoord).r), 0.0);
+    layers[0] = Layer(texture2D(TranslucentSampler, texCoord), texture2D(TranslucentSpecSampler, texCoord), texture2D(TranslucentDepthSampler, texCoord).r, 0.5);
+    layers[1] = Layer(texture2D(ParticlesSampler, texCoord), vec4(0.0), texture2D(ParticlesDepthSampler, texCoord).r, 1.0);
+    layers[2] = Layer(texture2D(PartialCompositeSampler, texCoord), vec4(0.0), min(min(texture2D(ItemEntityDepthSampler, texCoord).r, texture2D(WeatherDepthSampler, texCoord).r), texture2D(CloudsDepthSampler, texCoord).r), 0.0);
 
     for (int ii = 0; ii < NUM_LAYERS; ++ii) {
         layerIndices[ii] = ii;
@@ -50,21 +49,25 @@ void init_arrays() {
 void main() {
     init_arrays();
 
-    vec3 OutTexel = vec3(0.0);
+    float diffuseDepth = texture2D(DiffuseDepthSampler, texCoord).r;
+    vec3 OutTexel = texture2D(DiffuseSampler, texCoord).rgb;
     vec4 ColorTmp = vec4(0.0);
     vec4 SpecTmp  = vec4(0.0);
     for (int ii = 0; ii < NUM_LAYERS; ++ii) {
-        ColorTmp = layers[layerIndices[ii]].color;
-        SpecTmp  = layers[layerIndices[ii]].spec;
-        float op = layers[layerIndices[ii]].op;
-        if (op < 0.1) {
-            OutTexel = 1.0 * mix(OutTexel, ColorTmp.rgb, ColorTmp.a) +  0.01 * OutTexel * mix(vec3(1.0), ColorTmp.rgb / clamp(max(ColorTmp.r, max(ColorTmp.g, ColorTmp.b)), 0.3, 1.0), clamp(ColorTmp.a, 0.0, 1.0));
-        } else if (op < 0.6 && ColorTmp.a > 0.0) {
-            OutTexel = 0.5 * mix(OutTexel, ColorTmp.rgb, ColorTmp.a) +  0.5 * OutTexel * mix(vec3(1.0), ColorTmp.rgb / clamp(max(ColorTmp.r, max(ColorTmp.g, ColorTmp.b)), 0.1, 1.0), clamp(ColorTmp.a, 0.0, 1.0));
-            OutTexel = mix(OutTexel, SpecTmp.rgb, SpecTmp.a);
-        } 
-        else {
-            OutTexel = mix(OutTexel, ColorTmp.rgb, ColorTmp.a);
+        Layer currL = layers[layerIndices[ii]];
+        if (currL.depth < diffuseDepth) {
+            ColorTmp = currL.color;
+            SpecTmp  = currL.spec;
+            float op = currL.op;
+            if (op < 0.1) {
+                OutTexel = 1.0 * mix(OutTexel, ColorTmp.rgb, ColorTmp.a) +  0.01 * OutTexel * mix(vec3(1.0), ColorTmp.rgb / clamp(max(ColorTmp.r, max(ColorTmp.g, ColorTmp.b)), 0.3, 1.0), clamp(ColorTmp.a, 0.0, 1.0));
+            } else if (op < 0.6 && ColorTmp.a > 0.0) {
+                OutTexel = 0.5 * mix(OutTexel, ColorTmp.rgb, ColorTmp.a) +  0.5 * OutTexel * mix(vec3(1.0), ColorTmp.rgb / clamp(max(ColorTmp.r, max(ColorTmp.g, ColorTmp.b)), 0.1, 1.0), clamp(ColorTmp.a, 0.0, 1.0));
+                OutTexel = mix(OutTexel, SpecTmp.rgb, SpecTmp.a);
+            } 
+            else {
+                OutTexel = mix(OutTexel, ColorTmp.rgb, ColorTmp.a);
+            }
         }
     }
 

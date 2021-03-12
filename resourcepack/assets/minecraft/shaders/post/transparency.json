@@ -8,10 +8,26 @@
         "particles",
         "clouds",
         "weather",
-        "temporal",
-        { "name": "temporals", "width": 10, "height": 1, "bilinear": false }
+        { "name": "temporals1", "width": 16, "height": 1, "bilinear": false },
+        { "name": "temporals2", "width": 16, "height": 1, "bilinear": false }
     ],
     "passes": [
+        {
+            "name": "preprocess",
+            "intarget": "temporals1",
+            "outtarget": "temporals2",
+            "auxtargets": [
+                {
+                    "name": "ExposureSampler",
+                    "id": "ping"
+                }
+            ]
+        },
+        {
+            "name": "copy",
+            "intarget": "temporals2",
+            "outtarget": "temporals1"
+        },
         {
             "name": "composite0",
             "intarget": "minecraft:main",
@@ -62,20 +78,16 @@
         },
         {
             "name": "composite1",
-            "intarget": "minecraft:main",
+            "intarget": "translucent",
             "outtarget": "pang",
             "auxtargets": [
                 {
-                    "name": "DiffuseDepthSampler",
-                    "id": "minecraft:main:depth"
-                },
-                {
-                    "name": "TranslucentSampler",
-                    "id": "translucent"
-                },
-                {
                     "name": "TranslucentDepthSampler",
                     "id": "translucent:depth"
+                },
+                {
+                    "name": "DiffuseDepthSampler",
+                    "id": "minecraft:main:depth"
                 },
                 {
                     "name": "ItemEntitySampler",
@@ -174,8 +186,8 @@
             "outtarget": "ping",
             "auxtargets": [
                 {
-                    "name": "ExposureSampler",
-                    "id": "temporal"
+                    "name": "TemporalSampler",
+                    "id": "temporals1"
                 }
             ]
 
@@ -192,35 +204,9 @@
             "outtarget": "minecraft:main"
         },
         {
-            "name": "exposure",
+            "name": "blur",
             "intarget": "minecraft:main",
             "outtarget": "ping",
-            "auxtargets": [
-                {
-                    "name": "ExposureSampler",
-                    "id": "temporal"
-                }
-            ]
-        },
-        {
-            "name": "blur",
-            "intarget": "ping",
-            "outtarget": "pong",
-            "uniforms": [
-                {
-                    "name": "BlurDir",
-                    "values": [ 0.0, 1.0 ]
-                },
-                {
-                    "name": "Radius",
-                    "values": [ 20.0 ]
-                }
-            ]
-        },
-        {
-            "name": "blur",
-            "intarget": "pong",
-            "outtarget": "temporal",
             "uniforms": [
                 {
                     "name": "BlurDir",
@@ -228,7 +214,7 @@
                 },
                 {
                     "name": "Radius",
-                    "values": [ 20.0 ]
+                    "values": [ 10.0 ]
                 }
             ]
         }
