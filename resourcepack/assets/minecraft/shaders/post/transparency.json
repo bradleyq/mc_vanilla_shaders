@@ -20,6 +20,14 @@
                 {
                     "name": "ExposureSampler",
                     "id": "ping"
+                },
+                {
+                    "name": "SkySampler",
+                    "id": "minecraft:main"
+                },
+                {
+                    "name": "SkyDepthSampler",
+                    "id": "minecraft:main:depth"
                 }
             ]
         },
@@ -67,6 +75,10 @@
                 {
                     "name": "CloudsSampler",
                     "id": "ping"
+                },
+                {
+                    "name": "TemporalSampler",
+                    "id": "temporals1"
                 }
             ],
             "uniforms": [

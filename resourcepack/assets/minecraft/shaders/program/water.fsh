@@ -5,6 +5,7 @@ uniform sampler2D DiffuseDepthSampler;
 uniform sampler2D TranslucentSampler;
 uniform sampler2D TranslucentDepthSampler;
 uniform sampler2D TerrainCloudsSampler;
+uniform sampler2D TemporalSampler;
 
 varying vec2 texCoord;
 varying vec2 oneTexel;
@@ -16,7 +17,6 @@ varying mat4 gbPI;
 varying mat4 gbP;
 
 #define TAPS 16
-#define SKYTAPS 64
 #define SCATTER 0.004
 #define SSR_TAPS 3
 #define NORMRAD 5
@@ -186,18 +186,10 @@ void main() {
         float gdepth4 = LinearizeDepth(texture2D(DiffuseDepthSampler, texCoord - vec2(0.0, oneTexel.y)).r);
         float gdepth5 = LinearizeDepth(texture2D(DiffuseDepthSampler, texCoord - vec2(oneTexel.x, 0.0)).r);
         vec4 reflection = vec4(0.0);
-        vec4 sky = vec4(0.0);
-        float successes = 0.0001;
-        for (int i = SKYTAPS - 1; i > -1; i--) {
-            vec2 ctmp = (poissonDisk[i] + vec2(1.0, 3.0)) * vec2(0.5, 0.25);
-            float depth = texture2D(DiffuseDepthSampler, ctmp).r;
-            if (depth >= 1.0) {
-                successes += 1.0;
-                sky += vec4(texture2D(DiffuseSampler, ctmp).rgb, 1.0);
-            }
+        vec4 sky = texture2D(TemporalSampler, vec2(9.5 / 16.0, 0.5));
+        if (sky.r < 0.0) {
+            sky = texture2D(DiffuseSampler, vec2(9.5 / 16.0, 0.5));
         }
-
-        sky /= successes;
 
         vec2 reflectApprox = vec2(0.0);
 
@@ -229,7 +221,7 @@ void main() {
             }
         }
         reflection /= float(TAPS);
-        if (reflectApprox.y > 1.0 && sky.a > 0.0) {
+        if (reflectApprox.y > 1.0) {
             reflection = mix(reflection, sky, clamp((reflectApprox.y - 1.0) * 20.0, 0.0, 1.0));
         }
 
@@ -245,7 +237,6 @@ void main() {
 
         // color = vec4(mix(vec3(0.0), reflection, clamp(length(reflection) * max(luminance(reflection), 1.0) * fresnel, 0.0, 1.0)), mix(color.a, 1.0, pow(fresnel, 0.25) * clamp(luminance(reflection) - 2.5, 0.0, 1.0)));
         outColor = vec4(reflection.rgb, min(fresnel * lookfresnel, reflection.a));
-        // outColor = vec4(reflection, 1.0);
 
     }
 

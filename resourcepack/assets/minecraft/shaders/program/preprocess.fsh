@@ -2,6 +2,8 @@
 
 uniform sampler2D DiffuseSampler;
 uniform sampler2D ExposureSampler;
+uniform sampler2D SkySampler;
+uniform sampler2D SkyDepthSampler;
 
 varying vec2 texCoord;
 
@@ -9,9 +11,34 @@ float luminance(vec3 rgb) {
     return max(max(rgb.r, rgb.g), rgb.b);
 }
 
+int intmod(int i, int base) {
+    return i - (i / base * base);
+}
+
+vec3 encodeInt(int i) {
+    int r = intmod(i, 255);
+    i = i / 255;
+    int g = intmod(i, 255);
+    i = i / 255;
+    int b = intmod(i, 255);
+    return vec3(float(r) / 255.0, float(g) / 255.0, float(b) / 255.0);
+}
+
+int decodeInt(vec3 ivec) {
+    ivec *= 255.0;
+    int num = 0;
+    num += int(ivec.r);
+    num += int(ivec.g) * 255;
+    num += int(ivec.b) * 255 * 255;
+    return num;
+}
+
 #define EXPOSURE_SAMPLES 16
 #define EXPOSURE_RADIUS 0.25
-#define BIG_PRIME 7507
+#define EXPOSURE_BIG_PRIME 7507
+#define EXPOSURE_PRECISION 1000000
+
+#define SKYCOL_TAPS 64
 
 void main() {
     vec2 poissonDisk[64];
@@ -93,10 +120,34 @@ void main() {
         vec2 offset = offsets[index];
         float lum = 0.0;
         for (int i = 0; i < EXPOSURE_SAMPLES; i += 1) {
-            lum += luminance(texture2D(ExposureSampler, EXPOSURE_RADIUS * (offset + poissonDisk[i + int(mod(index * BIG_PRIME, 64))]) + vec2(0.5)).rgb);
+            lum += luminance(texture2D(ExposureSampler, EXPOSURE_RADIUS * (offset + poissonDisk[i + int(mod(index * EXPOSURE_BIG_PRIME, 64))]) + vec2(0.5)).rgb);
         }
 
         color = vec4(vec3(mix(color.r, lum / EXPOSURE_SAMPLES, 0.01)), 1.0);
+    } 
+    else if (texCoord.x > 10.0 / 16.0) {
+        float exposuretmp = texture2D(DiffuseSampler, vec2(11.5 / 16.0, 0.5)).r 
+                          + texture2D(DiffuseSampler, vec2(12.5 / 16.0, 0.5)).r 
+                          + texture2D(DiffuseSampler, vec2(13.5 / 16.0, 0.5)).r 
+                          + texture2D(DiffuseSampler, vec2(14.5 / 16.0, 0.5)).r 
+                          + texture2D(DiffuseSampler, vec2(15.5 / 16.0, 0.5)).r;
+        color = vec4(encodeInt(int(exposuretmp * 0.2 * EXPOSURE_PRECISION)), 1.0);
+    } 
+    else if (texCoord.x > 9.0 / 16.0) {
+        float successes = 0.0;
+        vec4 puresky = vec4(0.0);
+        vec4 anysky = vec4(0.0);
+        for (int i = SKYCOL_TAPS - 1; i > -1; i--) {
+            vec2 ctmp = (poissonDisk[i] + vec2(1.0, 3.0)) * vec2(0.5, 0.25);
+            float depth = texture2D(SkyDepthSampler, ctmp).r;
+            vec4 sample = vec4(texture2D(SkySampler, ctmp).rgb, 1.0);
+            anysky += sample;
+            if (depth >= 1.0) {
+                successes += 1.0;
+                puresky += sample;
+            }
+        }
+        color = vec4(mix(color.rgb, (successes < 0.01 ? anysky.rgb / SKYCOL_TAPS : puresky.rgb / successes), 0.05), 1.0);
     }
 
     gl_FragColor = color;
