@@ -1,25 +1,16 @@
-# Basic shaders for vanilla 1.16 DEV BRANCH!!!!!
+# Basic shaders for vanilla 1.16
 <img src="images/4.png" /> 
 
-## TIS HOT DEV BRANCH!!! STUFF MAY NOT WORK!!!
-CL:
-- clean up SSR code and tune parameters
-- multi sample SSR! cool reflection blur!!!!!
-- pseudo HDR reflections. Sun should now be bright in reflections!
-- vertical and sloped relfections support
-- view bobbing fix using screen space normals instead
-- specular channel
-- softer and brighter clouds
-- bug fixes
-
 ## Overview
-Basic shader that adds as much as possible from OptiFine shaders to the vanilla transparency shader available in "Fabulous" graphics setting. Due to limited material, light, time, and shadow information, most advanced features are not possible. A good number, however, are. I have ported them here. Most samples are from the BSL shader, however much of it is heavily modified to fit with the vanilla pipeline. Requires FOV 70 out of the box!
+Basic shader that adds as much as possible from OptiFine shaders to the vanilla transparency shader available in "Fabulous" graphics setting. Due to limited material, light, time, and shadow information, most advanced features are not possible. A good number, however, are. I have ported them here. Most samples are from the BSL shader, however much of it is heavily modified to fit with the vanilla pipeline. Supports FOV 30-140, distance 12-32. For best experience, use FOV 70 with render distance 16!
 
 ### Features
 - FXAA
 - Bloom
 - Adaptive exposure
+- Adaptive FOV
 - SSR + approximate
+- Inferred surface normals
 - Tonemapping
 - Multiplicative transparency blending
 
@@ -48,8 +39,7 @@ Basic shader that adds as much as possible from OptiFine shaders to the vanilla 
 </div>
 
 ## Usage
-See License.md for licensing. This pack requires FOV 70 with Fabulous graphics on. 
-FOV is adjustible from within `resourcepack/assets/minecraft/shaders/post/transparency.json`
+See License.md for licensing. This pack requires Fabulous graphics on. Supports FOV 30-140, distance 12-32. For best experience, use FOV 70 with render distance 16!
 
 ## Credits
 - **BSL shaders - capttatsu** for reference code for some of the features (SSR, Tonemapping).
