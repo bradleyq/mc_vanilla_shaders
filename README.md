@@ -1,4 +1,4 @@
-# Basic shaders for vanilla 1.16
+# Basic Shaders for Vanilla 1.16
 <img src="images/4.png" /> 
 
 ## Overview
