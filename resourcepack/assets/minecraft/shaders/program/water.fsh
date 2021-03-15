@@ -15,7 +15,7 @@ varying float aspectRatio;
 #define APPROX_TAPS 6
 #define APPROX_THRESH 0.5
 #define APPROX_SCATTER 0.01
-#define NORMAL_SCATTER 0.005
+#define NORMAL_SCATTER 0.004
 #define NORMRAD 5
 #define FOV_FIXEDPOINT 100.0
 
@@ -255,7 +255,7 @@ void main() {
         if (p2v && p3v) {
             float currH = decodeInt(texture2D(TranslucentHeightSampler, texCoord).rgb) / float(HEIGHTMAP_PRECISION);
             normal -= (normalize(p2) * (currH - decodeInt(texture2D(TranslucentHeightSampler, texCoord + vec2(0.0, oneTexel.y)).rgb) / float(HEIGHTMAP_PRECISION)) * HEIGHTMAP_SCALE
-                     + normalize(p3) * (currH - decodeInt(texture2D(TranslucentHeightSampler, texCoord + vec2(oneTexel.y, 0.0)).rgb) / float(HEIGHTMAP_PRECISION)) * HEIGHTMAP_SCALE) 
+                     + normalize(p3) * (currH - decodeInt(texture2D(TranslucentHeightSampler, texCoord + vec2(oneTexel.x, 0.0)).rgb) / float(HEIGHTMAP_PRECISION)) * HEIGHTMAP_SCALE * aspectRatio) 
                      * pow(1.0 - ldepth, HEIGHTMAP_DECAY) * pow(dot(normal, normalize(fragpos)), 0.25);
             normal = normalize(normal);
         }
