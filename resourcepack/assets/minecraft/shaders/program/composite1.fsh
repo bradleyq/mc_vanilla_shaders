@@ -1,7 +1,6 @@
 #version 120
 
 uniform sampler2D DiffuseSampler;
-uniform sampler2D TranslucentRSampler;
 uniform sampler2D DiffuseDepthSampler;
 uniform sampler2D TranslucentDepthSampler;
 uniform sampler2D ItemEntitySampler;
@@ -21,7 +20,7 @@ struct Layer {
     float op;
 };
 
-#define CLOUD_MULT vec4(1.25, 1.25, 1.25, 0.5)
+#define CLOUD_MULT vec4(1.25, 1.25, 1.25, 0.75)
 #define ALPHA_SCALE 0.2
 #define NUM_LAYERS 5
 

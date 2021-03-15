@@ -1,8 +1,9 @@
 {
     "targets": [
-        "ping",
-        "pong",
-        "pang",
+        "swap1",
+        "swap2",
+        "swap3",
+        "swap4",
         "translucent",
         "itemEntity",
         "particles",
@@ -13,13 +14,56 @@
     ],
     "passes": [
         {
+            "name": "fov_calc",
+            "intarget": "temporals1",
+            "outtarget": "swap2",
+            "auxtargets": [
+                {
+                    "name": "DiffuseDepthSampler",
+                    "id": "minecraft:main:depth"
+                }
+            ],
+            "uniforms": [
+                {
+                    "name":"Range",
+                    "values": [ 64.0 ]
+                }
+            ]
+        },
+        {
+            "name": "fov_calc1",
+            "intarget": "swap2",
+            "outtarget": "swap3",
+            "uniforms": [
+                {
+                    "name":"Tolerance",
+                    "values": [ 100.0 ]
+                },
+                {
+                    "name":"Reject",
+                    "values": [ 3.0 ]
+                }
+            ]
+        },
+        {
+            "name": "fov_calc2",
+            "intarget": "swap3",
+            "outtarget": "swap2",
+            "uniforms": [
+                {
+                    "name":"Tolerance",
+                    "values": [ 90000.0 ]
+                }
+            ]
+        },
+        {
             "name": "preprocess",
             "intarget": "temporals1",
             "outtarget": "temporals2",
             "auxtargets": [
                 {
                     "name": "ExposureSampler",
-                    "id": "ping"
+                    "id": "swap1"
                 },
                 {
                     "name": "SkySampler",
@@ -28,6 +72,16 @@
                 {
                     "name": "SkyDepthSampler",
                     "id": "minecraft:main:depth"
+                },
+                {
+                    "name": "FOVSampler",
+                    "id": "swap2"
+                }
+            ],
+            "uniforms": [
+                {
+                    "name":"FOVGuess",
+                    "values": [ 70.0 ]
                 }
             ]
         },
@@ -37,28 +91,56 @@
             "outtarget": "temporals1"
         },
         {
-            "name": "composite0",
-            "intarget": "minecraft:main",
-            "outtarget": "ping",
+            "name": "water_blur",
+            "intarget": "translucent",
+            "outtarget": "swap1",
+            "uniforms": [
+                {
+                    "name": "BlurDir",
+                    "values": [ 1.0, 0.0 ]
+                },
+                {
+                    "name": "BlurSize",
+                    "values": [ 0.01 ]
+                }
+            ]
+        },
+        {
+            "name": "water_blur",
+            "intarget": "swap1",
+            "outtarget": "swap2",
+            "uniforms": [
+                {
+                    "name": "BlurDir",
+                    "values": [ 0.0, 1.0 ]
+                },
+                {
+                    "name": "BlurSize",
+                    "values": [ 0.01 ]
+                }
+            ]
+        },
+        {
+            "name": "water_norm",
+            "intarget": "swap2",
+            "outtarget": "swap1",
             "auxtargets": [
                 {
                     "name": "DiffuseDepthSampler",
-                    "id": "minecraft:main:depth"
-                },
+                    "id": "translucent:depth"
+                }
+            ],
+            "uniforms": [
                 {
-                    "name": "CloudsSampler",
-                    "id": "clouds"
-                },
-                {
-                    "name": "CloudsDepthSampler",
-                    "id": "clouds:depth"
+                    "name": "BlurSize",
+                    "values": [ 4.0 ]
                 }
             ]
         },
         {
             "name": "water",
             "intarget": "minecraft:main",
-            "outtarget": "pong",
+            "outtarget": "swap2",
             "auxtargets": [
                 {
                     "name": "DiffuseDepthSampler",
@@ -73,25 +155,19 @@
                     "id": "translucent:depth"
                 },
                 {
-                    "name": "CloudsSampler",
-                    "id": "ping"
+                    "name": "TranslucentHeightSampler",
+                    "id": "swap1"
                 },
                 {
                     "name": "TemporalSampler",
                     "id": "temporals1"
-                }
-            ],
-            "uniforms": [
-                {
-                    "name": "FOV",
-                    "values": [ 70.0 ]
                 }
             ]
         },
         {
             "name": "composite1",
             "intarget": "translucent",
-            "outtarget": "pang",
+            "outtarget": "swap1",
             "auxtargets": [
                 {
                     "name": "TranslucentDepthSampler",
@@ -138,7 +214,7 @@
         {
             "name": "composite2",
             "intarget": "minecraft:main",
-            "outtarget": "ping",
+            "outtarget": "swap3",
             "auxtargets": [
                 {
                     "name": "DiffuseDepthSampler",
@@ -150,7 +226,7 @@
                 },
                 {
                     "name": "TranslucentSpecSampler",
-                    "id": "pong"
+                    "id": "swap2"
                 },
                 {
                     "name": "TranslucentDepthSampler",
@@ -166,7 +242,7 @@
                 },
                 {
                     "name": "PartialCompositeSampler",
-                    "id": "pang"
+                    "id": "swap1"
                 },
                 {
                     "name": "ItemEntityDepthSampler",
@@ -184,8 +260,8 @@
         },
         {
             "name": "fxaa",
-            "intarget": "ping",
-            "outtarget": "pong",
+            "intarget": "swap3",
+            "outtarget": "swap2",
             "uniforms": [
                 { "name": "SpanMax",       "type": "float",     "count": 1,  "values": [ 8.0 ] },
                 { "name": "SubPixelShift", "type": "float",     "count": 1,  "values": [ 0.25 ] },
@@ -194,8 +270,8 @@
         },
         {
             "name": "exposure_apply",
-            "intarget": "pong",
-            "outtarget": "ping",
+            "intarget": "swap2",
+            "outtarget": "swap1",
             "auxtargets": [
                 {
                     "name": "TemporalSampler",
@@ -206,19 +282,19 @@
         },
         {
             "name": "bloom",
-            "intarget": "ping",
-            "outtarget": "pong"
+            "intarget": "swap1",
+            "outtarget": "swap2"
 
         },
         {
             "name": "tonemap",
-            "intarget": "pong",
+            "intarget": "swap2",
             "outtarget": "minecraft:main"
         },
         {
             "name": "blur",
             "intarget": "minecraft:main",
-            "outtarget": "ping",
+            "outtarget": "swap1",
             "uniforms": [
                 {
                     "name": "BlurDir",
@@ -226,7 +302,7 @@
                 },
                 {
                     "name": "Radius",
-                    "values": [ 10.0 ]
+                    "values": [ 7.0 ]
                 }
             ]
         }

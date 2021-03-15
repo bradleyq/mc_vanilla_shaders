@@ -1,16 +1,21 @@
 #version 120
 
 uniform sampler2D DiffuseSampler;
-uniform sampler2D ExposureSampler;
-uniform sampler2D SkySampler;
-uniform sampler2D SkyDepthSampler;
-uniform sampler2D FOVSampler;
-uniform float FOVGuess;
+uniform sampler2D DiffuseDepthSampler;
+uniform float BlurSize;
 
 varying vec2 texCoord;
+varying vec2 oneTexel;
+varying float aspectRatio;
 
-float luminance(vec3 rgb) {
-    return max(max(rgb.r, rgb.g), rgb.b);
+#define near 0.00004882812 
+#define far 1.0
+#define HEIGHTMAP_TAPS 24
+#define HEIGHTMAP_PRECISION 1000000
+  
+float LinearizeDepth(float depth) 
+{
+    return (2.0 * near * far) / (far + near - depth * (far - near));    
 }
 
 int intmod(int i, int base) {
@@ -35,19 +40,8 @@ int decodeInt(vec3 ivec) {
     return num;
 }
 
-#define EXPOSURE_SAMPLES 16
-#define EXPOSURE_RADIUS 0.25
-#define EXPOSURE_BIG_PRIME 7507
-#define EXPOSURE_PRECISION 1000000
-
-#define SKYCOL_TAPS 64
-
-#define FOV_TAPS 32
-#define FIXEDPOINT 100.0
-#define MAXFOV 140.0 * FIXEDPOINT
-#define MINFOV 30.0 * FIXEDPOINT
-
 void main() {
+
     vec2 poissonDisk[64];
     poissonDisk[0] = vec2(-0.613392, 0.617481);
     poissonDisk[1] = vec2(0.170019, -0.040254);
@@ -114,74 +108,23 @@ void main() {
     poissonDisk[62] = vec2(-0.545396, 0.538133);
     poissonDisk[63] = vec2(-0.178564, -0.596057);
 
-    vec2 offsets[5];
-    offsets[0] = vec2(0.0, 0.0);
-    offsets[1] = vec2(1.0, 0.0);
-    offsets[2] = vec2(0.0, 1.0);
-    offsets[3] = vec2(-1.0, 0.0);
-    offsets[4] = vec2(0.0, -1.0);
+    vec4 outColor = texture2D(DiffuseSampler, texCoord);
+    if (outColor.a > 0.0) {
+        float height = min(length(outColor.rgb) * 0.69336127435, 1.0);
+        float radius = clamp(near / LinearizeDepth(texture2D(DiffuseDepthSampler, texCoord).r) * BlurSize, 0.0, 0.25);
+        float count = 1.0;
+        int iterations = int(min(radius / oneTexel.y, 8.0) / 8.0 * float(HEIGHTMAP_TAPS));
 
-    vec4 color = texture2D(DiffuseSampler, texCoord);
-    if (texCoord.x > 11.0 / 16.0) { // Exposure samples
-        if (color.a < 1.0) {
-            color = vec4(0.0, 0.0, 0.0, 1.0);
-        }
-
-        int index = int(texCoord.x * 16.0 + 1.0);
-        vec2 offset = offsets[index];
-        float lum = 0.0;
-        for (int i = 0; i < EXPOSURE_SAMPLES; i += 1) {
-            lum += luminance(texture2D(ExposureSampler, EXPOSURE_RADIUS * (offset + poissonDisk[i + int(mod(index * EXPOSURE_BIG_PRIME, 64))]) + vec2(0.5)).rgb);
-        }
-
-        color = vec4(vec3(mix(color.r, lum / EXPOSURE_SAMPLES, 0.01)), 1.0);
-    } 
-    else if (texCoord.x > 10.0 / 16.0) { // Exposure aggregate
-        float exposuretmp = texture2D(DiffuseSampler, vec2(11.5 / 16.0, 0.5)).r 
-                        + texture2D(DiffuseSampler, vec2(12.5 / 16.0, 0.5)).r 
-                        + texture2D(DiffuseSampler, vec2(13.5 / 16.0, 0.5)).r 
-                        + texture2D(DiffuseSampler, vec2(14.5 / 16.0, 0.5)).r 
-                        + texture2D(DiffuseSampler, vec2(15.5 / 16.0, 0.5)).r;
-        color = vec4(encodeInt(int(exposuretmp * 0.2 * EXPOSURE_PRECISION)), 1.0);
-    } 
-    else if (texCoord.x > 9.0 / 16.0) { // Sky color
-        float successes = 0.0;
-        vec4 puresky = vec4(0.0);
-        vec4 anysky = vec4(0.0);
-        for (int i = 0; i < SKYCOL_TAPS; i += 1) {
-            vec2 ctmp = (poissonDisk[i] + vec2(1.0, 3.0)) * vec2(0.5, 0.25);
-            float depth = texture2D(SkyDepthSampler, ctmp).r;
-            vec4 sample = vec4(texture2D(SkySampler, ctmp).rgb, 1.0);
-            anysky += sample;
-            if (depth >= 1.0) {
-                successes += 1.0;
-                puresky += sample;
+        for (int i = 0; i < iterations; i += 1) {
+            vec4 tmpColor = texture2D(DiffuseSampler, texCoord + poissonDisk[i] * radius * vec2(1.0 / aspectRatio, 1.0));
+            if (tmpColor.a > 0.0) {
+                height += min(length(tmpColor.rgb) * 0.69336127435, 1.0);
+                count += 1.0;
             }
         }
-        color = vec4(mix(color.rgb, (successes < 0.01 ? anysky.rgb / SKYCOL_TAPS : puresky.rgb / successes), 0.2), 1.0);
-    }
-    else if (texCoord.x < 1.0 / 16.0) { // FOV sampler
-        float curr = decodeInt(color.rgb);
-        if (curr < MINFOV || curr > MAXFOV) {
-            curr = FOVGuess * FIXEDPOINT;
-            color = vec4(encodeInt(int(curr)), 1.0);
-        }
-        float successes = 0.0;
-        float fov = 0.0;
-        for (int i = 0; i < FOV_TAPS; i += 1) {
-            vec2 ctmp = (poissonDisk[i] + vec2(1.0)) / 16.0;
-            vec4 sample = texture2D(FOVSampler, ctmp);
-            if (sample.a > 0.0) {
-                fov += decodeInt(sample.rgb);
-                successes += 1.0;
-            }
-        }
-
-        if (successes > 0.0) {
-            fov /= successes;
-            color = vec4(encodeInt(int(mix(curr, fov, 0.1))), 1.0);
-        }
+        height /= count;
+        outColor = vec4(encodeInt(int(height * HEIGHTMAP_PRECISION)), 1.0);
     }
 
-    gl_FragColor = color;
+    gl_FragColor = outColor;
 }

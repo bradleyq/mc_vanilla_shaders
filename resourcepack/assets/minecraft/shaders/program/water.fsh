@@ -4,26 +4,25 @@ uniform sampler2D DiffuseSampler;
 uniform sampler2D DiffuseDepthSampler;
 uniform sampler2D TranslucentSampler;
 uniform sampler2D TranslucentDepthSampler;
-uniform sampler2D TerrainCloudsSampler;
+uniform sampler2D TranslucentHeightSampler;
 uniform sampler2D TemporalSampler;
 
 varying vec2 texCoord;
 varying vec2 oneTexel;
 varying vec3 approxNormal;
 varying float aspectRatio;
-varying float cosFOVrad;
-varying float tanFOVrad;
-varying mat4 gbPI;
-varying mat4 gbP;
 
-#define TAPS 16
-#define SCATTER 0.004
-#define SSR_TAPS 3
+#define APPROX_TAPS 6
+#define APPROX_THRESH 0.5
+#define APPROX_SCATTER 0.01
+#define NORMAL_SCATTER 0.005
 #define NORMRAD 5
+#define FOV_FIXEDPOINT 100.0
 
 #define near 0.00004882812 
 #define far 1.0
 
+#define SSR_TAPS 3
 #define SSR_SAMPLES 30
 #define SSR_MAXREFINESAMPLES 5
 #define SSR_STEPSIZE 0.002
@@ -33,10 +32,36 @@ varying mat4 gbP;
 #define SSR_BLURR 0.005
 #define SSR_BLURTAPS 3
 #define SSR_BLURSAMPLEOFFSET 17
-  
+
+#define HEIGHTMAP_PRECISION 1000000
+#define HEIGHTMAP_SCALE 6.0
+#define HEIGHTMAP_DECAY 48.0
+
 float LinearizeDepth(float depth) 
 {
     return (2.0 * near * far) / (far + near - depth * (far - near));    
+}
+
+int intmod(int i, int base) {
+    return i - (i / base * base);
+}
+
+vec3 encodeInt(int i) {
+    int r = intmod(i, 255);
+    i = i / 255;
+    int g = intmod(i, 255);
+    i = i / 255;
+    int b = intmod(i, 255);
+    return vec3(float(r) / 255.0, float(g) / 255.0, float(b) / 255.0);
+}
+
+int decodeInt(vec3 ivec) {
+    ivec *= 255.0;
+    int num = 0;
+    num += int(ivec.r);
+    num += int(ivec.g) * 255;
+    num += int(ivec.b) * 255 * 255;
+    return num;
 }
 
 float ditherGradNoise() {
@@ -44,11 +69,10 @@ float ditherGradNoise() {
 }
 
 float luminance(vec3 rgb) {
-    float redness = clamp(dot(rgb, vec3(1.0, -0.25, -0.75)), 0.0, 1.0);
-    return ((1.0 - redness) * dot(rgb, vec3(0.2126, 0.7152, 0.0722)) + redness * 1.4) * 4.0;
+    return  dot(rgb, vec3(0.2126, 0.7152, 0.0722));
 }
 
-vec4 SSR(vec3 fragpos, float fragdepth, vec3 surfacenorm, vec4 skycol, vec4 approxreflection, vec2 randsamples[64]) {
+vec4 SSR(vec3 fragpos, float fragdepth, vec3 surfacenorm, vec4 skycol, vec4 approxreflection, vec2 randsamples[64], mat4 gbP) {
     vec3 rayStart   = fragpos.xyz;
     vec3 rayDir     = reflect(normalize(fragpos.xyz), vec3(surfacenorm.x, surfacenorm.y, surfacenorm.z));
     vec3 rayStep    = (SSR_STEPSIZE + SSR_STEPSIZE * 0.05 * (ditherGradNoise()-0.5)) * rayDir;
@@ -83,7 +107,7 @@ vec4 SSR(vec3 fragpos, float fragdepth, vec3 surfacenorm, vec4 skycol, vec4 appr
     }
     vec4 candidate = skycol;
     if (fragdepth < dtmp + SSR_IGNORETHRESH && pos.y <= 1.0) {
-        vec3 colortmp = texture2D(TerrainCloudsSampler, pos.xy).rgb;
+        vec3 colortmp = texture2D(DiffuseSampler, pos.xy).rgb;
         float count = 1.0;
         float dtmptmp = 0.0;
         vec2 postmp = vec2(0.0);
@@ -91,7 +115,12 @@ vec4 SSR(vec3 fragpos, float fragdepth, vec3 surfacenorm, vec4 skycol, vec4 appr
             postmp = pos.xy + randsamples[i + SSR_BLURSAMPLEOFFSET] * SSR_BLURR * vec2(1.0 / aspectRatio, 1.0);
             dtmptmp = LinearizeDepth(texture2D(DiffuseDepthSampler, postmp).r);
             if (abs(dtmp - dtmptmp) < SSR_IGNORETHRESH) {
-                colortmp += texture2D(TerrainCloudsSampler, postmp).rgb;
+                vec3 tmpcolortmp = texture2D(DiffuseSampler, postmp).rgb;
+                float tmplum = luminance(tmpcolortmp);
+                if (dtmptmp >= 0.999 && tmplum > 0.85) {
+                    tmpcolortmp *= 1.0 + (tmplum - 0.8) * 10.0;
+                }
+                colortmp += tmpcolortmp;
                 count += 1.0;
             }
         }
@@ -175,6 +204,20 @@ void main() {
     vec4 color = texture2D(TranslucentSampler, texCoord);
 
     if (color.a > 0.0) {
+
+        float FOVrad = float(decodeInt(texture2D(TemporalSampler, vec2(0.5 / 16.0, 0.5)).rgb)) / FOV_FIXEDPOINT / 360.0 * 3.1415926535;
+        float cosFOVrad = cos(FOVrad);
+        float tanFOVrad = tan(FOVrad);
+        mat4 gbPI = mat4(2.0 * tanFOVrad * aspectRatio, 0.0,             0.0, 0.0,
+                        0.0,                           2.0 * tanFOVrad, 0.0, 0.0,
+                        0.0,                           0.0,             0.0, 0.0,
+                        -tanFOVrad * aspectRatio,     -tanFOVrad,       1.0, 1.0);
+
+        mat4 gbP = mat4(1.0 / (2.0 * tanFOVrad * aspectRatio), 0.0,               0.0, 0.0,
+                        0.0,                             1.0 / (2.0 * tanFOVrad), 0.0, 0.0,
+                        0.5,                             0.5,                     1.0, 0.0,
+                        0.0,                             0.0,                     0.0, 1.0);
+
         float wdepth = texture2D(TranslucentDepthSampler, texCoord).r;
         float ldepth = LinearizeDepth(wdepth);
         float ldepth2 = LinearizeDepth(texture2D(TranslucentDepthSampler, texCoord + vec2(0.0, oneTexel.y)).r);
@@ -187,11 +230,7 @@ void main() {
         float gdepth5 = LinearizeDepth(texture2D(DiffuseDepthSampler, texCoord - vec2(oneTexel.x, 0.0)).r);
         vec4 reflection = vec4(0.0);
         vec4 sky = texture2D(TemporalSampler, vec2(9.5 / 16.0, 0.5));
-        if (sky.r < 0.0) {
-            sky = texture2D(DiffuseSampler, vec2(9.5 / 16.0, 0.5));
-        }
 
-        vec2 reflectApprox = vec2(0.0);
 
         vec3 fragpos = (gbPI * vec4(texCoord, ldepth, 1.0)).xyz;
         fragpos *= ldepth;
@@ -203,40 +242,55 @@ void main() {
         p4 = p4 * ldepth4 - fragpos;
         vec3 p5 = (gbPI * vec4(texCoord - vec2(oneTexel.x, 0.0), ldepth5, 1.0)).xyz;
         p5 = p5 * ldepth5 - fragpos;
-        vec3 normal = normalize(cross(p2, p3)) * float(ldepth2 < gdepth2 && ldepth3 < gdepth3) 
-                    + normalize(cross(-p4, p3)) * float(ldepth4 < gdepth4 && ldepth3 < gdepth3) 
-                    + normalize(cross(p2, -p5)) * float(ldepth2 < gdepth2 && ldepth5 < gdepth5) 
-                    + normalize(cross(-p4, -p5)) * float(ldepth4 < gdepth4 && ldepth5 < gdepth5);
+        bool p2v = ldepth2 < gdepth2;
+        bool p3v = ldepth3 < gdepth3;
+        bool p4v = ldepth4 < gdepth4;
+        bool p5v = ldepth5 < gdepth5;
+        vec3 normal = normalize(cross(p2, p3)) * float(p2v && p3v) 
+                    + normalize(cross(-p4, p3)) * float(p4v && p3v) 
+                    + normalize(cross(p2, -p5)) * float(p2v && p5v) 
+                    + normalize(cross(-p4, -p5)) * float(p4v && p5v);
         normal = normal == vec3(0.0) ? approxNormal : normalize(-normal);
+
+        if (p2v && p3v) {
+            float currH = decodeInt(texture2D(TranslucentHeightSampler, texCoord).rgb) / float(HEIGHTMAP_PRECISION);
+            normal -= (normalize(p2) * (currH - decodeInt(texture2D(TranslucentHeightSampler, texCoord + vec2(0.0, oneTexel.y)).rgb) / float(HEIGHTMAP_PRECISION)) * HEIGHTMAP_SCALE
+                     + normalize(p3) * (currH - decodeInt(texture2D(TranslucentHeightSampler, texCoord + vec2(oneTexel.y, 0.0)).rgb) / float(HEIGHTMAP_PRECISION)) * HEIGHTMAP_SCALE) 
+                     * pow(1.0 - ldepth, HEIGHTMAP_DECAY) * pow(dot(normal, normalize(fragpos)), 0.25);
+            normal = normalize(normal);
+        }
         
         float ndlsq = dot(normal, vec3(0.0, 0.0, 1.0));
         float horizon = clamp(ndlsq * 100000.0, -1.0, 1.0);
         ndlsq = ndlsq * ndlsq;
-        reflectApprox = vec2(texCoord.x, 0.9 - texCoord.y + horizon * pow(clamp(ndlsq / (1.0 - cosFOVrad * cosFOVrad), 0.0, 1.0), 0.5));
-        for (int i = 0; i < TAPS; i++) {
-            vec2 ratmp = clamp(reflectApprox + poissonDisk[i] * vec2(1.0 / aspectRatio, 1.0) * 0.01, vec2(0.0), vec2(1.0) - oneTexel / 2.0);
-            float tdepth = texture2D(DiffuseDepthSampler, ratmp).r;
-            if (tdepth > wdepth) {
-                reflection += vec4(texture2D(TerrainCloudsSampler, ratmp).rgb, 1.0);
+
+        if (abs(dot(normal, vec3(0.0, 1.0, 0.0))) > APPROX_THRESH) {
+            vec2 reflectApprox = vec2(texCoord.x, 0.92 - texCoord.y + horizon * pow(clamp(ndlsq / (1.0 - cosFOVrad * cosFOVrad), 0.0, 1.0), 0.5));
+            for (int i = 0; i < APPROX_TAPS; i++) {
+                vec2 ratmp = clamp(reflectApprox + poissonDisk[i] * vec2(1.0 / aspectRatio, 1.0) * APPROX_SCATTER, vec2(0.0), vec2(1.0) - oneTexel / 2.0);
+                float tdepth = texture2D(DiffuseDepthSampler, ratmp).r;
+                if (tdepth > wdepth) {
+                    reflection += vec4(texture2D(DiffuseSampler, ratmp).rgb, 1.0);
+                }
             }
-        }
-        reflection /= float(TAPS);
-        if (reflectApprox.y > 1.0) {
-            reflection = mix(reflection, sky, clamp((reflectApprox.y - 1.0) * 20.0, 0.0, 1.0));
+            reflection /= float(APPROX_TAPS);
+            if (reflectApprox.y > 1.0) {
+                reflection = mix(reflection, sky, clamp((reflectApprox.y - 1.0) * 20.0, 0.0, 1.0));
+            }
+        } else {
+            reflection = sky;
         }
 
         vec4 r = vec4(0.0);
         for (int i = 0; i < SSR_TAPS; i += 1) {
-            r += SSR(fragpos, ldepth, normalize(normal + SCATTER * (normalize(p2) * poissonDisk[i].x + normalize(p3) * poissonDisk[i].y)), sky, reflection, poissonDisk);
+            r += SSR(fragpos, ldepth, normalize(normal + NORMAL_SCATTER * (normalize(p2) * poissonDisk[i].x + normalize(p3) * poissonDisk[i].y)), sky, reflection, poissonDisk, gbP);
         }
         reflection = r / SSR_TAPS;
         
         float fresnel = exp(-35 * pow(dot(normalize(fragpos), normal), 2.0));
         float lookfresnel = clamp(exp(-25 * clamp(ndlsq * horizon, 0.0, 1.0) + 3.0), 0.0, 1.0);
-        // fresnel = clamp(exp((fresnel - 1.0) * (4.0 + clamp(exp(clamp(ndlsq * horizon - 0.05, 0.0, 1.0) * 2.0) - 1.0, 0.0, 1.0) * 25.0)), 0.0, 1.0);
-
-        // color = vec4(mix(vec3(0.0), reflection, clamp(length(reflection) * max(luminance(reflection), 1.0) * fresnel, 0.0, 1.0)), mix(color.a, 1.0, pow(fresnel, 0.25) * clamp(luminance(reflection) - 2.5, 0.0, 1.0)));
-        outColor = vec4(reflection.rgb, min(fresnel * lookfresnel, reflection.a));
+        float lum = luminance(reflection.rgb);
+        outColor = vec4(reflection.rgb, min(min(fresnel * lookfresnel * max(lum, 1.0), reflection.a), lum * 2.0));
 
     }
 

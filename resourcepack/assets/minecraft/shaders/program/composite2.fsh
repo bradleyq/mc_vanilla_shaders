@@ -60,7 +60,7 @@ void main() {
             SpecTmp  = currL.spec;
             float op = currL.op;
             if (op < 0.1) {
-                OutTexel = 1.0 * mix(OutTexel, ColorTmp.rgb, ColorTmp.a) +  0.01 * OutTexel * mix(vec3(1.0), ColorTmp.rgb / clamp(max(ColorTmp.r, max(ColorTmp.g, ColorTmp.b)), 0.3, 1.0), clamp(ColorTmp.a, 0.0, 1.0));
+                OutTexel = 0.75 * mix(OutTexel, ColorTmp.rgb, ColorTmp.a) +  0.25 * OutTexel * mix(vec3(1.0), ColorTmp.rgb / clamp(max(ColorTmp.r, max(ColorTmp.g, ColorTmp.b)), 0.3, 1.0), clamp(ColorTmp.a, 0.0, 1.0));
             } else if (op < 0.6 && ColorTmp.a > 0.0) {
                 OutTexel = 0.5 * mix(OutTexel, ColorTmp.rgb, ColorTmp.a) +  0.5 * OutTexel * mix(vec3(1.0), ColorTmp.rgb / clamp(max(ColorTmp.r, max(ColorTmp.g, ColorTmp.b)), 0.1, 1.0), clamp(ColorTmp.a, 0.0, 1.0));
                 OutTexel = mix(OutTexel, SpecTmp.rgb, SpecTmp.a);
