@@ -2,19 +2,16 @@
 
 in vec4 Position;
 
-uniform sampler2D DiffuseSampler;
 uniform mat4 ProjMat;
 uniform vec2 OutSize;
+uniform sampler2D DiffuseSampler;
 
 out vec2 texCoord;
 out vec2 oneTexel;
 out vec3 sunDir;
+out mat4 ProjInv;
 out float near;
 out float far;
-out float cosFOVsq;
-out float aspectRatio;
-out mat4 Proj;
-out mat4 ProjInv;
 
 // moj_import doesn't work in post-process shaders ;_; Felix pls fix
 #define FPRECISION 4000000.0
@@ -72,7 +69,7 @@ float decodeFloat(vec3 vec) {
 //     return (-float(sign) * 2.0 + 1.0) * float(mantissa)  * pow(2.0, float(exponent) - 31.0 - 17.0);
 // }
 
-void main(){
+void main() {
     vec4 outPos = ProjMat * vec4(Position.xy, 0.0, 1.0);
     gl_Position = vec4(outPos.xy, 0.2, 1.0);
     texCoord = Position.xy / OutSize;
@@ -95,16 +92,13 @@ void main(){
                             decodeFloat(texture(DiffuseSampler, start + 22.0 * inc).xyz), decodeFloat(texture(DiffuseSampler, start + 23.0 * inc).xyz), decodeFloat(texture(DiffuseSampler, start + 24.0 * inc).xyz), 0.0,
                             0.0, 0.0, 0.0, 1.0);
 
+    near = PROJNEAR;
+    far = ProjMat[3][2] * PROJNEAR / (ProjMat[3][2] + 2.0 * PROJNEAR);
+
     sunDir = normalize((inverse(ModeViewMat) * vec4(decodeFloat(texture(DiffuseSampler, start).xyz), 
                                                     decodeFloat(texture(DiffuseSampler, start + inc).xyz), 
                                                     decodeFloat(texture(DiffuseSampler, start + 2.0 * inc).xyz),
                                                     1.0)).xyz);
-    near = PROJNEAR;
-    far = ProjMat[3][2] * PROJNEAR / (ProjMat[3][2] + 2.0 * PROJNEAR);
-    aspectRatio = OutSize.x / OutSize.y;
-    cosFOVsq = ProjMat[1][1] * ProjMat[1][1];
-    cosFOVsq = cosFOVsq / (1 + cosFOVsq);
     
-    Proj = ProjMat * ModeViewMat;
-    ProjInv = inverse(Proj);
+    ProjInv = inverse(ProjMat * ModeViewMat);
 }

@@ -4,14 +4,12 @@
         "srcrgb": "one",
         "dstrgb": "zero"
     },
-    "vertex": "water",
-    "fragment": "water",
+    "vertex": "edge_smooth",
+    "fragment": "edge_smooth",
     "attributes": [ "Position" ],
     "samplers": [
         { "name": "DiffuseSampler" },
-        { "name": "DiffuseDepthSampler" },
-        { "name": "TranslucentSampler" },
-        { "name": "TranslucentDepthSampler" }
+        { "name": "DiffuseDepthSampler" }
     ],
     "uniforms": [
         { "name": "ProjMat",    "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },

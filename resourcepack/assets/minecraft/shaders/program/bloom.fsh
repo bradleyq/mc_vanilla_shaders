@@ -1,13 +1,19 @@
-#version 120
+#version 150
 
 uniform sampler2D DiffuseSampler;
 
-varying vec2 texCoord;
-varying float aspectRatio;
+in vec2 texCoord;
+in float aspectRatio;
 
-float luminance(vec3 rgb) {
-    float redness = clamp(dot(rgb, vec3(1.0, -0.3, -1.0)), 0.0, 1.0);
-    return (1.0 - redness) * dot(rgb, vec3(0.2126, 0.7152, 0.0722)) + redness * 1.4;
+out vec4 fragColor;
+
+float luma_skewed(vec3 color) {
+    float redness = clamp(dot(color, vec3(1.0, -0.3, -1.0)), 0.0, 1.0);
+    return (1.0 - redness) * dot(color, vec3(0.2126, 0.7152, 0.0722)) + redness * 1.4;
+}
+
+float luma(vec3 color){
+	return dot(color,vec3(0.299, 0.587, 0.114));
 }
 
 #define TAPS 64
@@ -90,12 +96,18 @@ void main() {
     float lumtmp = 0.0;
     for (int ii = 0; ii < TAPS; ++ii) {
         colortmp = texture2D(DiffuseSampler, texCoord + poissonDisk[ii] * tapScale).rgb;
-        lumtmp = luminance(colortmp);
-        bloomAccumulator += colortmp / clamp(exp((1.0 - lumtmp) * 5.0), 1.0, 100.0) * (1.0 - pow(length(poissonDisk[ii]), 4.0));
+        lumtmp = luma_skewed(colortmp);
+        bloomAccumulator += colortmp / clamp(exp((1.0 - lumtmp) * 6.0), 1.0, 1000.0) * (1.0 - pow(length(poissonDisk[ii]), 4.0));
+        //                                                         ^ thresh adjust 
     }
     bloomAccumulator /= float(TAPS);
-    bloomAccumulator *= 1.5;
-    //bloomAccumulator *= (0.75 - estimate_luminance());
+    bloomAccumulator *= 0.8;
+    //                  ^ strength adjust
 
-    gl_FragColor = vec4(OutTexel + bloomAccumulator, 1.0);
+    fragColor = vec4(OutTexel + bloomAccumulator, 1.0);
+
+    // desaturate bright pixels for more realistic feel
+    fragColor.rgb = mix(fragColor.rgb, vec3(length(fragColor.rgb)/sqrt(3.0)), clamp((luma(fragColor.rgb) - 0.8) * 2.5, 0.0, 1.0));
+
+
 }

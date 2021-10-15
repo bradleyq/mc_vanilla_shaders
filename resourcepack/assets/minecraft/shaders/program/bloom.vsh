@@ -1,12 +1,12 @@
-#version 120
+#version 150
 
-attribute vec4 Position;
+in vec4 Position;
 
 uniform mat4 ProjMat;
 uniform vec2 InSize;
 
-varying vec2 texCoord;
-varying float aspectRatio;
+out vec2 texCoord;
+out float aspectRatio;
 
 void main(){
     vec4 outPos = ProjMat * vec4(Position.xy, 0.0, 1.0);

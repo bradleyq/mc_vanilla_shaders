@@ -2,19 +2,13 @@
 
 in vec4 Position;
 
-uniform sampler2D DiffuseSampler;
 uniform mat4 ProjMat;
 uniform vec2 OutSize;
+uniform sampler2D DiffuseSampler;
 
 out vec2 texCoord;
-out vec2 oneTexel;
-out vec3 sunDir;
-out float near;
-out float far;
-out float cosFOVsq;
-out float aspectRatio;
-out mat4 Proj;
-out mat4 ProjInv;
+flat out vec2 oneTexel;
+flat out mat4 ProjInv;
 
 // moj_import doesn't work in post-process shaders ;_; Felix pls fix
 #define FPRECISION 4000000.0
@@ -72,7 +66,7 @@ float decodeFloat(vec3 vec) {
 //     return (-float(sign) * 2.0 + 1.0) * float(mantissa)  * pow(2.0, float(exponent) - 31.0 - 17.0);
 // }
 
-void main(){
+void main() {
     vec4 outPos = ProjMat * vec4(Position.xy, 0.0, 1.0);
     gl_Position = vec4(outPos.xy, 0.2, 1.0);
     texCoord = Position.xy / OutSize;
@@ -90,21 +84,11 @@ void main(){
                         decodeFloat(texture(DiffuseSampler, start + 9.0 * inc).xyz), decodeFloat(texture(DiffuseSampler, start + 10.0 * inc).xyz), decodeFloat(texture(DiffuseSampler, start + 11.0 * inc).xyz),  decodeFloat(texture(DiffuseSampler, start + 12.0 * inc).xyz),
                         decodeFloat(texture(DiffuseSampler, start + 13.0 * inc).xyz), decodeFloat(texture(DiffuseSampler, start + 14.0 * inc).xyz), decodeFloat(texture(DiffuseSampler, start + 15.0 * inc).xyz), 0.0);
 
-    mat4 ModeViewMat = mat4(decodeFloat(texture(DiffuseSampler, start + 16.0 * inc).xyz), decodeFloat(texture(DiffuseSampler, start + 17.0 * inc).xyz), decodeFloat(texture(DiffuseSampler, start + 18.0 * inc).xyz), 0.0,
-                            decodeFloat(texture(DiffuseSampler, start + 19.0 * inc).xyz), decodeFloat(texture(DiffuseSampler, start + 20.0 * inc).xyz), decodeFloat(texture(DiffuseSampler, start + 21.0 * inc).xyz), 0.0,
-                            decodeFloat(texture(DiffuseSampler, start + 22.0 * inc).xyz), decodeFloat(texture(DiffuseSampler, start + 23.0 * inc).xyz), decodeFloat(texture(DiffuseSampler, start + 24.0 * inc).xyz), 0.0,
-                            0.0, 0.0, 0.0, 1.0);
+    float near = PROJNEAR;
+    float far = round(ProjMat[3][2] * PROJNEAR / (ProjMat[3][2] + 2.0 * PROJNEAR) / 64.0) * 64.0;
 
-    sunDir = normalize((inverse(ModeViewMat) * vec4(decodeFloat(texture(DiffuseSampler, start).xyz), 
-                                                    decodeFloat(texture(DiffuseSampler, start + inc).xyz), 
-                                                    decodeFloat(texture(DiffuseSampler, start + 2.0 * inc).xyz),
-                                                    1.0)).xyz);
-    near = PROJNEAR;
-    far = ProjMat[3][2] * PROJNEAR / (ProjMat[3][2] + 2.0 * PROJNEAR);
-    aspectRatio = OutSize.x / OutSize.y;
-    cosFOVsq = ProjMat[1][1] * ProjMat[1][1];
-    cosFOVsq = cosFOVsq / (1 + cosFOVsq);
-    
-    Proj = ProjMat * ModeViewMat;
-    ProjInv = inverse(Proj);
+    ProjInv = inverse(transpose(mat4(ProjMat[0][0], 0.0, 0.0, 0.0,
+                           0.0, ProjMat[1][1], 0.0, 0.0,
+                           0.0, 0.0, -(far + near)/(far - near), -2.0 * far * near / (far - near),
+                           0.0, 0.0, -1.0, 0.0)));
 }
