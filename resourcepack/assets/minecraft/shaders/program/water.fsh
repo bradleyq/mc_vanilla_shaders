@@ -10,12 +10,22 @@ in vec2 oneTexel;
 in vec3 sunDir;
 in float near;
 in float far;
-in float aspectRatio;
+in float fogEnd;
 in float cosFOVsq;
+in float aspectRatio;
 in mat4 Proj;
 in mat4 ProjInv;
 
 out vec4 fragColor;
+
+vec4 linear_fog_real(vec4 inColor, float vertexDistance, float fogStart, float fogEnd, vec4 fogColor) {
+    if (vertexDistance <= fogStart) {
+        return inColor;
+    }
+
+    float fogValue = vertexDistance < fogEnd ? smoothstep(fogStart, fogEnd, vertexDistance) : 1.0;
+    return mix(inColor, fogColor, fogValue);
+}
 
 /*
 
@@ -61,7 +71,7 @@ float getMie(vec3 p, vec3 lp){
 	return disk*disk*(3.0 - 2.0 * disk) * 2.0 * pi;
 }
 
-vec3 getAtmosphericScattering(vec3 p, vec3 lp){
+vec3 getAtmosphericScattering(vec3 p, vec3 lp, bool fog){
 	float zenith = zenithDensity(p.y);
     float ly = lp.y < 0.0 ? lp.y * 0.3 : lp.y;
 	float sunPointDistMult =  clamp(length(max(ly + multiScatterPhase - zenithOffset, 0.0)), 0.0, 1.0);
@@ -71,11 +81,11 @@ vec3 getAtmosphericScattering(vec3 p, vec3 lp){
 	vec3 absorption = getSkyAbsorption(skyColor, zenith);
     vec3 sunAbsorption = getSkyAbsorption(skyColor, zenithDensity(ly + multiScatterPhase));
 	vec3 sky = skyColor * zenith * rayleighMult;
-	vec3 sun = getSunPoint(p, lp) * absorption;
 	vec3 mie = getMie(p, lp) * sunAbsorption;
+	if (!fog) mie += getSunPoint(p, lp) * absorption;
 	
 	vec3 totalSky = mix(sky * absorption, sky / (sky + 0.5), sunPointDistMult);
-         totalSky += sun + mie;
+         totalSky += mie;
 	     totalSky *= sunAbsorption * 0.5 + 0.5 * length(sunAbsorption);
 	
     totalSky = mix(totalSky, vec3(0.1, 0.15, 0.33), clamp(pow(-p.y + zenithOffset, 0.5), 0.0, 1.0));
@@ -93,6 +103,7 @@ vec3 jodieReinhardTonemap(vec3 c){
 #define APPROX_THRESH 0.5
 #define APPROX_SCATTER 0.01
 #define NORMAL_SCATTER 0.002
+#define NORMAL_SMOOTHING 5.0
 #define NORMRAD 5
 #define FOV_FIXEDPOINT 100.0
 
@@ -103,12 +114,11 @@ vec3 jodieReinhardTonemap(vec3 c){
 #define SSR_STEPREFINE 0.2
 #define SSR_STEPINCREASE 1.2
 #define SSR_IGNORETHRESH 0.1
-#define SSR_BLURR 0.005
+#define SSR_BLURR 0.01
 #define SSR_BLURTAPS 4
 #define SSR_BLURSAMPLEOFFSET 17
 
-float LinearizeDepth(float depth) 
-{
+float linearizeDepth(float depth) {
     return (2.0 * near * far) / (far + near - depth * (far - near));    
 }
 
@@ -132,13 +142,14 @@ vec4 SSR(vec3 fragpos, float fragdepth, vec3 surfacenorm, vec4 approxreflection,
     vec4 pos    = vec4(0.0);
     float edge  = 0.0;
     float dtmp  = 0.0;
+    float dist  = 0.0;
 
     for (int i = 0; i < SSR_SAMPLES; i += 1) {
         pos = Proj * vec4(rayPos.xyz, 1.0);
         pos.xyz /= pos.w;
         if (pos.x < -1.0 || pos.x > 1.0 || pos.y < -1.0 || pos.y > 1.0 || pos.z < 0.0 || pos.z > 1.0) break;
-        dtmp = LinearizeDepth(texture2D(DiffuseDepthSampler, 0.5 * pos.xy + vec2(0.5)).r);
-        float dist = abs(LinearizeDepth(pos.z) - dtmp);
+        dtmp = linearizeDepth(texture2D(DiffuseDepthSampler, 0.5 * pos.xy + vec2(0.5)).r);
+        dist = abs(linearizeDepth(pos.z) - dtmp);
 
         if (dtmp + SSR_IGNORETHRESH > fragdepth && dist < length(rayStep) * pow(length(rayRefine), 0.11) * 2.0) {
             refine++;
@@ -154,18 +165,24 @@ vec4 SSR(vec3 fragpos, float fragdepth, vec3 surfacenorm, vec4 approxreflection,
 
     }
 
-    vec3 skycol = getAtmosphericScattering(rayDir, sunDir) * pi;
+    vec3 skycol = getAtmosphericScattering(rayDir, sunDir, false) * pi;
     skycol = jodieReinhardTonemap(skycol);
     skycol = pow(skycol, vec3(2.2)); //Back to linear
     vec4 candidate = vec4(skycol, 1.0);
-    if (fragdepth < dtmp + SSR_IGNORETHRESH * 5.0 && pos.y <= 1.0 && LinearizeDepth(pos.z) < far / 3.0 * sqrt(3)) {
+    if (fragdepth < dtmp + SSR_IGNORETHRESH && pos.y <= 1.0 && dtmp < far * 0.5) {
         vec3 colortmp = texture2D(DiffuseSampler, 0.5 * pos.xy + vec2(0.5)).rgb;
+        rayDir.y = max(rayDir.y * 0.2, 0.0);
+        rayDir = normalize(rayDir);
+        vec3 fogcol = getAtmosphericScattering(rayDir, sunDir, true);
+        fogcol = jodieReinhardTonemap(fogcol);
+        fogcol = pow(fogcol, vec3(2.2)); //Back to linear
+        fogcol *= 1.3;
         float count = 1.0;
         float dtmptmp = 0.0;
         vec2 postmp = vec2(0.0);
         for (int i = 0; i < SSR_BLURTAPS; i += 1) {
             postmp = pos.xy + randsamples[i + SSR_BLURSAMPLEOFFSET] * SSR_BLURR * vec2(1.0 / aspectRatio, 1.0);
-            dtmptmp = LinearizeDepth(texture2D(DiffuseDepthSampler, 0.5 * postmp + vec2(0.5)).r);
+            dtmptmp = linearizeDepth(texture2D(DiffuseDepthSampler, 0.5 * postmp + vec2(0.5)).r);
             if (abs(dtmp - dtmptmp) < SSR_IGNORETHRESH) {
                 vec3 tmpcolortmp = texture2D(DiffuseSampler, 0.5 * postmp + vec2(0.5)).rgb;
                 colortmp += tmpcolortmp;
@@ -174,6 +191,7 @@ vec4 SSR(vec3 fragpos, float fragdepth, vec3 surfacenorm, vec4 approxreflection,
         }
         colortmp /= count;
         candidate = vec4(colortmp, 1.0);
+        candidate = linear_fog_real(candidate, clamp(abs(dtmp - fragdepth), fogEnd * 0.01, 2.25 * fogEnd), 0.0, 2.25 * fogEnd, vec4(fogcol, 1.0));
     }
     
     candidate = mix(candidate, vec4(skycol, 1.0), clamp(pow(max(abs(pos.x), abs(pos.y)), 8.0), 0.0, 1.0));
@@ -257,8 +275,8 @@ void main() {
     vec4 color = texture2D(TranslucentSampler, texCoord);
 
     if (color.a > 0.0) {
-        float wdepth = texture2D(TranslucentDepthSampler, texCoord).r;
-        float ldepth = (wdepth);
+        float ldepth = texture2D(TranslucentDepthSampler, texCoord).r;
+        float lineardepth = linearizeDepth(ldepth);
         float ldepth2 = (texture2D(TranslucentDepthSampler, texCoord + vec2(0.0, oneTexel.y)).r);
         float ldepth3 = (texture2D(TranslucentDepthSampler, texCoord + vec2(oneTexel.x, 0.0)).r);
         float ldepth4 = (texture2D(TranslucentDepthSampler, texCoord - vec2(0.0, oneTexel.y)).r);
@@ -267,10 +285,19 @@ void main() {
         float gdepth3 = (texture2D(DiffuseDepthSampler, texCoord + vec2(oneTexel.x, 0.0)).r);
         float gdepth4 = (texture2D(DiffuseDepthSampler, texCoord - vec2(0.0, oneTexel.y)).r);
         float gdepth5 = (texture2D(DiffuseDepthSampler, texCoord - vec2(oneTexel.x, 0.0)).r);
-        vec4 reflection = vec4(0.0);
+
+        float ldepth6 = (texture2D(TranslucentDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(0.0, oneTexel.y)).r);
+        float ldepth7 = (texture2D(TranslucentDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(oneTexel.x, 0.0)).r);
+        float ldepth8 = (texture2D(TranslucentDepthSampler, texCoord - NORMAL_SMOOTHING * vec2(0.0, oneTexel.y)).r);
+        float ldepth9 = (texture2D(TranslucentDepthSampler, texCoord - NORMAL_SMOOTHING * vec2(oneTexel.x, 0.0)).r);
+        float gdepth6 = (texture2D(DiffuseDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(0.0, oneTexel.y)).r);
+        float gdepth7 = (texture2D(DiffuseDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(oneTexel.x, 0.0)).r);
+        float gdepth8 = (texture2D(DiffuseDepthSampler, texCoord - NORMAL_SMOOTHING * vec2(0.0, oneTexel.y)).r);
+        float gdepth9 = (texture2D(DiffuseDepthSampler, texCoord - NORMAL_SMOOTHING * vec2(oneTexel.x, 0.0)).r);
 
         vec2 scaledCoord = 2.0 * (texCoord - vec2(0.5));
         vec3 fragpos = backProject(vec4(scaledCoord, ldepth, 1.0)).xyz;
+
         vec3 p2 = backProject(vec4(scaledCoord + 2.0 * vec2(0.0, oneTexel.y), ldepth2, 1.0)).xyz;
         p2 = p2 - fragpos;
         vec3 p3 = backProject(vec4(scaledCoord + 2.0 * vec2(oneTexel.x, 0.0), ldepth3, 1.0)).xyz;
@@ -279,38 +306,44 @@ void main() {
         p4 = p4 - fragpos;
         vec3 p5 = backProject(vec4(scaledCoord - 2.0 * vec2(oneTexel.x, 0.0), ldepth5, 1.0)).xyz;
         p5 = p5 - fragpos;
+
+        vec3 p6 = backProject(vec4(scaledCoord + 2.0 * NORMAL_SMOOTHING * vec2(0.0, oneTexel.y), ldepth6, 1.0)).xyz;
+        p6 = p6 - fragpos;
+        vec3 p7 = backProject(vec4(scaledCoord + 2.0 * NORMAL_SMOOTHING * vec2(oneTexel.x, 0.0), ldepth7, 1.0)).xyz;
+        p7 = p7 - fragpos;
+        vec3 p8 = backProject(vec4(scaledCoord - 2.0 * NORMAL_SMOOTHING * vec2(0.0, oneTexel.y), ldepth8, 1.0)).xyz;
+        p8 = p8 - fragpos;
+        vec3 p9 = backProject(vec4(scaledCoord - 2.0 * NORMAL_SMOOTHING * vec2(oneTexel.x, 0.0), ldepth9, 1.0)).xyz;
+        p9 = p9 - fragpos;
+
         bool p2v = ldepth2 < gdepth2;
         bool p3v = ldepth3 < gdepth3;
         bool p4v = ldepth4 < gdepth4;
         bool p5v = ldepth5 < gdepth5;
+
+        bool p6v = ldepth6 < gdepth6;
+        bool p7v = ldepth7 < gdepth7;
+        bool p8v = ldepth8 < gdepth8;
+        bool p9v = ldepth9 < gdepth9;
+
         vec3 normal = normalize(cross(p2, p3)) * float(p2v && p3v) 
                     + normalize(cross(-p4, p3)) * float(p4v && p3v) 
                     + normalize(cross(p2, -p5)) * float(p2v && p5v) 
                     + normalize(cross(-p4, -p5)) * float(p4v && p5v);
-        normal = normal == vec3(0.0) ? vec3(0.0, 1.0, 0.0) : normalize(-normal);
-        
-        // float horizon = clamp(ndlsq * 100000.0, -1.0, 1.0);
-        // ndlsq = ndlsq * ndlsq;
 
-        // if (abs(dot(normal, vec3(0.0, 1.0, 0.0))) > APPROX_THRESH) {
-        //     vec2 reflectApprox = vec2(texCoord.x, 0.92 - texCoord.y + horizon * pow(clamp(ndlsq / (1.0 - cosFOVsq), 0.0, 1.0), 0.5));
-        //     for (int i = 0; i < APPROX_TAPS; i++) {
-        //         vec2 ratmp = clamp(reflectApprox + poissonDisk[i] * vec2(1.0 / aspectRatio, 1.0) * APPROX_SCATTER, vec2(0.0), vec2(1.0) - oneTexel / 2.0);
-        //         float tdepth = texture2D(DiffuseDepthSampler, ratmp).r;
-        //         if (tdepth > wdepth) {
-        //             reflection += vec4(texture2D(DiffuseSampler, ratmp).rgb, 1.0);
-        //         }
-        //     }
-        //     reflection /= float(APPROX_TAPS);
-        //     if (reflectApprox.y > 1.0) {
-        //         reflection = mix(reflection, sky, clamp((reflectApprox.y - 1.0) * 20.0, 0.0, 1.0));
-        //     }
-        // } else {
-        // }
+        vec3 normalsmooth = normalize(cross(p6, p7)) * float(p6v && p7v) 
+                          + normalize(cross(-p8, p7)) * float(p8v && p7v) 
+                          + normalize(cross(p6, -p9)) * float(p6v && p9v) 
+                          + normalize(cross(-p8, -p9)) * float(p8v && p9v);
+
+        normal = normal == vec3(0.0) ? vec3(0.0, 1.0, 0.0) : normalize(-normal);
+        normal = normalsmooth == vec3(0.0) ? normal : mix(normalize(-normalsmooth), normal, clamp(lineardepth / (far / 4.0), 0.0, 1.0));
+        
+        vec4 reflection = vec4(0.0);
 
         vec4 r = vec4(0.0);
         for (int i = 0; i < SSR_TAPS; i += 1) {
-            r += SSR(fragpos, LinearizeDepth(ldepth), normalize(normal + NORMAL_SCATTER * (normalize(p2) * poissonDisk[i].x + normalize(p3) * poissonDisk[i].y)), reflection, poissonDisk);
+            r += SSR(fragpos, linearizeDepth(ldepth), normalize(normal + NORMAL_SCATTER * (normalize(p2) * poissonDisk[i].x + normalize(p3) * poissonDisk[i].y)), reflection, poissonDisk);
         }
         reflection = r / SSR_TAPS;
         
@@ -320,5 +353,5 @@ void main() {
     }
 
     fragColor = color;
-    fragColor.rgb += outColor.rgb * outColor.a;
+    fragColor.rgb = mix(fragColor.rgb, outColor.rgb, outColor.a);
 }

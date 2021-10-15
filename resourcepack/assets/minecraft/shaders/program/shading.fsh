@@ -101,8 +101,7 @@ float decodeFloat(vec3 vec) {
 #define NIGHTM vec3(1.1, 1.3, 1.4)
 #define SNAPRANGE 100.0
 
-float linearizeDepth(float depth) 
-{
+float linearizeDepth(float depth) {
     return (2.0 * near * far) / (far + near - depth * (far - near));    
 }
 
@@ -159,7 +158,7 @@ float getMie(vec3 p, vec3 lp){
 	return disk*disk*(3.0 - 2.0 * disk) * 2.0 * pi;
 }
 
-vec3 getAtmosphericScattering(vec3 p, vec3 lp){
+vec3 getAtmosphericScattering(vec3 p, vec3 lp, bool fog){
 	float zenith = zenithDensity(p.y);
     float ly = lp.y < 0.0 ? lp.y * 0.3 : lp.y;
 	float sunPointDistMult =  clamp(length(max(ly + multiScatterPhase - zenithOffset, 0.0)), 0.0, 1.0);
@@ -169,11 +168,11 @@ vec3 getAtmosphericScattering(vec3 p, vec3 lp){
 	vec3 absorption = getSkyAbsorption(skyColor, zenith);
     vec3 sunAbsorption = getSkyAbsorption(skyColor, zenithDensity(ly + multiScatterPhase));
 	vec3 sky = skyColor * zenith * rayleighMult;
-	vec3 sun = getSunPoint(p, lp) * absorption;
 	vec3 mie = getMie(p, lp) * sunAbsorption;
+	if (!fog) mie += getSunPoint(p, lp) * absorption;
 	
 	vec3 totalSky = mix(sky * absorption, sky / (sky + 0.5), sunPointDistMult);
-         totalSky += sun + mie;
+         totalSky += mie;
 	     totalSky *= sunAbsorption * 0.5 + 0.5 * length(sunAbsorption);
 	
     totalSky = mix(totalSky, vec3(0.1, 0.15, 0.33), clamp(pow(-p.y + zenithOffset, 0.5), 0.0, 1.0));
@@ -200,7 +199,7 @@ float PRNG(int seed) {
     return abs(fract(float(seed) / 3141.592653));
 }
 
-#define SAMPLES 32
+#define SAMPLES 64
 #define INTENSITY 3.0
 #define SCALE 2.5
 #define BIAS 0.1
@@ -351,7 +350,7 @@ void main() {
 
             vec2 scaledCoord = 2.0 * (texCoord - vec2(0.5));
             vec3 fragpos = normalize(backProject(vec4(scaledCoord, depth, 1.0)).xyz);
-            vec3 color = getAtmosphericScattering(fragpos, sunDir) * pi;
+            vec3 color = getAtmosphericScattering(fragpos, sunDir, false) * pi;
             color = jodieReinhardTonemap(color);
             color = pow(color, vec3(2.2)); //Back to linear
             color += vec3(PRNG(int(gl_FragCoord.x) + int(gl_FragCoord.y) * int(OutSize.x))) / 255.0;

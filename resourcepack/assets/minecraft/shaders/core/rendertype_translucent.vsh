@@ -37,9 +37,9 @@ void main() {
     float far = ProjMat[3][2] * PROJNEAR / (ProjMat[3][2] + 2.0 * PROJNEAR) / 3.0 * sqrt(3);
 
     if (abs(mod(Position.y, 1.0) - 14.2 / 16.0) < 0.001) {
-        a1 = sin((Position.z * PI / 4.0 + animation * 500)) * 1.0 * (1.0 - smoothstep(0.0, 1.0, vertexDistance / far));
-        a2 = cos((Position.z * PI / 8.0 + Position.x * PI / 4.0 + animation * 200) + PI / 13.0) * 1.2 * (1.0 - smoothstep(0.1, 0.4, vertexDistance / far));
-        a3 = sin((Position.z * PI / 8.0 - Position.x * PI / 2.0 - animation * 700) - PI / 7.0) * 0.75  * (1.0 - smoothstep(0.0, 0.3, vertexDistance / far));
+        a1 = sin((Position.z * PI / 4.0 + animation * 700)) * 1.0 * (1.0 - smoothstep(0.0, 1.0, vertexDistance / far));
+        a2 = cos((Position.z * PI / 8.0 + Position.x * PI / 4.0 + animation * 400) + PI / 13.0) * 1.2 * (1.0 - smoothstep(0.1, 0.4, vertexDistance / far));
+        a3 = sin((Position.z * PI / 8.0 - Position.x * PI / 2.0 - animation * 900) - PI / 7.0) * 0.75  * (1.0 - smoothstep(0.0, 0.3, vertexDistance / far));
         isWater = 1.0;
     }
 

@@ -11,6 +11,7 @@ out vec2 oneTexel;
 out vec3 sunDir;
 out float near;
 out float far;
+out float fogEnd;
 out float cosFOVsq;
 out float aspectRatio;
 out mat4 Proj;
@@ -107,4 +108,6 @@ void main(){
     
     Proj = ProjMat * ModeViewMat;
     ProjInv = inverse(Proj);
+
+    fogEnd = float(decodeInt(texture(DiffuseSampler, start + 26.0 * inc).xyz));
 }

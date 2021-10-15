@@ -95,10 +95,7 @@ void main() {
                             0.0, 0.0, 0.0, 1.0);
 
     near = PROJNEAR;
-    // vec4 distProbe = inverse(ProjMat) * vec4(0.0, 0.0, 1.0, 1.0);
-    // distProbe.xyz /= distProbe.w;
-    // far = round(length(distProbe.xyz) / 64.0) * 64.0;
-    far = ProjMat[3][2] * PROJNEAR / (ProjMat[2][2] + 2.0 * PROJNEAR);
+    far = ProjMat[3][2] * PROJNEAR / (ProjMat[3][2] + 2.0 * PROJNEAR);
 
     sunDir = normalize((inverse(ModeViewMat) * vec4(decodeFloat(texture(DiffuseSampler, start).xyz), 
                                                     decodeFloat(texture(DiffuseSampler, start + inc).xyz), 

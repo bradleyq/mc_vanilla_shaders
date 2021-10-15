@@ -57,6 +57,10 @@ vec4 getNotControl(sampler2D inSampler, vec2 coords, bool inctrl) {
     }
 }
 
+float linearizeDepth(float depth) {
+    return (2.0 * near * far) / (far + near - depth * (far - near));    
+}
+
 vec4 linear_fog_real(vec4 inColor, float vertexDistance, float fogStart, float fogEnd, vec4 fogColor) {
     if (vertexDistance <= fogStart) {
         return inColor;
@@ -76,12 +80,12 @@ void try_insert( vec4 color, vec4 fog, sampler2D dSampler, float op ) {
         return;
     }
 
-    float depth = 2.0 * (texture( dSampler, texCoord ).r - 0.5);
+    float depth = texture( dSampler, texCoord ).r;
 
     if (op < 0.5) {
-        color = linear_fog_real(color, length(backProject(vec4(scaledCoord, depth, 1.0)).xyz), fogEnd * 0.01, 1.4 * fogEnd, fog);
+        color = linear_fog_real(color, length(backProject(vec4(scaledCoord, depth, 1.0)).xyz), fogEnd * 0.01, 2.25 * fogEnd, fog);
     } else {
-        color = linear_fog_real(color, length(backProject(vec4(scaledCoord, depth, 1.0)).xyz), fogEnd * 0.01, fogEnd, vec4(fog.rgb, 0.0));
+        color = linear_fog_real(color, length(backProject(vec4(scaledCoord, depth, 1.0)).xyz), fogEnd * 0.01, 2.0 * fogEnd, vec4(fog.rgb, 0.0));
     }
 
     color_layers[active_layers] = color;
@@ -123,7 +127,7 @@ vec3 blend( vec3 dst, vec4 src ) {
 #define skyColor vec3(0.3, 0.53, 1.0) * (1.0 + anisotropicIntensity) //Make sure one of the conponents is never 0.0
 
 #define smooth(x) x*x*(3.0-2.0*x)
-#define zenithDensity(x) density / pow(max((x - zenithOffset) / (1.0 - zenithOffset), 0.35e-2), 0.75)
+#define zenithDensity(x) density / pow(max((x - zenithOffset) / (1.0 - zenithOffset), 0.008), 0.75)
 
 vec3 getSkyAbsorption(vec3 x, float y){
 	
@@ -131,6 +135,10 @@ vec3 getSkyAbsorption(vec3 x, float y){
 	     absorption = exp2(absorption) * 2.0;
 	
 	return absorption;
+}
+
+float getSunPoint(vec3 p, vec3 lp){
+	return smoothstep(0.04, 0.0, distance(p, lp)) * 30.0;
 }
 
 float getRayleigMultiplier(vec3 p, vec3 lp){
@@ -143,22 +151,24 @@ float getMie(vec3 p, vec3 lp){
 	return disk*disk*(3.0 - 2.0 * disk) * 2.0 * pi;
 }
 
-vec3 getAtmosphericScattering(vec3 p, vec3 lp){
-	p.y = max(p.y,0.0);
+vec3 getAtmosphericScattering(vec3 p, vec3 lp, bool fog){
 	float zenith = zenithDensity(p.y);
-	float sunPointDistMult =  clamp(length(max(lp.y + multiScatterPhase - zenithOffset, 0.0)), 0.0, 1.0);
+    float ly = lp.y < 0.0 ? lp.y * 0.3 : lp.y;
+	float sunPointDistMult =  clamp(length(max(ly + multiScatterPhase - zenithOffset, 0.0)), 0.0, 1.0);
 	
 	float rayleighMult = getRayleigMultiplier(p, lp);
 	
 	vec3 absorption = getSkyAbsorption(skyColor, zenith);
-    vec3 sunAbsorption = getSkyAbsorption(skyColor, zenithDensity(lp.y + multiScatterPhase));
+    vec3 sunAbsorption = getSkyAbsorption(skyColor, zenithDensity(ly + multiScatterPhase));
 	vec3 sky = skyColor * zenith * rayleighMult;
 	vec3 mie = getMie(p, lp) * sunAbsorption;
+    if (!fog) mie += getSunPoint(p, lp) * absorption;
 	
 	vec3 totalSky = mix(sky * absorption, sky / (sky + 0.5), sunPointDistMult);
          totalSky += mie;
 	     totalSky *= sunAbsorption * 0.5 + 0.5 * length(sunAbsorption);
 	
+    totalSky = mix(totalSky, vec3(0.1, 0.15, 0.33), clamp(pow(-p.y + zenithOffset, 0.5), 0.0, 1.0));
 	return totalSky;
 }
 
@@ -171,9 +181,9 @@ vec3 jodieReinhardTonemap(vec3 c){
 
 void main() {
     vec3 fragpos = backProject(vec4(scaledCoord, 1.0, 1.0)).xyz;
-    fragpos.y = fragpos.y * 0.2;
+    fragpos.y = max(fragpos.y * 0.2, 0.0);
     fragpos = normalize(fragpos);
-    vec3 color = getAtmosphericScattering(fragpos, sunDir);
+    vec3 color = getAtmosphericScattering(fragpos, sunDir, true);
     color = jodieReinhardTonemap(color);
     color = pow(color, vec3(2.2)); //Back to linear
     color *= 1.3;
@@ -187,10 +197,10 @@ void main() {
     }
 
     bool inctrl = inControl(texCoord * OutSize, OutSize.x) > -1;
-    depth_layers[0] = 2.0 * (getNotControl( DiffuseDepthSampler, texCoord, inctrl).r - 0.5);
+    depth_layers[0] = (getNotControl( DiffuseDepthSampler, texCoord, inctrl).r);
     color_layers[0] = vec4( getNotControl( DiffuseSampler, texCoord, inctrl).rgb, 1.0 );
     if (depth_layers[0] < 1.0) {
-        color_layers[0] = linear_fog_real(color_layers[0], length(backProject(vec4(scaledCoord, depth_layers[0], 1.0)).xyz), fogEnd * 0.01, 1.4 * fogEnd, calculatedFog);
+        color_layers[0] = linear_fog_real(color_layers[0], length(backProject(vec4(scaledCoord, depth_layers[0], 1.0)).xyz), fogEnd * 0.01, 2.25 * fogEnd, calculatedFog);
     }
     active_layers = 1;
 
