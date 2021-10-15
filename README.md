@@ -1,21 +1,18 @@
-# Basic shaders for vanilla 1.17 DEV BRANCH!!!!!
+# Shaders for vanilla 1.17 DEV BRANCH!!!!!
 <img src="images/4.png" /> 
 
 ## TIS HOT DEV BRANCH!!! STUFF MAY NOT WORK!!!
 CL:
+- rebased from directional light shader
+- water waves
+- SSAO
+- fake atmosphereic scattering
 
 ## Overview
-Basic shader that adds as much as possible from OptiFine shaders to the vanilla transparency shader available in "Fabulous" graphics setting. Due to limited material, light, time, and shadow information, most advanced features are not possible. A good number, however, are. I have ported them here. Most samples are from the BSL shader, however much of it is heavily modified to fit with the vanilla pipeline. Supports FOV 30-140, distance 12-32. For best experience, use FOV 70 with render distance 16!
+Basic shader that adds as much as possible from OptiFine shaders to the vanilla transparency shader available in "Fabulous" graphics setting. Due to limited material, light, time, and shadow information, most advanced features are not possible. A good number, however, are. I have ported them here. Most samples are from the BSL shader, however much of it is heavily modified to fit with the vanilla pipeline. Supports all FOV and render distances. For best experience, use FOV 70!
 
 ### Features
-- FXAA
-- Bloom
-- Adaptive exposure
-- Adaptive FOV
-- SSR + approximate
-- Inferred surface normals
-- Tonemapping
-- Multiplicative transparency blending
+- TBD
 
 ### Comparisons
 <div>
