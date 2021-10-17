@@ -27,13 +27,13 @@ void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position + ChunkOffset, 1.0);
     
     vertexDistance = length((ModelViewMat * vec4(Position + ChunkOffset, 1.0)).xyz);
-    vec4 col = Color;
-    if (Color.g > Color.b && Color.g > Color.r * 1.2) {
-        col = vec4(normalize(Color.rgb) * 220.0 / 255.0, 1.0);
-    } else if (Color.r == Color.g && Color.g == Color.b) {
-        col = vec4(1.0);
-    }
-    vertexColor = col * minecraft_sample_lightmap(Sampler2, UV2);
+    // vec4 col = vec4(1.0);
+    // if (Color.g > Color.b && Color.g > Color.r) {
+    //     col = vec4(normalize(Color.rgb) * 220.0 / 255.0, 1.0);
+    // } else if (Color.r == Color.g && Color.g == Color.b) {
+    //     col = vec4(1.0);
+    // }
+    vertexColor = minecraft_sample_lightmap(Sampler2, UV2);
     texCoord0 = UV0;
     texCoord2 = UV2 / 255.0;
     texCoord2.x *= 1.0 - getSun(Sampler2);

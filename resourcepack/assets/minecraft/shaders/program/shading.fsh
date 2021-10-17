@@ -264,8 +264,8 @@ void main() {
             vec2 normCoord = texCoord;
             float minEdge = decodeFloat(texture(EdgeSampler, normCoord).rgb);
             float tmpEdge;
-            int face = int(fragColor.a * 255.0) / 64;
-            float applyLight = clamp(mod(fragColor.a * 255.0, 64.0) / 63.0, 0.0, 1.0);
+            int face = int(fragColor.a * 255.0) % 4;
+            float applyLight = clamp(float(int(fragColor.a * 255.0) / 4) / 63.0, 0.0, 1.0);
             int tmpFace;
 
             vec2 candidates[8] = vec2[8](texCoord + vec2(-oneTexel.x, -oneTexel.y), texCoord + vec2(0.0, -oneTexel.y), 
@@ -275,7 +275,7 @@ void main() {
             
             for (int i = 0; i < 8; i += 1) {
                 tmpEdge = decodeFloat(texture(EdgeSampler, candidates[i]).rgb);
-                tmpFace = int(texture(DiffuseSampler, candidates[i]).a * 255.0) / 64;
+                tmpFace = int(texture(DiffuseSampler, candidates[i]).a * 255.0) % 4;
                 if (tmpEdge < minEdge && tmpFace == face) {
                     minEdge = tmpEdge;
                     normCoord = candidates[i];
@@ -343,6 +343,11 @@ void main() {
 
             // desaturate bright pixels for more realistic feel
             fragColor.rgb = mix(fragColor.rgb, vec3(length(fragColor.rgb)/sqrt(3.0)), luma(fragColor.rgb) * 0.5);
+
+            // fragColor.r = float(face == 0);
+            // fragColor.rgb = vec3(linearizeDepth(depth) / (far / 3.0));
+            // fragColor.rgb = 0.5 * (normal + vec3(1.0));
+            // fragColor.a = 1.0;
         } 
         // if sky do atmosphere
         else {

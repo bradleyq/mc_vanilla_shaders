@@ -28,8 +28,9 @@ void main() {
 
     vertexDistance = length((ModelViewMat * vec4(Position + ChunkOffset, 1.0)).xyz);
     vec4 col = Color;
-    if (Color.g > Color.b && Color.g > Color.r * 1.2) {
-        col = vec4(normalize(Color.rgb) * 220.0 / 255.0, 1.0);
+    if (Color.g > Color.b && Color.g > Color.r) {
+        vec3 swamp = vec3(106.0 / 255.0, 112.0 / 255.0, 57.0 / 255.0); // special handling to darken swamp colors
+        col = vec4(normalize(Color.rgb) * 210.0 / 255.0 * (1.0 - 0.9 * smoothstep(0.9, 1.0, swamp)), 1.0);
     } else if (Color.r == Color.g && Color.g == Color.b) {
         col = vec4(1.0);
     }

@@ -1,6 +1,7 @@
 #version 150
 
 #moj_import <light.glsl>
+#moj_import <utils_vsh.glsl>
 
 in vec3 Position;
 in vec4 Color;
@@ -23,17 +24,25 @@ out vec4 vertexColor;
 out vec4 lightMapColor;
 out vec4 overlayColor;
 out vec2 texCoord0;
-out vec4 normal;
+out vec2 texCoord2;
+out vec3 normal;
 out vec4 glpos;
 
 void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
 
     vertexDistance = length((ModelViewMat * vec4(Position, 1.0)).xyz);
-    vertexColor = minecraft_mix_light(Light0_Direction, Light1_Direction, Normal, Color);
-    lightMapColor = texelFetch(Sampler2, UV2 / 16, 0);
+    if (isGUI(ProjMat)) {
+        vertexColor = minecraft_mix_light(Light0_Direction, Light1_Direction, Normal, Color);
+        lightMapColor = texelFetch(Sampler2, UV2 / 16, 0);
+    } else {
+        vertexColor = Color;
+        lightMapColor = minecraft_sample_lightmap(Sampler2, UV2);
+    }
     overlayColor = texelFetch(Sampler1, UV1, 0);
     texCoord0 = UV0;
-    normal = ProjMat * ModelViewMat * vec4(Normal, 0.0);
+    texCoord2 = UV2 / 255.0;
+    texCoord2.x *= 1.0 - getSun(Sampler2);
+    normal = getInvWorldMat(Light0_Direction, Light1_Direction) * Normal; // will fail in nether but lighting is softer there
     glpos = gl_Position;
 }

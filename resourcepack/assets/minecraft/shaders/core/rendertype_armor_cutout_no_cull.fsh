@@ -15,7 +15,8 @@ in float vertexDistance;
 in vec4 vertexColor;
 in vec2 texCoord0;
 in vec2 texCoord1;
-in vec4 normal;
+in vec2 texCoord2;
+in vec3 normal;
 in vec4 glpos;
 
 out vec4 fragColor;
@@ -27,4 +28,5 @@ void main() {
         discard;
     }
     fragColor = linear_fog(color, vertexDistance, FogStart, FogEnd, FogColor);
+    fragColor.a = (round(max(smoothstep(5.0 / 15.0, 1.0, texCoord2.x), 1.0 - smoothstep(5.0 / 15.0, 12.0 / 15.0, texCoord2.y)) * 63.0) * 4.0 + getDirE(normal)) / 255.0;
 }

@@ -19,4 +19,5 @@ void main() {
     discardControlGLPos(gl_FragCoord.xy, glpos);
     vec4 color = texture(Sampler0, texCoord0) * vertexColor;
     fragColor = color * ColorModulator;
+    fragColor.a = (float(int(fragColor.a * 255.0) / 4 * 4)) / 255.0;
 }

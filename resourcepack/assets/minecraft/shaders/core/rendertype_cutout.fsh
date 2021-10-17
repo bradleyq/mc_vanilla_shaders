@@ -28,11 +28,5 @@ void main() {
         discard;
     }
     fragColor = linear_fog(color, vertexDistance, FogStart, FogEnd, FogColor);
-    float dir = 0.0;
-    if (abs(normal.x) > 0.999) {
-        dir = 1.0;
-    } else if (abs(normal.z) > 0.999) {
-        dir = 2.0;
-    }
-    fragColor.a = (round(max(smoothstep(5.0 / 15.0, 1.0, texCoord2.x), 1.0 - smoothstep(5.0 / 15.0, 12.0 / 15.0, texCoord2.y)) * 63.0) + dir * 64.0) / 255.0;
+    fragColor.a = (round(max(smoothstep(5.0 / 15.0, 1.0, texCoord2.x), 1.0 - smoothstep(5.0 / 15.0, 12.0 / 15.0, texCoord2.y)) * 63.0) * 4.0 + getDirB(normal)) / 255.0;
 }

@@ -28,8 +28,14 @@ in float fogEnd;
 #define NUMCONTROLS 27
 #define THRESH 0.5
 
+#define DEFAULT 0u
+#define FOGFADE 1u
+#define BLENDMULT 2u
+#define BLENDADD 4u
+
 vec4 color_layers[NUM_LAYERS];
 float depth_layers[NUM_LAYERS];
+uint op_layers[NUM_LAYERS];
 int index_layers[NUM_LAYERS] = int[NUM_LAYERS](0, 1 ,2, 3, 4, 5);
 int active_layers = 0;
 
@@ -75,21 +81,22 @@ vec4 backProject(vec4 vec) {
     return tmp / tmp.w;
 }
 
-void try_insert( vec4 color, vec4 fog, sampler2D dSampler, float op ) {
+void try_insert( vec4 color, vec4 fog, sampler2D dSampler, uint op ) {
     if ( color.a == 0.0 ) {
         return;
     }
 
     float depth = texture( dSampler, texCoord ).r;
 
-    if (op < 0.5) {
-        color = linear_fog_real(color, length(backProject(vec4(scaledCoord, depth, 1.0)).xyz), fogEnd * 0.01, 2.25 * fogEnd, fog);
-    } else {
+    if ((op & FOGFADE) > 0u) {
         color = linear_fog_real(color, length(backProject(vec4(scaledCoord, depth, 1.0)).xyz), fogEnd * 0.01, 2.0 * fogEnd, vec4(fog.rgb, 0.0));
+    } else {
+        color = linear_fog_real(color, length(backProject(vec4(scaledCoord, depth, 1.0)).xyz), fogEnd * 0.01, 2.25 * fogEnd, fog);
     }
 
     color_layers[active_layers] = color;
     depth_layers[active_layers] = depth;
+    op_layers[active_layers] = op;
 
     int jj = active_layers++;
     int ii = jj - 1;
@@ -105,6 +112,10 @@ void try_insert( vec4 color, vec4 fog, sampler2D dSampler, float op ) {
 vec3 blend( vec3 dst, vec4 src ) {
     return mix(dst.rgb, src.rgb, src.a);
     // return ( dst * ( 1.0 - src.a ) ) + src.rgb;
+}
+
+vec3 blendmult( vec3 dst, vec4 src) {
+    return dst * mix(vec3(1.0), src.rgb, src.a);
 }
 
 /*
@@ -181,7 +192,7 @@ vec3 jodieReinhardTonemap(vec3 c){
 
 void main() {
     vec3 fragpos = backProject(vec4(scaledCoord, 1.0, 1.0)).xyz;
-    fragpos.y = max(fragpos.y * 0.2, 0.0);
+    fragpos.y = abs(fragpos.y * 0.2);
     fragpos = normalize(fragpos);
     vec3 color = getAtmosphericScattering(fragpos, sunDir, true);
     color = jodieReinhardTonemap(color);
@@ -197,6 +208,7 @@ void main() {
     }
 
     bool inctrl = inControl(texCoord * OutSize, OutSize.x) > -1;
+    op_layers[0] = DEFAULT;
     depth_layers[0] = (getNotControl( DiffuseDepthSampler, texCoord, inctrl).r);
     color_layers[0] = vec4( getNotControl( DiffuseSampler, texCoord, inctrl).rgb, 1.0 );
     if (depth_layers[0] < 1.0) {
@@ -204,15 +216,19 @@ void main() {
     }
     active_layers = 1;
 
-    try_insert( texture( CloudsSampler, texCoord ), calculatedFog, CloudsDepthSampler, 1.0);
-    try_insert( texture( TranslucentSampler, texCoord ), calculatedFog, TranslucentDepthSampler, 0.0);
-    try_insert( texture( ParticlesSampler, texCoord ), calculatedFog, ParticlesDepthSampler, 0.0);
-    try_insert( texture( WeatherSampler, texCoord ), calculatedFog, WeatherDepthSampler, 1.0);
-    try_insert( texture( ItemEntitySampler, texCoord ), calculatedFog, ItemEntityDepthSampler, 0.0);
+    try_insert( texture( CloudsSampler, texCoord ), calculatedFog, CloudsDepthSampler, FOGFADE);
+    try_insert( texture( TranslucentSampler, texCoord ), calculatedFog, TranslucentDepthSampler, DEFAULT);
+    try_insert( texture( ParticlesSampler, texCoord ), calculatedFog, ParticlesDepthSampler, DEFAULT);
+    try_insert( texture( WeatherSampler, texCoord ), calculatedFog, WeatherDepthSampler, FOGFADE);
+    try_insert( texture( ItemEntitySampler, texCoord ), calculatedFog, ItemEntityDepthSampler, DEFAULT);
     
     vec3 texelAccum = color_layers[index_layers[0]].rgb;
     for ( int ii = 1; ii < active_layers; ++ii ) {
-        texelAccum = blend( texelAccum, color_layers[index_layers[ii]]);
+        if ((op_layers[index_layers[ii]] & BLENDMULT) > 0u) {
+            texelAccum = blendmult( texelAccum, color_layers[index_layers[ii]]);
+        } else {
+            texelAccum = blend( texelAccum, color_layers[index_layers[ii]]);
+        }
     }
 
     fragColor = vec4( texelAccum.rgb, 1.0 );
