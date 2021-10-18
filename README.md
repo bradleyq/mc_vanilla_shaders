@@ -9,6 +9,8 @@ CL:
 - fake atmosphereic scattering
 
 Known issues:
+- flat nether shading
+- end is broken
 - wacky item frame lighting
 - transparent items on pickup
 - cauldron water color
