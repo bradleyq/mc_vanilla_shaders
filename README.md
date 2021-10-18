@@ -8,6 +8,16 @@ CL:
 - SSAO
 - fake atmosphereic scattering
 
+Known issues:
+- wacky item frame lighting
+- transparent items on pickup
+- cauldron water color
+- block break animation bug out
+- banner doesnt use lightmap
+- rain sky during day
+- optifine #moj_import bug
+- drab lighthing at noon
+
 ## Overview
 Basic shader that adds as much as possible from OptiFine shaders to the vanilla transparency shader available in "Fabulous" graphics setting. Due to limited material, light, time, and shadow information, most advanced features are not possible. A good number, however, are. I have ported them here. Most samples are from the BSL shader, however much of it is heavily modified to fit with the vanilla pipeline. Supports all FOV and render distances. For best experience, use FOV 70!
 
