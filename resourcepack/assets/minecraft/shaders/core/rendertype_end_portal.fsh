@@ -61,5 +61,5 @@ void main() {
     for (int i = 0; i < EndPortalLayers; i++) {
         color += textureProj(Sampler1, texProj0 * end_portal_layer(float(i + 1))).rgb * COLORS[i];
     }
-    fragColor = vec4(color, 1.0);
+    fragColor = vec4(color, 1.0); // portal lighting not applied. No need to encode alpha here.
 }

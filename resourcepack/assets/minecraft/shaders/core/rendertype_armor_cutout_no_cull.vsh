@@ -35,6 +35,6 @@ void main() {
     texCoord1 = UV1;
     texCoord2 = UV2 / 255.0;
     texCoord2.x *= 1.0 - getSun(Sampler2);
-    normal = getInvWorldMat(Light0_Direction, Light1_Direction) * Normal;
+    normal = getInvWorldMat(Light0_Direction, Light1_Direction) * Normal; // will fail in nether but lighting is softer there
     glpos = gl_Position;
 }

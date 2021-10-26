@@ -30,7 +30,7 @@ void main() {
     vec4 col = Color;
     if (Color.g > Color.b && Color.g > Color.r) {
         vec3 swamp = vec3(106.0 / 255.0, 112.0 / 255.0, 57.0 / 255.0); // special handling to darken swamp colors
-        col = vec4(normalize(Color.rgb) * 210.0 / 255.0 * (1.0 - 0.9 * smoothstep(0.9, 1.0, swamp)), 1.0);
+        col = vec4(normalize(Color.rgb) * 210.0 / 255.0 * (1.0 - 0.2 * smoothstep(0.995, 1.0, dot(normalize(col.rgb), normalize(swamp)))), 1.0);
     } else if (Color.r == Color.g && Color.g == Color.b) {
         col = vec4(1.0);
     }

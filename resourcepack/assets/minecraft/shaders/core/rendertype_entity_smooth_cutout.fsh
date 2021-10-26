@@ -30,4 +30,5 @@ void main() {
     color.rgb = mix(overlayColor.rgb, color.rgb, overlayColor.a);
     color *= lightMapColor;
     fragColor = linear_fog(color, vertexDistance, FogStart, FogEnd, FogColor);
+    fragColor.a = float(int(fragColor.a * 255.0) / 4 * 4) / 255.0; // flag as emissive
 }

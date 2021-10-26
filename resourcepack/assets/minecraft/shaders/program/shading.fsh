@@ -345,6 +345,7 @@ void main() {
             fragColor.rgb = mix(fragColor.rgb, vec3(length(fragColor.rgb)/sqrt(3.0)), luma(fragColor.rgb) * 0.5);
 
             // fragColor.r = float(face == 0);
+            // fragColor.rgb = vec3(float(face) / 3.0);
             // fragColor.rgb = vec3(linearizeDepth(depth) / (far / 3.0));
             // fragColor.rgb = 0.5 * (normal + vec3(1.0));
             // fragColor.a = 1.0;

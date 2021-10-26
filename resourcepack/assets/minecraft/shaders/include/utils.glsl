@@ -103,7 +103,7 @@ int decodeInt(vec3 ivec) {
 }
 
 vec3 encodeFloat(float f) {
-    return encodeInt(int(f * FPRECISION));
+    return encodeInt(int(round(f * FPRECISION)));
 }
 
 float decodeFloat(vec3 vec) {

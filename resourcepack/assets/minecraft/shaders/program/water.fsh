@@ -136,9 +136,9 @@ float luminance(vec3 rgb) {
     return  dot(rgb, vec3(0.2126, 0.7152, 0.0722));
 }
 
-vec4 SSR(vec3 fragpos, float fragdepth, vec3 surfacenorm, vec4 approxreflection, vec2 randsamples[64]) {
-    vec3 rayStart   = fragpos.xyz;
-    vec3 rayDir     = reflect(normalize(fragpos.xyz), surfacenorm);
+vec4 SSR(vec3 fragpos, vec3 origin, float fragdepth, vec3 surfacenorm, vec4 approxreflection, vec2 randsamples[64]) {
+    vec3 rayStart   = fragpos;
+    vec3 rayDir     = reflect(normalize(fragpos - origin), surfacenorm);
     vec3 rayStep    = (SSR_STEPSIZE + SSR_STEPSIZE * 0.05 * (ditherGradNoise()-0.5)) * rayDir;
     vec3 rayPos     = rayStart + rayStep;
     vec3 rayPrevPos = rayStart;
@@ -354,7 +354,7 @@ void main() {
 
         vec4 r = vec4(0.0);
         for (int i = 0; i < SSR_TAPS; i += 1) {
-            r += SSR(fragpos, linearizeDepth(ldepth), normalize(normal + NORMAL_SCATTER * (normalize(p2) * poissonDisk[i].x + normalize(p3) * poissonDisk[i].y)), reflection, poissonDisk);
+            r += SSR(fragpos, backProject(vec4(0.0, 0.0, 0.0, 1.0)).xyz, linearizeDepth(ldepth), normalize(normal + NORMAL_SCATTER * (normalize(p2) * poissonDisk[i].x + normalize(p3) * poissonDisk[i].y)), reflection, poissonDisk);
         }
         reflection = r / SSR_TAPS;
         
@@ -366,6 +366,10 @@ void main() {
     fragColor = color;
     fragColor.rgb = mix(fragColor.rgb, outColor.rgb, outColor.a);
     // if (int(color.a * 255.0) % 2 == 0) {
+    //     fragColor.r = 1.0;
+    //     fragColor.a = 1.0;
+    // }
+    // if (abs(Proj[3][0] + 0.000000) < 0.000001) {
     //     fragColor.r = 1.0;
     //     fragColor.a = 1.0;
     // }

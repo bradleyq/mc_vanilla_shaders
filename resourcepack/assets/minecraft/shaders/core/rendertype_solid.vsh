@@ -20,10 +20,8 @@ out vec2 texCoord0;
 out vec2 texCoord2;
 out vec3 normal;
 out vec4 glpos;
-out float face;
 
 void main() {
-    face = float(int((gl_VertexID + 3) / 4));
     gl_Position = ProjMat * ModelViewMat * vec4(Position + ChunkOffset, 1.0);
     
     vertexDistance = length((ModelViewMat * vec4(Position + ChunkOffset, 1.0)).xyz);

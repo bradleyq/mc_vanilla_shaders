@@ -37,7 +37,7 @@ void main() {
     vertexDistance = length((ModelViewMat * vec4(Position + ChunkOffset, 1.0)).xyz);
     float far = ProjMat[3][2] * PROJNEAR / (ProjMat[3][2] + 2.0 * PROJNEAR) / 3.0 * sqrt(3);
     vec4 col = Color;
-    if (!(col.r == 1.0 && col.g == 1.0 && col.b == 1.0)) { 
+    if (!(col.r == col.g && col.g == col.b)) { 
         isWater = 1.0;
 
         // abs(mod(Position.y, 1.0) - 14.2 / 16.0) < 0.001) {
@@ -52,6 +52,18 @@ void main() {
     gl_Position = ProjMat * ModelViewMat * (vec4(position, 1.0) + vec4(0.0, (a1 + a2 + a3 + a4) / 64.0, 0.0, 0.0));
 
     vertexColor = col * minecraft_sample_lightmap(Sampler2, UV2);
+    // if (gl_VertexID / 4 % 4 == 0) {
+    //     vertexColor = vec4(1.0, 0.0, 0.0, 1.0);
+    // }
+    // if (gl_VertexID / 4 % 4 == 1) {
+    //     vertexColor = vec4(0.0, 1.0, 0.0, 1.0);
+    // }
+    // if (gl_VertexID / 4 % 4 == 2) {
+    //     vertexColor = vec4(0.0, 0.0, 1.0, 1.0);
+    // }
+    // if (gl_VertexID / 4 % 4 == 3) {
+    //     vertexColor = vec4(1.0, 0.0, 1.0, 1.0);
+    // }
     texCoord0 = UV0;
     normal = ProjMat * ModelViewMat * vec4(Normal, 0.0);
 }

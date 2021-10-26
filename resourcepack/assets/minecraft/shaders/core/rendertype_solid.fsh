@@ -16,7 +16,6 @@ in vec2 texCoord0;
 in vec2 texCoord2;
 in vec3 normal;
 in vec4 glpos;
-in float face;
 
 out vec4 fragColor;
 

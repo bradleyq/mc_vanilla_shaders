@@ -28,4 +28,5 @@ void main() {
         discard;
     }
     fragColor = linear_fog(color, vertexDistance, FogStart, FogEnd, FogColor);
+    // if (!isGUI(ProjMat)) fragColor.a *= 0.5; TODO: figure this shiet out
 }

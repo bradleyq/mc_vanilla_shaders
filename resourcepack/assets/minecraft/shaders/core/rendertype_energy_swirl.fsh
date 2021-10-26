@@ -22,4 +22,5 @@ void main() {
         discard;
     }
     fragColor = color * ColorModulator;
+    fragColor.a = float(int(fragColor.a * 255.0) / 4 * 4) / 255.0; // flag as emissive
 }
