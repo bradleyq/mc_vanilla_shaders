@@ -1,12 +1,12 @@
-#version 120
+#version 150
 
-attribute vec4 Position;
+in vec4 Position;
 
 uniform vec2 InSize;
 uniform vec2 OutSize;
 
-varying vec2 texCoord;
-varying vec2 oneTexel;
+out vec2 texCoord;
+out vec2 oneTexel;
 
 void main(){
     float x = -1.0; 

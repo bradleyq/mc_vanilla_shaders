@@ -1,4 +1,4 @@
-#version 120
+#version 150
 
 uniform sampler2D DiffuseSampler;
 uniform sampler2D ExposureSampler;
@@ -7,7 +7,9 @@ uniform sampler2D SkyDepthSampler;
 uniform sampler2D FOVSampler;
 uniform float FOVGuess;
 
-varying vec2 texCoord;
+in vec2 texCoord;
+
+out vec4 fragColor;
 
 float luminance(vec3 rgb) {
     return max(max(rgb.r, rgb.g), rgb.b);
@@ -121,7 +123,7 @@ void main() {
     offsets[3] = vec2(-1.0, 0.0);
     offsets[4] = vec2(0.0, -1.0);
 
-    vec4 color = texture2D(DiffuseSampler, texCoord);
+    vec4 color = texture(DiffuseSampler, texCoord);
     if (texCoord.x > 11.0 / 16.0) { // Exposure samples
         if (color.a < 1.0) {
             color = vec4(0.0, 0.0, 0.0, 1.0);
@@ -131,17 +133,17 @@ void main() {
         vec2 offset = offsets[index];
         float lum = 0.0;
         for (int i = 0; i < EXPOSURE_SAMPLES; i += 1) {
-            lum += luminance(texture2D(ExposureSampler, EXPOSURE_RADIUS * (offset + poissonDisk[i + int(mod(index * EXPOSURE_BIG_PRIME, 64))]) + vec2(0.5)).rgb);
+            lum += luminance(texture(ExposureSampler, EXPOSURE_RADIUS * (offset + poissonDisk[i + int(mod(index * EXPOSURE_BIG_PRIME, 64))]) + vec2(0.5)).rgb);
         }
 
         color = vec4(vec3(mix(color.r, lum / EXPOSURE_SAMPLES, 0.01)), 1.0);
     } 
     else if (texCoord.x > 10.0 / 16.0) { // Exposure aggregate
-        float exposuretmp = texture2D(DiffuseSampler, vec2(11.5 / 16.0, 0.5)).r 
-                        + texture2D(DiffuseSampler, vec2(12.5 / 16.0, 0.5)).r 
-                        + texture2D(DiffuseSampler, vec2(13.5 / 16.0, 0.5)).r 
-                        + texture2D(DiffuseSampler, vec2(14.5 / 16.0, 0.5)).r 
-                        + texture2D(DiffuseSampler, vec2(15.5 / 16.0, 0.5)).r;
+        float exposuretmp = texture(DiffuseSampler, vec2(11.5 / 16.0, 0.5)).r 
+                        + texture(DiffuseSampler, vec2(12.5 / 16.0, 0.5)).r 
+                        + texture(DiffuseSampler, vec2(13.5 / 16.0, 0.5)).r 
+                        + texture(DiffuseSampler, vec2(14.5 / 16.0, 0.5)).r 
+                        + texture(DiffuseSampler, vec2(15.5 / 16.0, 0.5)).r;
         color = vec4(encodeInt(int(exposuretmp * 0.2 * EXPOSURE_PRECISION)), 1.0);
     } 
     else if (texCoord.x > 9.0 / 16.0) { // Sky color
@@ -150,8 +152,8 @@ void main() {
         vec4 anysky = vec4(0.0);
         for (int i = 0; i < SKYCOL_TAPS; i += 1) {
             vec2 ctmp = (poissonDisk[i] + vec2(1.0, 3.0)) * vec2(0.5, 0.25);
-            float depth = texture2D(SkyDepthSampler, ctmp).r;
-            vec4 sample = vec4(texture2D(SkySampler, ctmp).rgb, 1.0);
+            float depth = texture(SkyDepthSampler, ctmp).r;
+            vec4 sample = vec4(texture(SkySampler, ctmp).rgb, 1.0);
             anysky += sample;
             if (depth >= 1.0) {
                 successes += 1.0;
@@ -170,7 +172,7 @@ void main() {
         float fov = 0.0;
         for (int i = 0; i < FOV_TAPS; i += 1) {
             vec2 ctmp = (poissonDisk[i] + vec2(1.0)) / 16.0;
-            vec4 sample = texture2D(FOVSampler, ctmp);
+            vec4 sample = texture(FOVSampler, ctmp);
             if (sample.a > 0.0) {
                 fov += decodeInt(sample.rgb);
                 successes += 1.0;
@@ -183,5 +185,5 @@ void main() {
         }
     }
 
-    gl_FragColor = color;
+    fragColor = color;
 }

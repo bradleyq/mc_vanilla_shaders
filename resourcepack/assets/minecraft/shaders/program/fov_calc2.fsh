@@ -1,11 +1,13 @@
-#version 120
+#version 150
 
 uniform sampler2D DiffuseSampler;
 uniform vec2 InSize;
 uniform float Tolerance;
 
-varying vec2 texCoord;
-varying vec2 oneTexel;
+in vec2 texCoord;
+in vec2 oneTexel;
+
+out vec4 fragColor;
 
 #define TAPS 16
 #define RADIUS 0.25
@@ -103,7 +105,7 @@ void main() {
     vec4 outColor = vec4(0.0);
     if (texCoord.x < 0.125 && texCoord.y < 0.125) {
         vec2 sampleCoord = texCoord * 2.0 - 0.5 * oneTexel;
-        vec4 sampleColor = texture2D(DiffuseSampler, sampleCoord);
+        vec4 sampleColor = texture(DiffuseSampler, sampleCoord);
         float realxbar = 0.0;
         float xbar = 0.0;
         float vari = 0.0;
@@ -115,7 +117,7 @@ void main() {
         }
         
         for (int i = 0; i < TAPS; i += 1) {
-            vec4 tmpv = texture2D(DiffuseSampler, abs(0.25 - abs(0.25 - sampleCoord + poissonDisk[i + OFFSET] * RADIUS)));
+            vec4 tmpv = texture(DiffuseSampler, abs(0.25 - abs(0.25 - sampleCoord + poissonDisk[i + OFFSET] * RADIUS)));
             if (tmpv.a > 0.0) { 
                 count += 1.0;
                 float xn = float(decodeInt(tmpv.rgb));
@@ -131,5 +133,5 @@ void main() {
         }
     }
 
-    gl_FragColor = outColor;
+    fragColor = outColor;
 }

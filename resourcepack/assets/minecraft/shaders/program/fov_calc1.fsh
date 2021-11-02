@@ -1,11 +1,13 @@
-#version 120
+#version 150
 
 uniform sampler2D DiffuseSampler;
 uniform float Tolerance;
 uniform float Reject;
 
-varying vec2 texCoord;
-varying vec2 oneTexel;
+in vec2 texCoord;
+in vec2 oneTexel;
+
+out vec4 fragColor;
 
 int intmod(int i, int base) {
     return i - (i / base * base);
@@ -33,33 +35,33 @@ void main() {
     vec4 outColor = vec4(0.0);
     if (texCoord.x < 0.25 && texCoord.y < 0.25) {
         vec2 scaledCoord = texCoord * 2.0 - 0.5 * oneTexel;
-        vec4 sampleColor = texture2D(DiffuseSampler, scaledCoord);
+        vec4 sampleColor = texture(DiffuseSampler, scaledCoord);
         if (sampleColor.a > 0.0) {
             float avg = 0.0;
             float count = 0.0;
             float tmp;
-            tmp = float(decodeInt(texture2D(DiffuseSampler, scaledCoord + vec2(1.0, 0.0) * oneTexel).rgb));
+            tmp = float(decodeInt(texture(DiffuseSampler, scaledCoord + vec2(1.0, 0.0) * oneTexel).rgb));
             avg += tmp;
             count += float(tmp > 0.0);
-            tmp = float(decodeInt(texture2D(DiffuseSampler, scaledCoord + vec2(1.0, 1.0) * oneTexel).rgb));
+            tmp = float(decodeInt(texture(DiffuseSampler, scaledCoord + vec2(1.0, 1.0) * oneTexel).rgb));
             avg += tmp;
             count += float(tmp > 0.0);
-            tmp = float(decodeInt(texture2D(DiffuseSampler, scaledCoord + vec2(0.0, 1.0) * oneTexel).rgb));
+            tmp = float(decodeInt(texture(DiffuseSampler, scaledCoord + vec2(0.0, 1.0) * oneTexel).rgb));
             avg += tmp;
             count += float(tmp > 0.0);
-            tmp = float(decodeInt(texture2D(DiffuseSampler, scaledCoord + vec2(-1.0, 1.0) * oneTexel).rgb));
+            tmp = float(decodeInt(texture(DiffuseSampler, scaledCoord + vec2(-1.0, 1.0) * oneTexel).rgb));
             avg += tmp;
             count += float(tmp > 0.0);
-            tmp = float(decodeInt(texture2D(DiffuseSampler, scaledCoord + vec2(-1.0, 0.0) * oneTexel).rgb));
+            tmp = float(decodeInt(texture(DiffuseSampler, scaledCoord + vec2(-1.0, 0.0) * oneTexel).rgb));
             avg += tmp;
             count += float(tmp > 0.0);
-            tmp = float(decodeInt(texture2D(DiffuseSampler, scaledCoord + vec2(-1.0, -1.0) * oneTexel).rgb));
+            tmp = float(decodeInt(texture(DiffuseSampler, scaledCoord + vec2(-1.0, -1.0) * oneTexel).rgb));
             avg += tmp;
             count += float(tmp > 0.0);
-            tmp = float(decodeInt(texture2D(DiffuseSampler, scaledCoord + vec2(0.0, -1.0) * oneTexel).rgb));
+            tmp = float(decodeInt(texture(DiffuseSampler, scaledCoord + vec2(0.0, -1.0) * oneTexel).rgb));
             avg += tmp;
             count += float(tmp > 0.0);
-            tmp = float(decodeInt(texture2D(DiffuseSampler, scaledCoord + vec2(1.0, -1.0) * oneTexel).rgb));
+            tmp = float(decodeInt(texture(DiffuseSampler, scaledCoord + vec2(1.0, -1.0) * oneTexel).rgb));
             avg += tmp;
             count += float(tmp > 0.0);
             if (count > Reject) {
@@ -73,5 +75,5 @@ void main() {
     }
     
 
-    gl_FragColor = outColor;
+    fragColor = outColor;
 }

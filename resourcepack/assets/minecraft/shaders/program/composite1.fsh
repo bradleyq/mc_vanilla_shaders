@@ -1,4 +1,4 @@
-#version 120
+#version 150
 
 uniform sampler2D DiffuseSampler;
 uniform sampler2D DiffuseDepthSampler;
@@ -12,7 +12,9 @@ uniform sampler2D WeatherDepthSampler;
 uniform sampler2D CloudsSampler;
 uniform sampler2D CloudsDepthSampler;
 
-varying vec2 texCoord;
+in vec2 texCoord;
+
+out vec4 fragColor;
 
 struct Layer {
     vec4 color;
@@ -28,11 +30,11 @@ Layer layers[NUM_LAYERS];
 int layerIndices[NUM_LAYERS];
 
 void init_arrays() {
-    layers[0] = Layer(texture2D(DiffuseSampler, texCoord), texture2D(TranslucentDepthSampler, texCoord).r, 0.0);
-    layers[1] = Layer(texture2D(ItemEntitySampler, texCoord), texture2D(ItemEntityDepthSampler, texCoord).r, 1.0);
-    layers[2] = Layer(texture2D(ParticlesSampler, texCoord), texture2D(ParticlesDepthSampler, texCoord).r, 0.0);
-    layers[3] = Layer(texture2D(WeatherSampler, texCoord), texture2D(WeatherDepthSampler, texCoord).r, 1.0);
-    layers[4] = Layer(texture2D(CloudsSampler, texCoord) * CLOUD_MULT, texture2D(CloudsDepthSampler, texCoord).r, 1.0);
+    layers[0] = Layer(texture(DiffuseSampler, texCoord), texture(TranslucentDepthSampler, texCoord).r, 0.0);
+    layers[1] = Layer(texture(ItemEntitySampler, texCoord), texture(ItemEntityDepthSampler, texCoord).r, 1.0);
+    layers[2] = Layer(texture(ParticlesSampler, texCoord), texture(ParticlesDepthSampler, texCoord).r, 0.0);
+    layers[3] = Layer(texture(WeatherSampler, texCoord), texture(WeatherDepthSampler, texCoord).r, 1.0);
+    layers[4] = Layer(texture(CloudsSampler, texCoord) * CLOUD_MULT, texture(CloudsDepthSampler, texCoord).r, 1.0);
 
     for (int ii = 0; ii < NUM_LAYERS; ++ii) {
         layerIndices[ii] = ii;
@@ -52,7 +54,7 @@ void init_arrays() {
 void main() {
     init_arrays();
 
-    float diffuseDepth = texture2D(DiffuseDepthSampler, texCoord).r;
+    float diffuseDepth = texture(DiffuseDepthSampler, texCoord).r;
     vec4 outColor = vec4(0.0);
     vec4 ColorTmp = vec4(0.0);
     float op = 0.0;
@@ -71,5 +73,5 @@ void main() {
         }
     }
     
-    gl_FragColor = outColor;
+    fragColor = outColor;
 }

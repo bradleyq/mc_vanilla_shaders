@@ -1,15 +1,17 @@
-#version 120
+#version 150
 
-attribute vec4 Position;
+in vec4 Position;
 
 uniform vec2 OutSize;
+uniform mat4 ProjMat;
+uniform mat4 ModelViewMat;
 
-varying vec2 texCoord;
-varying vec2 oneTexel;
-varying vec3 normal;
-varying vec3 tangent;
-varying vec3 bitangent;
-varying float aspectRatio;
+out vec2 texCoord;
+out vec2 oneTexel;
+out vec3 normal;
+out vec3 tangent;
+out vec3 bitangent;
+out float aspectRatio;
 
 void main(){
     float x = -1.0; 
@@ -22,9 +24,9 @@ void main(){
     }
     gl_Position = vec4(x, y, 0.2, 1.0);
     
-    normal = normalize(gl_NormalMatrix * normalize(vec3(0.0, 1.0, 0.0)));
-    tangent = normalize(gl_NormalMatrix * normalize(vec3(1.0, 0.0, 0.0)));
-    bitangent = normalize(gl_NormalMatrix * normalize(vec3(0.0, 0.0, 1.0)));
+    normal = normalize(transpose(inverse(mat3(ModelViewMat))) * vec3(0.0, 1.0, 0.0));
+    tangent = normalize(transpose(inverse(mat3(ModelViewMat))) * vec3(1.0, 0.0, 0.0));
+    bitangent = normalize(transpose(inverse(mat3(ModelViewMat))) * vec3(0.0, 0.0, 1.0));
 
     aspectRatio = OutSize.x / OutSize.y;
     oneTexel = 1.0 / OutSize;

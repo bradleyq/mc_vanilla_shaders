@@ -1,16 +1,18 @@
-#version 120
+#version 150
 
 uniform sampler2D DiffuseSampler;
 uniform sampler2D DiffuseDepthSampler;
 uniform vec2 OutSize;
 uniform float Range;
 
-varying vec2 texCoord;
-varying vec2 oneTexel;
-varying vec3 normal;
-varying vec3 tangent;
-varying vec3 bitangent;
-varying float aspectRatio;
+in vec2 texCoord;
+in vec2 oneTexel;
+in vec3 normal;
+in vec3 tangent;
+in vec3 bitangent;
+in float aspectRatio;
+
+out vec4 fragColor;
 
 #define BIGNEG -100000.0
 #define NEAR 0.1
@@ -55,10 +57,10 @@ float LinearizeDepth(float depth) {
 float depthLerp(sampler2D tex, vec2 coord) {
     vec2 resids = coord - floor(coord);
     coord = floor(coord) + 0.5;
-    float deptha = LinearizeDepth(texture2D(tex, (coord) * oneTexel).r);
-    float depthb = LinearizeDepth(texture2D(tex, (coord + vec2(1.0, 0.0)) * oneTexel).r);
-    float depthc = LinearizeDepth(texture2D(tex, (coord + vec2(0.0, 1.0)) * oneTexel).r);
-    float depthd = LinearizeDepth(texture2D(tex, (coord + vec2(1.0, 1.0)) * oneTexel).r);
+    float deptha = LinearizeDepth(texture(tex, (coord) * oneTexel).r);
+    float depthb = LinearizeDepth(texture(tex, (coord + vec2(1.0, 0.0)) * oneTexel).r);
+    float depthc = LinearizeDepth(texture(tex, (coord + vec2(0.0, 1.0)) * oneTexel).r);
+    float depthd = LinearizeDepth(texture(tex, (coord + vec2(1.0, 1.0)) * oneTexel).r);
 
     deptha = mix(deptha, depthb, resids.x);
     depthc = mix(depthc, depthd, resids.x);
@@ -81,14 +83,14 @@ void main() {
         projBitangent = normalize(projBitangent);
         float step = oneTexel.y * SAMPLESTEP;
 
-        float depthM = LinearizeDepth(texture2D(DiffuseDepthSampler, scaledCoord.xy).r);
-        float depth1 = LinearizeDepth(texture2D(DiffuseDepthSampler, scaledCoord.xy - vec2(0.0, step)).r);
-        float depth2 = LinearizeDepth(texture2D(DiffuseDepthSampler, scaledCoord.xy + vec2(0.0, step)).r);
+        float depthM = LinearizeDepth(texture(DiffuseDepthSampler, scaledCoord.xy).r);
+        float depth1 = LinearizeDepth(texture(DiffuseDepthSampler, scaledCoord.xy - vec2(0.0, step)).r);
+        float depth2 = LinearizeDepth(texture(DiffuseDepthSampler, scaledCoord.xy + vec2(0.0, step)).r);
         float depth3 = depthLerp(DiffuseDepthSampler, scaledCoord.xy * OutSize - 0.5 - projBitangent * SAMPLESTEP);
         float depth4 = depthLerp(DiffuseDepthSampler, scaledCoord.xy * OutSize - 0.5 + projBitangent * SAMPLESTEP);
         float depth5 = depthLerp(DiffuseDepthSampler, scaledCoord.xy * OutSize - 0.5 - projTangent * SAMPLESTEP);
         float depth6 = depthLerp(DiffuseDepthSampler, scaledCoord.xy * OutSize - 0.5 + projTangent * SAMPLESTEP);
-        float depthV1 = LinearizeDepth(texture2D(DiffuseDepthSampler, scaledCoord.xy + vec2(oneTexel.y, 0)).r);
+        float depthV1 = LinearizeDepth(texture(DiffuseDepthSampler, scaledCoord.xy + vec2(oneTexel.y, 0)).r);
         float depthV2 = depthLerp(DiffuseDepthSampler, scaledCoord.xy * OutSize - 0.5 + vec2(projBitangent.y, -projBitangent.x));
         float depthV3 = depthLerp(DiffuseDepthSampler, scaledCoord.xy * OutSize - 0.5 + vec2(projTangent.y, -projTangent.x));
 
@@ -146,7 +148,7 @@ void main() {
                 }
             }
 
-            float oldFov = clamp(float(decodeInt(texture2D(DiffuseSampler, vec2(0.5 / 16.0, 0.5)).rgb)), MINFOV, MAXFOV);
+            float oldFov = clamp(float(decodeInt(texture(DiffuseSampler, vec2(0.5 / 16.0, 0.5)).rgb)), MINFOV, MAXFOV);
 
             float fov = fov1;
             float tbn = 3.0;
@@ -166,5 +168,5 @@ void main() {
     }
 
     
-    gl_FragColor = outColor;
+    fragColor = outColor;
 }

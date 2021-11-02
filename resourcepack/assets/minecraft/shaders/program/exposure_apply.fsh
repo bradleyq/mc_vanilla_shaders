@@ -1,9 +1,11 @@
-#version 120
+#version 150
 
 uniform sampler2D DiffuseSampler;
 uniform sampler2D TemporalSampler;
 
-varying vec2 texCoord;
+in vec2 texCoord;
+
+out vec4 fragColor;
 
 int intmod(int i, int base) {
     return i - (i / base * base);
@@ -30,11 +32,11 @@ int decodeInt(vec3 ivec) {
 #define EXPOSURE_PRECISION 1000000
 
 void main() {
-    vec4 OutTexel = texture2D(DiffuseSampler, texCoord);
-    float exposure = decodeInt(texture2D(TemporalSampler, vec2(10.5 / 16.0, 0.5)).rgb) / float(EXPOSURE_PRECISION);
+    vec4 OutTexel = texture(DiffuseSampler, texCoord);
+    float exposure = decodeInt(texture(TemporalSampler, vec2(10.5 / 16.0, 0.5)).rgb) / float(EXPOSURE_PRECISION);
 
-    OutTexel.rgb /= 2.0 * clamp(exposure,0.2,1.0);
+    OutTexel.rgb /= (2.0 * (clamp(exposure,0.5,1.0) + 0.1));
     OutTexel.rgb = mix(OutTexel.rgb, vec3((OutTexel.r + OutTexel.g + OutTexel.b) / 3.0), clamp(length(OutTexel.rgb) - 0.73205080757, 0.0, 1.0));
 
-    gl_FragColor = OutTexel;
+    fragColor = OutTexel;
 }

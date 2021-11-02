@@ -1,9 +1,11 @@
-#version 120
+#version 150
 
 uniform sampler2D DiffuseSampler;
 
-varying vec2 texCoord;
-varying float aspectRatio;
+in vec2 texCoord;
+in float aspectRatio;
+
+out vec4 fragColor;
 
 float luminance(vec3 rgb) {
     float redness = clamp(dot(rgb, vec3(1.0, -0.3, -1.0)), 0.0, 1.0);
@@ -81,15 +83,15 @@ void main() {
     poissonDisk[62] = vec2(-0.545396, 0.538133);
     poissonDisk[63] = vec2(-0.178564, -0.596057);
 
-    vec3 OutTexel = texture2D(DiffuseSampler, texCoord).rgb;
+    vec3 OutTexel = texture(DiffuseSampler, texCoord).rgb;
     
-    vec2 tapScale = vec2(AMT / aspectRatio, AMT); // Fixed step for varying resolutions
+    vec2 tapScale = vec2(AMT / aspectRatio, AMT); // Fixed step for in resolutions
 
     vec3 bloomAccumulator = vec3(0.0);
     vec3 colortmp = vec3(0.0);
     float lumtmp = 0.0;
     for (int ii = 0; ii < TAPS; ++ii) {
-        colortmp = texture2D(DiffuseSampler, texCoord + poissonDisk[ii] * tapScale).rgb;
+        colortmp = texture(DiffuseSampler, texCoord + poissonDisk[ii] * tapScale).rgb;
         lumtmp = luminance(colortmp);
         bloomAccumulator += colortmp / clamp(exp((1.0 - lumtmp) * 5.0), 1.0, 100.0) * (1.0 - pow(length(poissonDisk[ii]), 4.0));
     }
@@ -97,5 +99,5 @@ void main() {
     bloomAccumulator *= 1.5;
     //bloomAccumulator *= (0.75 - estimate_luminance());
 
-    gl_FragColor = vec4(OutTexel + bloomAccumulator, 1.0);
+    fragColor = vec4(OutTexel + bloomAccumulator, 1.0);
 }

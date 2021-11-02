@@ -1,4 +1,4 @@
-#version 120
+#version 150
 
 uniform sampler2D DiffuseSampler;
 uniform sampler2D DiffuseDepthSampler;
@@ -7,10 +7,12 @@ uniform sampler2D TranslucentDepthSampler;
 uniform sampler2D TranslucentHeightSampler;
 uniform sampler2D TemporalSampler;
 
-varying vec2 texCoord;
-varying vec2 oneTexel;
-varying vec3 approxNormal;
-varying float aspectRatio;
+in vec2 texCoord;
+in vec2 oneTexel;
+in vec3 approxNormal;
+in float aspectRatio;
+
+out vec4 fragColor;
 
 #define APPROX_TAPS 6
 #define APPROX_THRESH 0.5
@@ -39,7 +41,7 @@ varying float aspectRatio;
 
 float LinearizeDepth(float depth) 
 {
-    return (2.0 * near * far) / (far + near - depth * (far - near));    
+    return (2.0 * near * far) / (far + near - depth * (far - near));
 }
 
 int intmod(int i, int base) {
@@ -89,7 +91,7 @@ vec4 SSR(vec3 fragpos, float fragdepth, vec3 surfacenorm, vec4 skycol, vec4 appr
         pos = (gbP * vec4(rayPos.xyz, 1.0)).xyz;
         pos.xy /= rayPos.z;
         if (pos.x < -1.0 || pos.x > 1.0 || pos.y < -1.0 || pos.y > 1.0 || pos.z < 0.0 || pos.z > 1.0) break;
-        dtmp = LinearizeDepth(texture2D(DiffuseDepthSampler, pos.xy).r);
+        dtmp = LinearizeDepth(texture(DiffuseDepthSampler, pos.xy).r);
         float dist = abs(rayPos.z - dtmp);
 
         if (dtmp + SSR_IGNORETHRESH > fragdepth && dist < length(rayStep) * pow(length(rayRefine), 0.11) * 2.0) {
@@ -107,15 +109,15 @@ vec4 SSR(vec3 fragpos, float fragdepth, vec3 surfacenorm, vec4 skycol, vec4 appr
     }
     vec4 candidate = skycol;
     if (fragdepth < dtmp + SSR_IGNORETHRESH && pos.y <= 1.0) {
-        vec3 colortmp = texture2D(DiffuseSampler, pos.xy).rgb;
+        vec3 colortmp = texture(DiffuseSampler, pos.xy).rgb;
         float count = 1.0;
         float dtmptmp = 0.0;
         vec2 postmp = vec2(0.0);
         for (int i = 0; i < SSR_BLURTAPS; i += 1) {
             postmp = pos.xy + randsamples[i + SSR_BLURSAMPLEOFFSET] * SSR_BLURR * vec2(1.0 / aspectRatio, 1.0);
-            dtmptmp = LinearizeDepth(texture2D(DiffuseDepthSampler, postmp).r);
+            dtmptmp = LinearizeDepth(texture(DiffuseDepthSampler, postmp).r);
             if (abs(dtmp - dtmptmp) < SSR_IGNORETHRESH) {
-                vec3 tmpcolortmp = texture2D(DiffuseSampler, postmp).rgb;
+                vec3 tmpcolortmp = texture(DiffuseSampler, postmp).rgb;
                 float tmplum = luminance(tmpcolortmp);
                 if (dtmptmp >= 0.999 && tmplum > 0.85) {
                     tmpcolortmp *= 1.0 + (tmplum - 0.8) * 10.0;
@@ -201,11 +203,11 @@ void main() {
     poissonDisk[63] = vec2(-0.178564, -0.596057);
 
     vec4 outColor = vec4(0.0);
-    vec4 color = texture2D(TranslucentSampler, texCoord);
+    vec4 color = texture(TranslucentSampler, texCoord);
 
     if (color.a > 0.0) {
 
-        float FOVrad = float(decodeInt(texture2D(TemporalSampler, vec2(0.5 / 16.0, 0.5)).rgb)) / FOV_FIXEDPOINT / 360.0 * 3.1415926535;
+        float FOVrad = float(decodeInt(texture(TemporalSampler, vec2(0.5 / 16.0, 0.5)).rgb)) / FOV_FIXEDPOINT / 360.0 * 3.1415926535;
         float cosFOVrad = cos(FOVrad);
         float tanFOVrad = tan(FOVrad);
         mat4 gbPI = mat4(2.0 * tanFOVrad * aspectRatio, 0.0,             0.0, 0.0,
@@ -218,18 +220,18 @@ void main() {
                         0.5,                             0.5,                     1.0, 0.0,
                         0.0,                             0.0,                     0.0, 1.0);
 
-        float wdepth = texture2D(TranslucentDepthSampler, texCoord).r;
+        float wdepth = texture(TranslucentDepthSampler, texCoord).r;
         float ldepth = LinearizeDepth(wdepth);
-        float ldepth2 = LinearizeDepth(texture2D(TranslucentDepthSampler, texCoord + vec2(0.0, oneTexel.y)).r);
-        float ldepth3 = LinearizeDepth(texture2D(TranslucentDepthSampler, texCoord + vec2(oneTexel.x, 0.0)).r);
-        float ldepth4 = LinearizeDepth(texture2D(TranslucentDepthSampler, texCoord - vec2(0.0, oneTexel.y)).r);
-        float ldepth5 = LinearizeDepth(texture2D(TranslucentDepthSampler, texCoord - vec2(oneTexel.x, 0.0)).r);
-        float gdepth2 = LinearizeDepth(texture2D(DiffuseDepthSampler, texCoord + vec2(0.0, oneTexel.y)).r);
-        float gdepth3 = LinearizeDepth(texture2D(DiffuseDepthSampler, texCoord + vec2(oneTexel.x, 0.0)).r);
-        float gdepth4 = LinearizeDepth(texture2D(DiffuseDepthSampler, texCoord - vec2(0.0, oneTexel.y)).r);
-        float gdepth5 = LinearizeDepth(texture2D(DiffuseDepthSampler, texCoord - vec2(oneTexel.x, 0.0)).r);
+        float ldepth2 = LinearizeDepth(texture(TranslucentDepthSampler, texCoord + vec2(0.0, oneTexel.y)).r);
+        float ldepth3 = LinearizeDepth(texture(TranslucentDepthSampler, texCoord + vec2(oneTexel.x, 0.0)).r);
+        float ldepth4 = LinearizeDepth(texture(TranslucentDepthSampler, texCoord - vec2(0.0, oneTexel.y)).r);
+        float ldepth5 = LinearizeDepth(texture(TranslucentDepthSampler, texCoord - vec2(oneTexel.x, 0.0)).r);
+        float gdepth2 = LinearizeDepth(texture(DiffuseDepthSampler, texCoord + vec2(0.0, oneTexel.y)).r);
+        float gdepth3 = LinearizeDepth(texture(DiffuseDepthSampler, texCoord + vec2(oneTexel.x, 0.0)).r);
+        float gdepth4 = LinearizeDepth(texture(DiffuseDepthSampler, texCoord - vec2(0.0, oneTexel.y)).r);
+        float gdepth5 = LinearizeDepth(texture(DiffuseDepthSampler, texCoord - vec2(oneTexel.x, 0.0)).r);
         vec4 reflection = vec4(0.0);
-        vec4 sky = texture2D(TemporalSampler, vec2(9.5 / 16.0, 0.5));
+        vec4 sky = texture(TemporalSampler, vec2(9.5 / 16.0, 0.5));
 
 
         vec3 fragpos = (gbPI * vec4(texCoord, ldepth, 1.0)).xyz;
@@ -253,9 +255,9 @@ void main() {
         normal = normal == vec3(0.0) ? approxNormal : normalize(-normal);
 
         if (p2v && p3v) {
-            float currH = decodeInt(texture2D(TranslucentHeightSampler, texCoord).rgb) / float(HEIGHTMAP_PRECISION);
-            normal -= (normalize(p2) * (currH - decodeInt(texture2D(TranslucentHeightSampler, texCoord + vec2(0.0, oneTexel.y)).rgb) / float(HEIGHTMAP_PRECISION)) * HEIGHTMAP_SCALE
-                     + normalize(p3) * (currH - decodeInt(texture2D(TranslucentHeightSampler, texCoord + vec2(oneTexel.x, 0.0)).rgb) / float(HEIGHTMAP_PRECISION)) * HEIGHTMAP_SCALE * aspectRatio) 
+            float currH = decodeInt(texture(TranslucentHeightSampler, texCoord).rgb) / float(HEIGHTMAP_PRECISION);
+            normal -= (normalize(p2) * (currH - decodeInt(texture(TranslucentHeightSampler, texCoord + vec2(0.0, oneTexel.y)).rgb) / float(HEIGHTMAP_PRECISION)) * HEIGHTMAP_SCALE
+                     + normalize(p3) * (currH - decodeInt(texture(TranslucentHeightSampler, texCoord + vec2(oneTexel.x, 0.0)).rgb) / float(HEIGHTMAP_PRECISION)) * HEIGHTMAP_SCALE * aspectRatio) 
                      * pow(1.0 - ldepth, HEIGHTMAP_DECAY) * pow(dot(normal, normalize(fragpos)), 0.25);
             normal = normalize(normal);
         }
@@ -268,9 +270,9 @@ void main() {
             vec2 reflectApprox = vec2(texCoord.x, 0.92 - texCoord.y + horizon * pow(clamp(ndlsq / (1.0 - cosFOVrad * cosFOVrad), 0.0, 1.0), 0.5));
             for (int i = 0; i < APPROX_TAPS; i++) {
                 vec2 ratmp = clamp(reflectApprox + poissonDisk[i] * vec2(1.0 / aspectRatio, 1.0) * APPROX_SCATTER, vec2(0.0), vec2(1.0) - oneTexel / 2.0);
-                float tdepth = texture2D(DiffuseDepthSampler, ratmp).r;
+                float tdepth = texture(DiffuseDepthSampler, ratmp).r;
                 if (tdepth > wdepth) {
-                    reflection += vec4(texture2D(DiffuseSampler, ratmp).rgb, 1.0);
+                    reflection += vec4(texture(DiffuseSampler, ratmp).rgb, 1.0);
                 }
             }
             reflection /= float(APPROX_TAPS);
@@ -290,9 +292,10 @@ void main() {
         float fresnel = exp(-35 * pow(dot(normalize(fragpos), normal), 2.0));
         float lookfresnel = clamp(exp(-25 * clamp(ndlsq * horizon, 0.0, 1.0) + 3.0), 0.0, 1.0);
         float lum = luminance(reflection.rgb);
+
         outColor = vec4(reflection.rgb, min(min(fresnel * lookfresnel * max(lum, 1.0), reflection.a), lum * 2.0));
 
     }
 
-    gl_FragColor = outColor;
+    fragColor = outColor;
 }
