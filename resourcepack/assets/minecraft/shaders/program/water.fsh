@@ -108,8 +108,8 @@ vec3 jodieReinhardTonemap(vec3 c){
 #define APPROX_THRESH 0.5
 #define APPROX_SCATTER 0.01
 #define NORMAL_SCATTER 0.002
-#define NORMAL_SMOOTHING 12.0
-#define NORMAL_DEPTH_REJECT 0.1
+#define NORMAL_SMOOTHING 0.01
+#define NORMAL_DEPTH_REJECT 0.15
 #define NORMRAD 5
 #define FOV_FIXEDPOINT 100.0
 
@@ -136,9 +136,9 @@ float luminance(vec3 rgb) {
     return  dot(rgb, vec3(0.2126, 0.7152, 0.0722));
 }
 
-vec4 SSR(vec3 fragpos, vec3 origin, float fragdepth, vec3 surfacenorm, vec4 approxreflection, vec2 randsamples[64]) {
+vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec4 approxreflection, vec2 randsamples[64]) {
     vec3 rayStart   = fragpos;
-    vec3 rayDir     = reflect(normalize(fragpos - origin), surfacenorm);
+    vec3 rayDir     = reflect(normalize(dir), surfacenorm);
     vec3 rayStep    = (SSR_STEPSIZE + SSR_STEPSIZE * 0.05 * (ditherGradNoise()-0.5)) * rayDir;
     vec3 rayPos     = rayStart + rayStep;
     vec3 rayPrevPos = rayStart;
@@ -316,22 +316,22 @@ void main() {
         normal = normal == vec3(0.0) ? vec3(0.0, 1.0, 0.0) : normalize(-normal);
 
         if (int(color.a * 255.0) % 2 == 0) {
-            float ldepth6 = (texture2D(TranslucentDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(0.0, oneTexel.y)).r);
-            float ldepth7 = (texture2D(TranslucentDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(oneTexel.x, 0.0)).r);
-            float ldepth8 = (texture2D(TranslucentDepthSampler, texCoord - NORMAL_SMOOTHING * vec2(0.0, oneTexel.y)).r);
-            float ldepth9 = (texture2D(TranslucentDepthSampler, texCoord - NORMAL_SMOOTHING * vec2(oneTexel.x, 0.0)).r);
-            float gdepth6 = (texture2D(DiffuseDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(0.0, oneTexel.y)).r);
-            float gdepth7 = (texture2D(DiffuseDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(oneTexel.x, 0.0)).r);
-            float gdepth8 = (texture2D(DiffuseDepthSampler, texCoord - NORMAL_SMOOTHING * vec2(0.0, oneTexel.y)).r);
-            float gdepth9 = (texture2D(DiffuseDepthSampler, texCoord - NORMAL_SMOOTHING * vec2(oneTexel.x, 0.0)).r);
+            float ldepth6 = (texture2D(TranslucentDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(0.0, 1.0)).r);
+            float ldepth7 = (texture2D(TranslucentDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(aspectRatio, 0.0)).r);
+            float ldepth8 = (texture2D(TranslucentDepthSampler, texCoord - NORMAL_SMOOTHING * vec2(0.0, 1.0)).r);
+            float ldepth9 = (texture2D(TranslucentDepthSampler, texCoord - NORMAL_SMOOTHING * vec2(aspectRatio, 0.0)).r);
+            float gdepth6 = (texture2D(DiffuseDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(0.0, 1.0)).r);
+            float gdepth7 = (texture2D(DiffuseDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(aspectRatio, 0.0)).r);
+            float gdepth8 = (texture2D(DiffuseDepthSampler, texCoord - NORMAL_SMOOTHING * vec2(0.0, 1.0)).r);
+            float gdepth9 = (texture2D(DiffuseDepthSampler, texCoord - NORMAL_SMOOTHING * vec2(aspectRatio, 0.0)).r);
 
-            vec3 p6 = backProject(vec4(scaledCoord + 2.0 * NORMAL_SMOOTHING * vec2(0.0, oneTexel.y), ldepth6, 1.0)).xyz;
+            vec3 p6 = backProject(vec4(scaledCoord + 2.0 * NORMAL_SMOOTHING * vec2(0.0, 1.0), ldepth6, 1.0)).xyz;
             p6 = p6 - fragpos;
-            vec3 p7 = backProject(vec4(scaledCoord + 2.0 * NORMAL_SMOOTHING * vec2(oneTexel.x, 0.0), ldepth7, 1.0)).xyz;
+            vec3 p7 = backProject(vec4(scaledCoord + 2.0 * NORMAL_SMOOTHING * vec2(aspectRatio, 0.0), ldepth7, 1.0)).xyz;
             p7 = p7 - fragpos;
-            vec3 p8 = backProject(vec4(scaledCoord - 2.0 * NORMAL_SMOOTHING * vec2(0.0, oneTexel.y), ldepth8, 1.0)).xyz;
+            vec3 p8 = backProject(vec4(scaledCoord - 2.0 * NORMAL_SMOOTHING * vec2(0.0, 1.0), ldepth8, 1.0)).xyz;
             p8 = p8 - fragpos;
-            vec3 p9 = backProject(vec4(scaledCoord - 2.0 * NORMAL_SMOOTHING * vec2(oneTexel.x, 0.0), ldepth9, 1.0)).xyz;
+            vec3 p9 = backProject(vec4(scaledCoord - 2.0 * NORMAL_SMOOTHING * vec2(aspectRatio, 0.0), ldepth9, 1.0)).xyz;
             p9 = p9 - fragpos;
 
             bool p6v = ldepth6 < gdepth6 && length(p6) < length(NORMAL_DEPTH_REJECT * fragpos);
@@ -354,7 +354,7 @@ void main() {
 
         vec4 r = vec4(0.0);
         for (int i = 0; i < SSR_TAPS; i += 1) {
-            r += SSR(fragpos, backProject(vec4(0.0, 0.0, 0.0, 1.0)).xyz, linearizeDepth(ldepth), normalize(normal + NORMAL_SCATTER * (normalize(p2) * poissonDisk[i].x + normalize(p3) * poissonDisk[i].y)), reflection, poissonDisk);
+            r += SSR(fragpos, backProject(vec4(scaledCoord, 1.0, 1.0)).xyz, linearizeDepth(ldepth), normalize(normal + NORMAL_SCATTER * (normalize(p2) * poissonDisk[i].x + normalize(p3) * poissonDisk[i].y)), reflection, poissonDisk);
         }
         reflection = r / SSR_TAPS;
         
