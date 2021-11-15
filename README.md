@@ -11,12 +11,11 @@ CL:
 
 Known issues:
 - flat nether shading
-- end is broken
+- flat end shading
 - wacky item frame lighting
 - transparent items on pickup
 - cauldron water color
 - block break animation bug out
-- banner doesnt use lightmap
 - rain sky during day
 - optifine #moj_import bug
 - drab lighthing at noon
