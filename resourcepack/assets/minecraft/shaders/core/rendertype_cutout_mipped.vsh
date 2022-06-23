@@ -22,13 +22,15 @@ out vec3 normal;
 out vec4 glpos;
 out float face;
 
+#define GREEN_FUZZ 0.04
+
 void main() {
     face = float(int((gl_VertexID + 3) / 4));
     gl_Position = ProjMat * ModelViewMat * vec4(Position + ChunkOffset, 1.0);
 
     vertexDistance = length((ModelViewMat * vec4(Position + ChunkOffset, 1.0)).xyz);
     vec4 col = Color;
-    if (Color.g > Color.b && Color.g > Color.r) {
+    if (Color.g > Color.b && Color.g + GREEN_FUZZ > Color.r) {
         vec3 swamp = vec3(106.0 / 255.0, 112.0 / 255.0, 57.0 / 255.0); // special handling to darken swamp colors
         col = vec4(normalize(Color.rgb) * 210.0 / 255.0 * (1.0 - 0.2 * smoothstep(0.995, 1.0, dot(normalize(col.rgb), normalize(swamp)))), 1.0);
     } else if (Color.r == Color.g && Color.g == Color.b) {

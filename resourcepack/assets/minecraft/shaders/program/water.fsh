@@ -107,11 +107,10 @@ vec3 jodieReinhardTonemap(vec3 c){
 #define APPROX_TAPS 6
 #define APPROX_THRESH 0.5
 #define APPROX_SCATTER 0.01
-#define NORMAL_SCATTER 0.002
+#define NORMAL_SCATTER 0.004
 #define NORMAL_SMOOTHING 0.01
 #define NORMAL_DEPTH_REJECT 0.15
 #define NORMRAD 5
-#define FOV_FIXEDPOINT 100.0
 
 #define SSR_TAPS 2
 #define SSR_SAMPLES 45
@@ -119,9 +118,9 @@ vec3 jodieReinhardTonemap(vec3 c){
 #define SSR_STEPSIZE 0.7
 #define SSR_STEPREFINE 0.2
 #define SSR_STEPINCREASE 1.2
-#define SSR_IGNORETHRESH 0.1
+#define SSR_IGNORETHRESH 2.0
 #define SSR_BLURR 0.01
-#define SSR_BLURTAPS 4
+#define SSR_BLURTAPS 3
 #define SSR_BLURSAMPLEOFFSET 17
 
 float linearizeDepth(float depth) {
@@ -159,7 +158,7 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec4 approxr
         dtmp = linearizeDepth(dtmp_nolin);
         dist = abs(linearizeDepth(pos.z) - dtmp);
 
-        if (dtmp + SSR_IGNORETHRESH > fragdepth && dist < length(rayStep) * pow(length(rayRefine), 0.11) * 2.0) {
+        if (dist < length(rayStep) * pow(length(rayRefine), 0.11) * 2.0) {
             refine++;
             if (refine >= SSR_MAXREFINESAMPLES)	break;
             rayRefine  -= rayStep;
@@ -177,7 +176,7 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec4 approxr
     skycol = jodieReinhardTonemap(skycol);
     skycol = pow(skycol, vec3(2.2)); //Back to linear
     vec4 candidate = vec4(skycol, 1.0);
-    if (fragdepth < dtmp + SSR_IGNORETHRESH && pos.y <= 1.0 && dtmp < far * 0.5) {
+    if (dtmp + SSR_IGNORETHRESH > fragdepth && linearizeDepth(pos.z) < dtmp + SSR_IGNORETHRESH && pos.y <= 1.0 && dtmp < far * 0.5) {
         vec3 colortmp = texture2D(DiffuseSampler, 0.5 * pos.xy + vec2(0.5)).rgb;
         rayDir.y = abs(rayDir.y * 0.2);
         rayDir = normalize(rayDir);
@@ -191,7 +190,7 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec4 approxr
         for (int i = 0; i < SSR_BLURTAPS; i += 1) {
             postmp = pos.xy + randsamples[i + SSR_BLURSAMPLEOFFSET] * SSR_BLURR * vec2(1.0 / aspectRatio, 1.0);
             dtmptmp = linearizeDepth(texture2D(DiffuseDepthSampler, 0.5 * postmp + vec2(0.5)).r);
-            if (abs(dtmp - dtmptmp) < SSR_IGNORETHRESH * 5.0) {
+            if (abs(dtmp - dtmptmp) < SSR_IGNORETHRESH) {
                 vec3 tmpcolortmp = texture2D(DiffuseSampler, 0.5 * postmp + vec2(0.5)).rgb;
                 colortmp += tmpcolortmp;
                 count += 1.0;

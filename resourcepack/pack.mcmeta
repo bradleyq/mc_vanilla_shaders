@@ -1,6 +1,6 @@
 {
    "pack": {
-      "pack_format": 7,
-      "description": "1.17 ENV shader"
+      "pack_format": 9,
+      "description": "1.19 ENV shader"
    }
 }

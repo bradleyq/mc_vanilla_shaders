@@ -95,7 +95,7 @@ float decodeFloat(vec3 vec) {
 #define NOONM vec3(0.45, 0.5, 0.7)
 #define EVENING vec3(1.35, 1.0, 0.5)
 #define EVENINGA vec3(0.69, 0.75, 1.0)
-#define EVENINGM vec3(0.69, 0.75, 1.0)
+#define EVENINGM vec3(0.59, 0.65, 0.9)
 #define NIGHT vec3(0.8, 0.8, 0.8)
 #define NIGHTA vec3(0.9, 0.9, 0.9)
 #define NIGHTM vec3(1.1, 1.3, 1.4)
@@ -134,11 +134,18 @@ vec4 backProject(vec4 vec) {
 #define skyColor vec3(0.3, 0.53, 1.0) * (1.0 + anisotropicIntensity) //Make sure one of the conponents is never 0.0
 
 #define smooth(x) x*x*(3.0-2.0*x)
-#define zenithDensity(x) density / pow(max((x - zenithOffset) / (1.0 - zenithOffset), 0.008), 0.75)
 
-vec3 getSkyAbsorption(vec3 x, float y){
+float smoothClamp(float x, float a, float b)
+{
+    return smoothstep(0., 1., (x - a)/(b - a))*(b - a) + a;
+}
+float zenithDensity(float x) {
+    return density / pow(smoothClamp(((x - zenithOffset < 0.0 ? -(x - zenithOffset) * 0.4 : x - zenithOffset)) / (1.0 - zenithOffset), 0.03, 1.0), 0.75);
+}
+
+vec3 getSkyAbsorption(vec3 col, float y){
 	
-	vec3 absorption = x * -y;
+	vec3 absorption = col * -y;
 	     absorption = exp2(absorption) * 2.0;
 	
 	return absorption;
@@ -171,11 +178,10 @@ vec3 getAtmosphericScattering(vec3 p, vec3 lp, bool fog){
 	vec3 mie = getMie(p, lp) * sunAbsorption;
 	if (!fog) mie += getSunPoint(p, lp) * absorption;
 	
-	vec3 totalSky = mix(sky * absorption, sky / (sky + 0.5), sunPointDistMult);
+	vec3 totalSky = mix(sky * absorption, sky / (sky * 0.5 + 0.5), sunPointDistMult);
          totalSky += mie;
 	     totalSky *= sunAbsorption * 0.5 + 0.5 * length(sunAbsorption);
 	
-    totalSky = mix(totalSky, vec3(0.1, 0.15, 0.33), clamp(pow(-p.y + zenithOffset, 0.5), 0.0, 1.0));
 	return totalSky;
 }
 
@@ -331,7 +337,7 @@ void main() {
             }
 
             // apply ambient occlusion.
-            float rad = SAMPLE_RAD/linearizeDepth(depth);
+            float rad = clamp(SAMPLE_RAD/linearizeDepth(depth), 0.0001, 0.2);
             float ao = 1.0 - spiralAO(normCoord, fragpos, normal, rad) * INTENSITY;
             fragColor.rgb *= ao;
 
