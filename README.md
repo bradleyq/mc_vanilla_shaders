@@ -1,4 +1,4 @@
-# Shaders for vanilla 1.17 DEV BRANCH!!!!!
+# Shaders for vanilla 1.19 DEV BRANCH!!!!!
 <img src="images/4.png" /> 
 
 ## TIS HOT DEV BRANCH!!! STUFF MAY NOT WORK!!!
@@ -21,9 +21,11 @@ Known issues:
 - water / lava fog using sky fog
 - player / horse pattern lighting
 - blindness fog not black
+- darkness effect wack
+- grass too dark in some biomes
 
 ## Overview
-Basic shader that adds as much as possible from OptiFine shaders to the vanilla transparency shader available in "Fabulous" graphics setting. Due to limited material, light, time, and shadow information, most advanced features are not possible. A good number, however, are. I have ported them here. Most samples are from the BSL shader, however much of it is heavily modified to fit with the vanilla pipeline. Supports all FOV and render distances. For best experience, use FOV 70!
+Basic shader that adds as much as possible from OptiFine shaders to the vanilla transparency shader available in "Fabulous" graphics setting. Due to limited material, light, time, and shadow information, most advanced features are not possible. A good number, however, are. I have ported them here. Most samples are from the BSL shader, however much of it is heavily modified to fit with the vanilla pipeline. Supports all FOV and render distances.
 
 ### Features
 - TBD
