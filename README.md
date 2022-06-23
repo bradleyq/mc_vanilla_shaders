@@ -13,14 +13,14 @@ Known issues:
 - flat nether shading
 - flat end shading
 - wacky item frame lighting
+- stained glass is opaque in hand
 - transparent items on pickup
-- cauldron water color
-- block break animation bug out
 - rain sky during day
 - optifine #moj_import bug
 - drab lighthing at noon
 - water / lava fog using sky fog
-- normal smoothing not scaling with resolution
+- player / horse pattern lighting
+- blindness fog not black
 
 ## Overview
 Basic shader that adds as much as possible from OptiFine shaders to the vanilla transparency shader available in "Fabulous" graphics setting. Due to limited material, light, time, and shadow information, most advanced features are not possible. A good number, however, are. I have ported them here. Most samples are from the BSL shader, however much of it is heavily modified to fit with the vanilla pipeline. Supports all FOV and render distances. For best experience, use FOV 70!
