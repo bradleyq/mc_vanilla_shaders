@@ -9,6 +9,7 @@ uniform sampler2D DiffuseSampler;
 out vec2 texCoord;
 out vec2 oneTexel;
 out vec3 sunDir;
+out mat4 Proj;
 out mat4 ProjInv;
 out float near;
 out float far;
@@ -105,6 +106,7 @@ void main() {
     }
 
     sunDir = normalize(sunDir);
-    
-    ProjInv = inverse(ProjMat * ModeViewMat);
+
+    Proj = ProjMat * ModeViewMat;
+    ProjInv = inverse(Proj);
 }
