@@ -9,22 +9,22 @@ CL:
 - fake atmosphereic scattering
 - directional light
 - Screen Space Shadows
+- Java Alpha-PBR support (Emissive)
 
 Known issues:
 - flat nether shading
 - flat end shading
-- wacky item frame lighting
-- stained glass is opaque in hand
 - transparent items on pickup
 - rain sky during day
 - optifine #moj_import bug
-- drab lighthing at noon
 - water / lava fog using sky fog
 - player / horse pattern lighting
 - blindness fog not black
 - darkness effect wack
 - grass too dark in some biomes
 - shadows are wonky
+- hand items unlit
+- Alpha-PBR Subsurface, specular, metalness.
 
 ## Overview
 Basic shader that adds as much as possible from OptiFine shaders to the vanilla transparency shader available in "Fabulous" graphics setting. Due to limited material, light, time, and shadow information, most advanced features are not possible. A good number, however, are. I have ported them here. Most samples are from the BSL shader, however much of it is heavily modified to fit with the vanilla pipeline. Supports all FOV and render distances.
