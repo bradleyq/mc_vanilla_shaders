@@ -44,12 +44,10 @@ out vec4 fragColor;
 vec2 scaledCoord = 2.0 * (texCoord - vec2(0.5));
 
 int inControl(vec2 screenCoord, float screenWidth) {
-    if (screenCoord.y < 1.0) {
-        float index = floor(screenWidth / 2.0) + THRESH / 2.0;
-        index = (screenCoord.x - index) / 2.0;
-        if (fract(index) < THRESH && index < NUMCONTROLS && index >= 0) {
-            return int(index);
-        }
+    float start = floor(screenWidth / 4.0) * 2.0;
+    int index = int(screenCoord.x - start) / 2;
+    if (screenCoord.y < 1.0 && screenCoord.x > start && int(screenCoord.x) % 2 == 0 && index < NUMCONTROLS) {
+        return index;
     }
     return -1;
 }
@@ -210,6 +208,8 @@ void main() {
     bool inctrl = inControl(texCoord * OutSize, OutSize.x) > -1;
     op_layers[0] = DEFAULT;
     depth_layers[0] = (getNotControl( DiffuseDepthSampler, texCoord, inctrl).r);
+
+    // crumbling, beacon_beam, leash, entity_translucent_emissive(warden glow)
     color_layers[0] = vec4( getNotControl( DiffuseSampler, texCoord, inctrl).rgb, 1.0 );
     if (depth_layers[0] < 1.0) {
         color_layers[0] = linear_fog_real(color_layers[0], length(backProject(vec4(scaledCoord, depth_layers[0], 1.0)).xyz), fogEnd * 0.01, 2.25 * fogEnd, calculatedFog);
@@ -217,11 +217,14 @@ void main() {
     active_layers = 1;
 
     try_insert( texture( CloudsSampler, texCoord ), calculatedFog, CloudsDepthSampler, FOGFADE);
-    try_insert( texture( TranslucentSampler, texCoord ), calculatedFog, TranslucentDepthSampler, DEFAULT);
+    try_insert( texture( TranslucentSampler, texCoord ), calculatedFog, TranslucentDepthSampler, DEFAULT); 
     try_insert( texture( ParticlesSampler, texCoord ), calculatedFog, ParticlesDepthSampler, DEFAULT);
+
+    // tripwire   
     try_insert( texture( WeatherSampler, texCoord ), calculatedFog, WeatherDepthSampler, FOGFADE);
+
+    // translucent_moving_block, lines, item_entity_translucent_cull
     try_insert( texture( ItemEntitySampler, texCoord ), calculatedFog, ItemEntityDepthSampler, DEFAULT);
-    
     vec3 texelAccum = color_layers[index_layers[0]].rgb;
     for ( int ii = 1; ii < active_layers; ++ii ) {
         if ((op_layers[index_layers[ii]] & BLENDMULT) > 0u) {

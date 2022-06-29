@@ -11,18 +11,14 @@ out vec4 fragColor;
 #define FPRECISION 4000000.0
 #define KERNEL mat3(1.0/16.0, 1.0/8.0, 1.0/16.0, 1.0/8.0, 1.0/4.0, 1.0/8.0, 1.0/16.0, 1.0/8.0, 1.0/16.0)
 
-int intmod(int i, int base) {
-    return i - (i / base * base);
-}
-
 vec3 encodeInt(int i) {
     int s = int(i < 0) * 128;
     i = abs(i);
-    int r = intmod(i, 256);
+    int r = i % 256;
     i = i / 256;
-    int g = intmod(i, 256);
+    int g = i % 256;
     i = i / 256;
-    int b = intmod(i, 128);
+    int b = i % 128;
     return vec3(float(r) / 255.0, float(g) / 255.0, float(b + s) / 255.0);
 }
 

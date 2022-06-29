@@ -39,13 +39,15 @@ void main() {
     vec4 col = Color;
     if (!(col.r == col.g && col.g == col.b)) { 
         isWater = 1.0;
-
         if (!(mod(Position.y + 0.001, 1.0) < 0.002)) {
             a1 = sin((Position.z * PI / 4.0 + animation * 700)) * 1.0 * (1.0 - smoothstep(0.0, 1.0, vertexDistance / far));
             a2 = cos((Position.z * PI / 8.0 + Position.x * PI / 4.0 + animation * 400) + PI / 13.0) * 1.2 * (1.0 - smoothstep(0.1, 1.0, vertexDistance / far));
             a3 = sin((Position.z * PI / 8.0 - Position.x * PI / 2.0 - animation * 900) - PI / 7.0) * 0.75 * (1.0 - smoothstep(0.0, 0.3, vertexDistance / far));
             a4 = cos((Position.z * PI * 7.0 + Position.x * PI / 2.0 - animation * 870) + PI / 5.0) * 0.75 * (1.0 - smoothstep(0.0, 0.9, vertexDistance / far));
         }
+
+        //water color correction
+        col.rgb = mix(col.rgb, vec3(0.39, 0.725, 0.725), 0.5);
     }
 
     gl_Position = ProjMat * ModelViewMat * (vec4(position, 1.0) + vec4(0.0, (a1 + a2 + a3 + a4) / 64.0, 0.0, 0.0));

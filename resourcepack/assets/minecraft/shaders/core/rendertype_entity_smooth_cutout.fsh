@@ -12,7 +12,6 @@ uniform vec4 FogColor;
 
 in float vertexDistance;
 in vec4 vertexColor;
-in vec4 lightMapColor;
 in vec4 overlayColor;
 in vec2 texCoord0;
 in vec4 normal;
@@ -22,13 +21,17 @@ out vec4 fragColor;
 
 void main() {
     discardControlGLPos(gl_FragCoord.xy, glpos);
-    vec4 color = texture(Sampler0, texCoord0);
-    if (color.a < 0.1) {
+    vec4 outColor = texture(Sampler0, texCoord0) * vertexColor * ColorModulator;
+
+    if (outColor.a < 0.99) {
         discard;
     }
-    color *= vertexColor * ColorModulator;
-    color.rgb = mix(overlayColor.rgb, color.rgb, overlayColor.a);
-    color *= lightMapColor;
-    fragColor = linear_fog(color, vertexDistance, FogStart, FogEnd, FogColor);
-    fragColor.a = float(int(fragColor.a * 255.0) / 4 * 4) / 255.0; // flag as emissive
+    else {
+        outColor.rgb = mix(overlayColor.rgb, outColor.rgb, overlayColor.a);
+        outColor.a = 1.0;
+        outColor = getOutColorT(outColor, vec4(0.0), vec2(0.0), gl_FragCoord.xy, FACETYPE_S, PBRTYPE_EMISSIVE);
+        outColor.a = 1.0;
+    }
+
+    fragColor = outColor;
 }

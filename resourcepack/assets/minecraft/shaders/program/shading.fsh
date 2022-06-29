@@ -23,13 +23,13 @@ out vec4 fragColor;
 #define PROJNEAR 0.05
 #define FUDGE 32.0
 
+#define EMISS_MULT 1.5
+
 int inControl(vec2 screenCoord, float screenWidth) {
-    if (screenCoord.y < 1.0) {
-        float index = floor(screenWidth / 2.0) + THRESH / 2.0;
-        index = (screenCoord.x - index) / 2.0;
-        if (fract(index) < THRESH && index < NUMCONTROLS && index >= 0) {
-            return int(index);
-        }
+    float start = floor(screenWidth / 4.0) * 2.0;
+    int index = int(screenCoord.x - start) / 2;
+    if (screenCoord.y < 1.0 && screenCoord.x > start && int(screenCoord.x) % 2 == 0 && index < NUMCONTROLS) {
+        return index;
     }
     return -1;
 }
@@ -42,18 +42,14 @@ vec4 getNotControl(sampler2D inSampler, vec2 coords, bool inctrl) {
     }
 }
 
-int intmod(int i, int base) {
-    return i - (i / base * base);
-}
-
 vec3 encodeInt(int i) {
     int s = int(i < 0) * 128;
     i = abs(i);
-    int r = intmod(i, 256);
+    int r = i % 256;
     i = i / 256;
-    int g = intmod(i, 256);
+    int g = i % 256;
     i = i / 256;
-    int b = intmod(i, 128);
+    int b = i % 128;
     return vec3(float(r) / 255.0, float(g) / 255.0, float(b + s) / 255.0);
 }
 
@@ -128,7 +124,7 @@ vec4 backProject(vec4 vec) {
 
 #define zenithOffset -0.04
 #define multiScatterPhase 0.05
-#define density 0.5
+#define atmDensity 0.5
 
 #define anisotropicIntensity 0.0 //Higher numbers result in more anisotropic scattering
 
@@ -136,17 +132,17 @@ vec4 backProject(vec4 vec) {
 
 #define smooth(x) x*x*(3.0-2.0*x)
 
+// #define zenithDensity(x) atmDensity / pow(max((x - zenithOffset) / (1.0 - zenithOffset), 0.008), 0.75)
+#define zenithDensity(x) atmDensity / pow(smoothClamp(((x - zenithOffset < 0.0 ? -(x - zenithOffset) * 0.4 : x - zenithOffset)) / (1.0 - zenithOffset), 0.03, 1.0), 0.75)
+
 float smoothClamp(float x, float a, float b)
 {
     return smoothstep(0., 1., (x - a)/(b - a))*(b - a) + a;
 }
-float zenithDensity(float x) {
-    return density / pow(smoothClamp(((x - zenithOffset < 0.0 ? -(x - zenithOffset) * 0.4 : x - zenithOffset)) / (1.0 - zenithOffset), 0.03, 1.0), 0.75);
-}
 
-vec3 getSkyAbsorption(vec3 col, float y){
+vec3 getSkyAbsorption(vec3 col, float density, float lpy) {
 	
-	vec3 absorption = col * -y;
+	vec3 absorption = col * -density * (1.0 + pow(clamp(-lpy, 0.0, 1.0), 2.0) * 8.0);
 	     absorption = exp2(absorption) * 2.0;
 	
 	return absorption;
@@ -173,8 +169,8 @@ vec3 getAtmosphericScattering(vec3 p, vec3 lp, bool fog){
 	
 	float rayleighMult = getRayleigMultiplier(p, lp);
 	
-	vec3 absorption = getSkyAbsorption(skyColor, zenith);
-    vec3 sunAbsorption = getSkyAbsorption(skyColor, zenithDensity(ly + multiScatterPhase));
+	vec3 absorption = getSkyAbsorption(skyColor, zenith, lp.y);
+    vec3 sunAbsorption = getSkyAbsorption(skyColor, zenithDensity(ly + multiScatterPhase), lp.y);
 	vec3 sky = skyColor * zenith * rayleighMult;
 	vec3 mie = getMie(p, lp) * sunAbsorption;
 	if (!fog) mie += getSunPoint(p, lp) * absorption;
@@ -206,12 +202,12 @@ float PRNG(int seed) {
     return abs(fract(float(seed) / 3141.592653));
 }
 
-#define SAMPLES 64
-#define INTENSITY 3.0
-#define SCALE 2.5
-#define BIAS 0.1
-#define SAMPLE_RAD 0.5
-#define MAX_DISTANCE 3.0
+#define AO_SAMPLES 48
+#define AO_INTENSITY 3.0
+#define AO_SCALE 2.5
+#define AO_BIAS 0.1
+#define AO_SAMPLE_RAD 0.5
+#define AO_MAX_DISTANCE 3.0
 
 #define MOD3 vec3(.1031,.11369,.13787)
 
@@ -227,9 +223,9 @@ float doAmbientOcclusion(vec2 tcoord, vec2 uv, vec3 p, vec3 cnorm)
     vec3 diff = backProject(vec4(2.0 * (tcoord + uv - vec2(0.5)), texture(DiffuseDepthSampler, tcoord + uv).r, 1.0)).xyz - p;
     float l = length(diff);
     vec3 v = diff/(l + 0.0000001);
-    float d = l*SCALE;
-    float ao = max(0.0,dot(cnorm,v)-BIAS)*(1.0/(1.0+d));
-    ao *= smoothstep(MAX_DISTANCE,MAX_DISTANCE * 0.5, l);
+    float d = l*AO_SCALE;
+    float ao = max(0.0,dot(cnorm,v)-AO_BIAS)*(1.0/(1.0+d));
+    ao *= smoothstep(AO_MAX_DISTANCE,AO_MAX_DISTANCE * 0.5, l);
     return ao;
 
 }
@@ -238,14 +234,14 @@ float spiralAO(vec2 uv, vec3 p, vec3 n, float rad)
 {
     float goldenAngle = 2.4;
     float ao = 0.;
-    float inv = 1. / float(SAMPLES);
+    float inv = 1. / float(AO_SAMPLES);
     float radius = 0.;
 
     float rotatePhase = hash12( uv*101. + Time * 69. ) * 6.28;
     float rStep = inv * rad;
     vec2 spiralUV;
 
-    for (int i = 0; i < SAMPLES; i++) {
+    for (int i = 0; i < AO_SAMPLES; i++) {
         spiralUV.x = sin(rotatePhase);
         spiralUV.y = cos(rotatePhase);
         radius += rStep;
@@ -257,16 +253,16 @@ float spiralAO(vec2 uv, vec3 p, vec3 n, float rad)
 }
 
 #define S_PENUMBRA 0.04
-#define S_TAPS 4
-#define S_SAMPLES 15
+#define S_TAPS 2
+#define S_SAMPLES 12
 #define S_MAXREFINESAMPLES 1
-#define S_STEPSIZE 0.1
+#define S_STEPSIZE 0.12
 #define S_STEPREFINE 0.4
 #define S_STEPINCREASE 1.2
 #define S_IGNORETHRESH 4.0
 
-float ditherGradNoise() {
-  return fract(52.9829189 * fract(0.06711056 * gl_FragCoord.x + 0.00583715 * gl_FragCoord.y));
+float ditherGradNoise(float rand) {
+  return fract(52.9829189 * fract(0.06711056 * (gl_FragCoord.x + rand) + 0.00583715 * gl_FragCoord.y));
 }
 
 float luminance(vec3 rgb) {
@@ -276,7 +272,7 @@ float luminance(vec3 rgb) {
 float Shadow(vec3 fragpos, vec3 sundir, float fragdepth, vec3 surfacenorm, float rand) {
     vec3 rayStart   = fragpos + abs(rand) * sundir * S_STEPSIZE;
     vec3 rayDir     = sundir;
-    vec3 rayStep    = (S_STEPSIZE + S_STEPSIZE * 0.5 * (ditherGradNoise()-0.5)) * rayDir;
+    vec3 rayStep    = (S_STEPSIZE + S_STEPSIZE * 0.5 * (ditherGradNoise(abs(rand))-0.5)) * rayDir;
     vec3 rayPos     = rayStart + rayStep;
     vec3 rayPrevPos = rayStart;
     vec3 rayRefine  = rayStep;
@@ -285,7 +281,6 @@ float Shadow(vec3 fragpos, vec3 sundir, float fragdepth, vec3 surfacenorm, float
     vec4 pos    = vec4(0.0);
     float edge  = 0.0;
     float dtmp  = 0.0;
-    float dtmp_nolin = 0.0;
     float dist  = 0.0;
     float strength = 0.0;
 
@@ -293,15 +288,15 @@ float Shadow(vec3 fragpos, vec3 sundir, float fragdepth, vec3 surfacenorm, float
         pos = Proj * vec4(rayPos.xyz, 1.0);
         pos.xyz /= pos.w;
         if (pos.x < -1.0 || pos.x > 1.0 || pos.y < -1.0 || pos.y > 1.0 || pos.z < 0.0 || pos.z > 1.0) return 1.0;
-        dtmp_nolin = texture2D(DiffuseDepthSampler, 0.5 * pos.xy + vec2(0.5)).r;
-        dtmp = linearizeDepth(dtmp_nolin);
+        dtmp = linearizeDepth(texture2D(DiffuseDepthSampler, 0.5 * pos.xy + vec2(0.5)).r);
         dist = (linearizeDepth(pos.z) - dtmp);
 
-        if (dist < max(length(rayStep) * pow(length(rayRefine), 0.25) * (1.0 + 3.0 * clamp(dot(normalize(fragpos), -sunDir) + 0.5, 0.0, 1.0)), 1.0) && dist > 0.0) {
-            refine++;
-            if (refine >= S_MAXREFINESAMPLES)	break;
+        if (dist < max(length(rayStep) * pow(length(rayRefine), 0.25) * (1.0 + 3.0 * clamp(dot(normalize(fragpos), -sunDir) + 0.5, 0.0, 1.0)), 1.0) && dist > length(fragpos) / 512.0) {
+            // refine++;
+            // if (refine >= S_MAXREFINESAMPLES)	break;
             // rayRefine  -= rayStep;
             // rayStep    *= S_STEPREFINE;
+            break;
         }
 
         rayStep        *= S_STEPINCREASE;
@@ -309,16 +304,42 @@ float Shadow(vec3 fragpos, vec3 sundir, float fragdepth, vec3 surfacenorm, float
         rayRefine      += rayStep;
         rayPos          = rayStart+rayRefine;
 
-        // if (i == S_SAMPLES - 1.0) {
-        // return 1.0;
-        // }
-        strength += 1.0 / S_SAMPLES;
+        if (i == S_SAMPLES - 1.0) {
+        return 1.0;
+        }
+        // strength += 1.0 / S_SAMPLES;
     }
 
     if (dist < S_IGNORETHRESH && dtmp < far * 0.5) {
-        return strength * strength;
+        return 0.0;
     }
     return 1.0;
+}
+
+vec4 decodeYUV(sampler2D tex, sampler2D depth, vec4 inCol, vec2 coord) {
+    vec2 pixCoord = coord * OutSize;
+    vec4 outCol = vec4(1.0);
+    vec2 dir = vec2(pixCoord.x <= 0.5 ? 1.0 : -1.0, pixCoord.y <= 0.5 ? 1.0 : 0.0);
+    float d = texture(depth, coord + dir * oneTexel).r;
+    float sec = 0.0;
+    if (linearizeDepth(d) >= far - FUDGE) {
+        sec = 0.5;
+    } else {
+        sec = texture(tex, coord + dir * oneTexel).y;
+    }
+    vec3 yuv = vec3(0.0);
+    if (int(pixCoord.x) % 2 == 0) {
+        yuv = vec3(inCol.xy, sec);
+    }
+    else {
+        yuv = vec3(inCol.x, sec, inCol.y);
+    }
+
+    yuv.yz -= 0.5;
+    outCol.r = yuv.x * 1.0 + yuv.y * 0.0 + yuv.z * 1.4;
+    outCol.g = yuv.x * 1.0 + yuv.y * -0.343 + yuv.z * -0.711;
+    outCol.b = yuv.x * 1.0 + yuv.y * 1.765 + yuv.z * 0.0;
+    return outCol;
 }
 
 void main() {
@@ -390,21 +411,30 @@ void main() {
     poissonDisk[63] = vec2(-0.178564, -0.596057);
 
     bool inctrl = inControl(texCoord * OutSize, OutSize.x) > -1;
-
-    fragColor = texture(DiffuseSampler, texCoord);
+    vec4 outColor = texture(DiffuseSampler, texCoord);
     float depth = texture(DiffuseDepthSampler, texCoord).r;
+    vec2 data = outColor.ba;
+    bool isSky = linearizeDepth(depth) >= far - FUDGE;
+    if (!inctrl && !isSky) {
+        outColor = decodeYUV(DiffuseSampler, DiffuseDepthSampler, outColor, texCoord);
+    }
+
 
     // not control and sunDir exists
     if (!inctrl && length(sunDir) > 0.99) {
 
         // only do lighting if not sky
-        if (linearizeDepth(depth) < far - FUDGE) {
+        if (!isSky) {
 
             vec2 normCoord = texCoord;
             float minEdge = decodeFloat(texture(EdgeSampler, normCoord).rgb);
             float tmpEdge;
-            int face = int(fragColor.a * 255.0) % 4;
-            float applyLight = clamp(float(int(fragColor.a * 255.0) / 4) / 63.0, 0.0, 1.0);
+            int face = int(data.y * 255.0) % 4;
+            int stype = int(data.x * 255.0) % 8;
+            float applyLight = clamp(float(int(data.y * 255.0) / 4) / 63.0, 0.0, 1.0);
+            if (face == 3 && stype == 0) {
+                applyLight = clamp(float(int(data.x * 255.0) / 16) / 15.0, 0.0, 1.0);
+            }
             int tmpFace;
 
             vec2 candidates[8] = vec2[8](texCoord + vec2(-oneTexel.x, -oneTexel.y), texCoord + vec2(0.0, -oneTexel.y), 
@@ -414,7 +444,7 @@ void main() {
             
             for (int i = 0; i < 8; i += 1) {
                 tmpEdge = decodeFloat(texture(EdgeSampler, candidates[i]).rgb);
-                tmpFace = int(texture(DiffuseSampler, candidates[i]).a * 255.0) % 4;
+                tmpFace = int(texture(DiffuseSampler, candidates[i]).w * 255.0) % 4;
                 if (tmpEdge < minEdge && tmpFace == face) {
                     minEdge = tmpEdge;
                     normCoord = candidates[i];
@@ -452,6 +482,7 @@ void main() {
             normal = normal.z >  (1.0 - 0.05 * clamp(length(fragpos) / SNAPRANGE, 0.0, 1.0)) ? vec3(0.0, 0.0, 1.0) : normal;
             normal = normal.z < -(1.0 - 0.05 * clamp(length(fragpos) / SNAPRANGE, 0.0, 1.0)) ? vec3(0.0, 0.0, -1.0) : normal;
 
+
             // use cos between sunDir to determine light and ambient colors
             vec3 moonDir = normalize(vec3(-sunDir.xy, 0.0));
             float sdu = dot(vec3(0.0, 1.0, 0.0), sunDir);
@@ -470,9 +501,9 @@ void main() {
             }
 
             // apply ambient occlusion.
-            float rad = clamp(SAMPLE_RAD/linearizeDepth(depth), 0.0001, 0.2);
-            float ao = 1.0 - spiralAO(normCoord, fragpos, normal, rad) * INTENSITY;
-            fragColor.rgb *= ao;
+            float rad = clamp(AO_SAMPLE_RAD/linearizeDepth(depth), 0.0001, 0.2);
+            float ao = 1.0 - spiralAO(normCoord, fragpos, normal, rad) * AO_INTENSITY;
+            outColor.rgb *= ao;
 
             // apply lighting color. not quite standard diffuse light equation since the blocks are already "pre-lit"
             float shade = 0.0;
@@ -484,16 +515,45 @@ void main() {
             vec3 lightColor = ambient;
             lightColor += (direct - ambient) * clamp((dot(normal, sunDir) + 0.05) * shade, 0.0, 1.0); 
             lightColor += (backside - ambient) * clamp(dot(normal, moonDir), 0.0, 1.0); 
-            fragColor.rgb = mix(fragColor.rgb * mix(lightColor, vec3(1.0), applyLight), lightColor, 0.0);
+            if (face == 3 && stype == 1) {
+                outColor.rgb *= EMISS_MULT;
+                lightColor = max(lightColor, vec3(EMISS_MULT));
+            }
+            outColor.rgb = mix(outColor.rgb * mix(lightColor, vec3(1.0), applyLight), lightColor, 0.0);
 
             // desaturate bright pixels for more realistic feel
-            fragColor.rgb = mix(fragColor.rgb, vec3(length(fragColor.rgb)/sqrt(3.0)), luma(fragColor.rgb) * 0.5);
+            outColor.rgb = mix(outColor.rgb, vec3(length(outColor.rgb)/sqrt(3.0)), luma(outColor.rgb) * 0.5);
 
-            // fragColor.r = float(face == 0);
-            // fragColor.rgb = vec3(float(face) / 3.0);
-            // fragColor.rgb = vec3(linearizeDepth(depth) / (far / 3.0));
-            // fragColor.rgb = 0.5 * (normal + vec3(1.0));
-            // fragColor.a = 1.0;
+            // outColor.rgb = vec3(applyLight);
+
+            // outColor.r = float(face == 0);
+            // outColor.rgb = vec3(float(face) / 3.0);
+            // if (face == 3) {
+            //     outColor.rgb = vec3(clamp(float(int(data.x * 255.0) / 16) / 15.0, 0.0, 1.0));
+            // } else {
+            //     outColor.rgb = vec3(clamp(float(int(data.y * 255.0) / 4) / 63.0, 0.0, 1.0));
+            // }
+            // outColor.rgb = vec3(linearizeDepth(depth) / (far / 3.0));
+            // outColor.rgb = 0.5 * (normal + vec3(1.0));
+            // outColor.a = 1.0;
+            // outColor.rgb = vec3(float(stype) / 8.0);
+            // outColor.rgb = vec3(data.y);
+
+            // vec4 yuva = vec4(0.0);
+
+            // outColor.rgb = min(outColor.rgb, vec3(1.0));
+
+            // if (gl_FragCoord.x > OutSize.x / 2.0) {
+            //     yuva.x = outColor.r * 0.299 + outColor.g * 0.587 + outColor.b * 0.114;
+            //     yuva.y = outColor.r * -0.169 + outColor.g * -0.331 + outColor.b * 0.5 + 0.5;
+            //     yuva.z = outColor.r * 0.5 + outColor.g * -0.419 + outColor.b * -0.081 + 0.5;
+
+            //     yuva = vec4(yuva.x, (yuva.y - 0.5), (yuva.z - 0.5), 1.0);
+
+            //     outColor.r = yuva.x * 1.0 + yuva.y * 0.0 + yuva.z * 1.4;
+            //     outColor.g = yuva.x * 1.0 + yuva.y * -0.343 + yuva.z * -0.711;
+            //     outColor.b = yuva.x * 1.0 + yuva.y * 1.765 + yuva.z * 0.0;
+            // }
         } 
         // if sky do atmosphere
         else {
@@ -507,11 +567,13 @@ void main() {
             color += vec3(PRNG(int(gl_FragCoord.x) + int(gl_FragCoord.y) * int(OutSize.x))) / 255.0;
 
             if (sdu > 0.0) {
-                fragColor = vec4(color, 1.0 );
+                outColor = vec4(color, 1.0 );
             } else {
-                fragColor.rgb = mix(fragColor.rgb, color, clamp(5.0 * (0.2 - pow(abs(sdu), 1.5)), 0.0, 1.0));
+                outColor.rgb = mix(outColor.rgb, color, clamp(5.0 * (0.2 - pow(abs(sdu), 1.5)), 0.0, 1.0));
             }
 
         }
     }
+
+    fragColor = outColor;
 }

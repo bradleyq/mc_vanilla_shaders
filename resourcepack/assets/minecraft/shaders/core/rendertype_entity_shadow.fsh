@@ -18,9 +18,9 @@ in vec4 glpos;
 out vec4 fragColor;
 
 void main() {
-    discardControlGLPos(gl_FragCoord.xy, glpos);
-    vec4 color = texture(Sampler0, clamp(texCoord0, 0.0, 1.0));
-    color *= vertexColor * ColorModulator;
-    color.a *= 0.4;
-    fragColor = linear_fog(color, vertexDistance, FogStart, FogEnd, FogColor);
+    discard;
+    // discardControlGLPos(gl_FragCoord.xy, glpos);
+    // vec4 outColor = texture(Sampler0, clamp(texCoord0, 0.0, 1.0));
+    // outColor *= vertexColor * ColorModulator;
+    // fragColor = outColor;
 }

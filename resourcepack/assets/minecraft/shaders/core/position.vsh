@@ -41,20 +41,27 @@ void main() {
 
         // ignore model view so the cone follows the camera angle.
         gl_Position = ProjMat * vec4(scaledPos, 1.0);
-    } else if (length(scaledPos) > 100.0 && length(scaledPos) < 110.0) {
+    } 
+
+    // stars are between 100 and 110
+    else if (length(scaledPos) > 100.0 && length(scaledPos) < 110.0) {
         isSky = -1.0;
         seed = float((gl_VertexID + 2) / 4);
         uv = vec2(0.0);
+
         if (gl_VertexID % 4 == 1) {
             uv = vec2(0.0, 1.0);
-        } else if (gl_VertexID % 4 == 2) {
+        } 
+        else if (gl_VertexID % 4 == 2) {
             uv = vec2(1.0, 1.0);
-        } else if (gl_VertexID % 4 == 3) {
+        } 
+        else if (gl_VertexID % 4 == 3) {
             uv = vec2(1.0, 0.0);
         }
 
         gl_Position = ProjMat * ModelViewMat * vec4(scaledPos, 1.0);
-    } else {
+    } 
+    else {
         gl_Position = ProjMat * ModelViewMat * vec4(scaledPos, 1.0);
     }
 

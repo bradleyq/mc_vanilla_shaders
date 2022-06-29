@@ -25,8 +25,10 @@ void main() {
     vec4 color = vec4(0.0);
 
     int index = inControl(gl_FragCoord.xy, ScreenSize.x);
+    
     // currently in a control/message pixel
     if(index != -1) {
+        
         // store the sun position in eye space indices [0,2]
         if (isSun > 0.75 && index >= 0 && index <= 2) {
             vec3 p1 = c1 / cscale.x;
@@ -39,7 +41,7 @@ void main() {
             color = texture(Sampler0, texCoord0) * ColorModulator;
         }
     }
-
+    
     // calculate screen space UV of the sun since it was transformed to cover the entire screen in vsh so texCoord0 no longer works
     else if(isSun > 0.75) {
         // vec3 p1 = c1 / cscale.x;
@@ -59,12 +61,14 @@ void main() {
         //     color = texture(Sampler0, uv) * ColorModulator;
         // } 
         discard;
-    } else {
+    } 
+    else {
         color = texture(Sampler0, texCoord0) * ColorModulator;
     }
 
     if (color.a == 0.0) {
         discard;
     }
+    
     fragColor = color;
 }

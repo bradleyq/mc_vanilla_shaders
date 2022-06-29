@@ -18,12 +18,10 @@ out vec4 fragColor;
 #define FUDGE 32.0
 
 int inControl(vec2 screenCoord, float screenWidth) {
-    if (screenCoord.y < 1.0) {
-        float index = floor(screenWidth / 2.0) + THRESH / 2.0;
-        index = (screenCoord.x - index) / 2.0;
-        if (fract(index) < THRESH && index < NUMCONTROLS && index >= 0) {
-            return int(index);
-        }
+    float start = floor(screenWidth / 4.0) * 2.0;
+    int index = int(screenCoord.x - start) / 2;
+    if (screenCoord.y < 1.0 && screenCoord.x > start && int(screenCoord.x) % 2 == 0 && index < NUMCONTROLS) {
+        return index;
     }
     return -1;
 }
@@ -36,18 +34,14 @@ vec4 getNotControl(sampler2D inSampler, vec2 coords, bool inctrl) {
     }
 }
 
-int intmod(int i, int base) {
-    return i - (i / base * base);
-}
-
 vec3 encodeInt(int i) {
     int s = int(i < 0) * 128;
     i = abs(i);
-    int r = intmod(i, 256);
+    int r = i % 256;
     i = i / 256;
-    int g = intmod(i, 256);
+    int g = i % 256;
     i = i / 256;
-    int b = intmod(i, 128);
+    int b = i % 128;
     return vec3(float(r) / 255.0, float(g) / 255.0, float(b + s) / 255.0);
 }
 

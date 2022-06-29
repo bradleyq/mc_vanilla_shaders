@@ -3,8 +3,8 @@
         "func": "add",
         "srcrgb": "srcalpha",
         "dstrgb": "1-srcalpha",
-        "srcalpha": "0",
-        "dstalpha": "1"
+        "srcalpha" : "0",
+        "dstalpha" : "1"
     },
     "vertex": "rendertype_entity_no_outline",
     "fragment": "rendertype_entity_no_outline",

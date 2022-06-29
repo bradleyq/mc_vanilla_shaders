@@ -20,6 +20,7 @@ uniform vec3 Light1_Direction;
 
 out float vertexDistance;
 out vec4 vertexColor;
+out vec4 baseColor;
 out vec2 texCoord0;
 out vec2 texCoord1;
 out vec2 texCoord2;
@@ -30,7 +31,8 @@ void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
 
     vertexDistance = length((ModelViewMat * vec4(Position, 1.0)).xyz);
-    vertexColor = Color * texelFetch(Sampler2, UV2 / 16, 0);
+    vertexColor = texelFetch(Sampler2, UV2 / 16, 0);
+    baseColor = Color;
     texCoord0 = UV0;
     texCoord1 = UV1;
     texCoord2 = UV2 / 255.0;

@@ -15,21 +15,17 @@ flat out mat4 ProjInv;
 #define PROJNEAR 0.05
 
 vec2 getControl(int index, vec2 screenSize) {
-    return vec2(floor(screenSize.x / 2.0) + float(index) * 2.0 + 0.5, 0.5) / screenSize;
-}
-
-int intmod(int i, int base) {
-    return i - (i / base * base);
+    return vec2(floor(screenSize.x / 4.0) * 2.0 + float(index) * 2.0 + 0.5, 0.5) / screenSize;
 }
 
 vec3 encodeInt(int i) {
     int s = int(i < 0) * 128;
     i = abs(i);
-    int r = intmod(i, 256);
+    int r = i % 256;
     i = i / 256;
-    int g = intmod(i, 256);
+    int g = i % 256;
     i = i / 256;
-    int b = intmod(i, 128);
+    int b = i % 128;
     return vec3(float(r) / 255.0, float(g) / 255.0, float(b + s) / 255.0);
 }
 

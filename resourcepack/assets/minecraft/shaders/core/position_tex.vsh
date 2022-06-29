@@ -42,19 +42,23 @@ void main() {
             if (UV0.x < 0.5) {
                 c1 = Position;
                 cscale.x = 1.0;
-            } else {
+            } 
+            else {
                 candidate.x = OVERLAYSCALE;
                 if (UV0.y < 0.5) {
                     c2 = Position;
                     cscale.y = 1.0;
-                } else {
+                } 
+                else {
                     candidate.y = 2.0 * OVERLAYSCALE;
                     c3 = Position;
                     cscale.z = 1.0;
                 }
             }
+            
             ProjInv = inverse(ProjMat * ModelViewMat);
-        } else {
+        } 
+        else {
             isSun = 0.5;
         }
     }

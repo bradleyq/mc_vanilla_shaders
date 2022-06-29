@@ -45,18 +45,24 @@ vec4 backProject(vec4 vec) {
 
 #define zenithOffset -0.04
 #define multiScatterPhase 0.05
-#define density 0.5
+#define atmDensity 0.5
 
 #define anisotropicIntensity 0.0 //Higher numbers result in more anisotropic scattering
 
 #define skyColor vec3(0.3, 0.53, 1.0) * (1.0 + anisotropicIntensity) //Make sure one of the conponents is never 0.0
 
 #define smooth(x) x*x*(3.0-2.0*x)
-#define zenithDensity(x) density / pow(max((x - zenithOffset) / (1.0 - zenithOffset), 0.008), 0.75)
 
-vec3 getSkyAbsorption(vec3 x, float y){
+#define zenithDensity(x) atmDensity / pow(smoothClamp(((x - zenithOffset < 0.0 ? -(x - zenithOffset) * 0.4 : x - zenithOffset)) / (1.0 - zenithOffset), 0.03, 1.0), 0.75)
+
+float smoothClamp(float x, float a, float b)
+{
+    return smoothstep(0., 1., (x - a)/(b - a))*(b - a) + a;
+}
+
+vec3 getSkyAbsorption(vec3 col, float density, float lpy) {
 	
-	vec3 absorption = x * -y;
+	vec3 absorption = col * -density * (1.0 + pow(clamp(-lpy, 0.0, 1.0), 2.0) * 8.0);
 	     absorption = exp2(absorption) * 2.0;
 	
 	return absorption;
@@ -83,17 +89,16 @@ vec3 getAtmosphericScattering(vec3 p, vec3 lp, bool fog){
 	
 	float rayleighMult = getRayleigMultiplier(p, lp);
 	
-	vec3 absorption = getSkyAbsorption(skyColor, zenith);
-    vec3 sunAbsorption = getSkyAbsorption(skyColor, zenithDensity(ly + multiScatterPhase));
+	vec3 absorption = getSkyAbsorption(skyColor, zenith, lp.y);
+    vec3 sunAbsorption = getSkyAbsorption(skyColor, zenithDensity(ly + multiScatterPhase), lp.y);
 	vec3 sky = skyColor * zenith * rayleighMult;
 	vec3 mie = getMie(p, lp) * sunAbsorption;
 	if (!fog) mie += getSunPoint(p, lp) * absorption;
 	
-	vec3 totalSky = mix(sky * absorption, sky / (sky + 0.5), sunPointDistMult);
+	vec3 totalSky = mix(sky * absorption, sky / (sky * 0.5 + 0.5), sunPointDistMult);
          totalSky += mie;
 	     totalSky *= sunAbsorption * 0.5 + 0.5 * length(sunAbsorption);
 	
-    totalSky = mix(totalSky, vec3(0.1, 0.15, 0.33), clamp(pow(-p.y + zenithOffset, 0.5), 0.0, 1.0));
 	return totalSky;
 }
 
@@ -314,21 +319,22 @@ void main() {
 
         normal = normal == vec3(0.0) ? vec3(0.0, 1.0, 0.0) : normalize(-normal);
 
+        float smoothing = min(NORMAL_SMOOTHING, texCoord.y);
         if (int(color.a * 255.0) % 2 == 0) {
             float ldepth6 = (texture2D(TranslucentDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(0.0, 1.0)).r);
             float ldepth7 = (texture2D(TranslucentDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(aspectRatio, 0.0)).r);
-            float ldepth8 = (texture2D(TranslucentDepthSampler, texCoord - NORMAL_SMOOTHING * vec2(0.0, 1.0)).r);
+            float ldepth8 = (texture2D(TranslucentDepthSampler, texCoord - smoothing * vec2(0.0, 1.0)).r);
             float ldepth9 = (texture2D(TranslucentDepthSampler, texCoord - NORMAL_SMOOTHING * vec2(aspectRatio, 0.0)).r);
             float gdepth6 = (texture2D(DiffuseDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(0.0, 1.0)).r);
             float gdepth7 = (texture2D(DiffuseDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(aspectRatio, 0.0)).r);
-            float gdepth8 = (texture2D(DiffuseDepthSampler, texCoord - NORMAL_SMOOTHING * vec2(0.0, 1.0)).r);
+            float gdepth8 = (texture2D(DiffuseDepthSampler, texCoord - smoothing * vec2(0.0, 1.0)).r);
             float gdepth9 = (texture2D(DiffuseDepthSampler, texCoord - NORMAL_SMOOTHING * vec2(aspectRatio, 0.0)).r);
 
             vec3 p6 = backProject(vec4(scaledCoord + 2.0 * NORMAL_SMOOTHING * vec2(0.0, 1.0), ldepth6, 1.0)).xyz;
             p6 = p6 - fragpos;
             vec3 p7 = backProject(vec4(scaledCoord + 2.0 * NORMAL_SMOOTHING * vec2(aspectRatio, 0.0), ldepth7, 1.0)).xyz;
             p7 = p7 - fragpos;
-            vec3 p8 = backProject(vec4(scaledCoord - 2.0 * NORMAL_SMOOTHING * vec2(0.0, 1.0), ldepth8, 1.0)).xyz;
+            vec3 p8 = backProject(vec4(scaledCoord - 2.0 * smoothing * vec2(0.0, 1.0), ldepth8, 1.0)).xyz;
             p8 = p8 - fragpos;
             vec3 p9 = backProject(vec4(scaledCoord - 2.0 * NORMAL_SMOOTHING * vec2(aspectRatio, 0.0), ldepth9, 1.0)).xyz;
             p9 = p9 - fragpos;

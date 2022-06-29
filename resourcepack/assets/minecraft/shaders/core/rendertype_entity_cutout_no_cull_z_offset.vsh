@@ -21,7 +21,7 @@ uniform vec3 Light1_Direction;
 
 out float vertexDistance;
 out vec4 vertexColor;
-out vec4 lightMapColor;
+out vec4 baseColor;
 out vec4 overlayColor;
 out vec2 texCoord0;
 out vec2 texCoord2;
@@ -32,13 +32,16 @@ void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
 
     vertexDistance = length((ModelViewMat * vec4(Position, 1.0)).xyz);
+
     if (isGUI(ProjMat)) {
-        vertexColor = minecraft_mix_light(Light0_Direction, Light1_Direction, Normal, Color);
-        lightMapColor = texelFetch(Sampler2, UV2 / 16, 0);
-    } else {
-        vertexColor = Color;
-        lightMapColor = minecraft_sample_lightmap(Sampler2, UV2);
+        baseColor = minecraft_mix_light(Light0_Direction, Light1_Direction, Normal, Color);
+        vertexColor = texelFetch(Sampler2, UV2 / 16, 0);
+    } 
+    else {
+        baseColor = Color;
+        vertexColor = minecraft_sample_lightmap(Sampler2, UV2);
     }
+    
     overlayColor = texelFetch(Sampler1, UV1, 0);
     texCoord0 = UV0;
     texCoord2 = UV2 / 255.0;

@@ -2,7 +2,9 @@
     "blend": {
         "func": "add",
         "srcrgb": "srcalpha",
-        "dstrgb": "1-srcalpha"
+        "dstrgb": "1-srcalpha",
+        "srcalpha" : "srcalpha",
+        "dstalpha" : "1-srcalpha"
     },
     "vertex": "rendertype_eyes",
     "fragment": "rendertype_eyes",

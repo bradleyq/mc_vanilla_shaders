@@ -5,17 +5,15 @@ uniform sampler2D TemporalSampler;
 
 varying vec2 texCoord;
 
-int intmod(int i, int base) {
-    return i - (i / base * base);
-}
-
 vec3 encodeInt(int i) {
-    int r = intmod(i, 255);
-    i = i / 255;
-    int g = intmod(i, 255);
-    i = i / 255;
-    int b = intmod(i, 255);
-    return vec3(float(r) / 255.0, float(g) / 255.0, float(b) / 255.0);
+    int s = int(i < 0) * 128;
+    i = abs(i);
+    int r = i % 256;
+    i = i / 256;
+    int g = i % 256;
+    i = i / 256;
+    int b = i % 128;
+    return vec3(float(r) / 255.0, float(g) / 255.0, float(b + s) / 255.0);
 }
 
 int decodeInt(vec3 ivec) {

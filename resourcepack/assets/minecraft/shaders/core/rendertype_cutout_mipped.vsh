@@ -16,6 +16,7 @@ uniform vec3 ChunkOffset;
 
 out float vertexDistance;
 out vec4 vertexColor;
+out vec4 baseColor;
 out vec2 texCoord0;
 out vec2 texCoord2;
 out vec3 normal;
@@ -36,7 +37,8 @@ void main() {
     } else if (Color.r == Color.g && Color.g == Color.b) {
         col = vec4(1.0);
     }
-    vertexColor = col * minecraft_sample_lightmap(Sampler2, UV2);
+    baseColor = col;
+    vertexColor = minecraft_sample_lightmap(Sampler2, UV2);
     texCoord0 = UV0;
     texCoord2 = UV2 / 255.0;
     texCoord2.x *= 1.0 - getSun(Sampler2);
