@@ -47,8 +47,13 @@ void main() {
             fragColor = FogColor;
         } 
 
-        // store FogEnd
+        // store FogStart
         else if (index == 26) {
+            fragColor = vec4(encodeInt(int(round(FogStart))), 1.0);
+        }
+
+        // store FogEnd
+        else if (index == 27) {
             fragColor = vec4(encodeInt(int(round(FogEnd))), 1.0);
         } 
         

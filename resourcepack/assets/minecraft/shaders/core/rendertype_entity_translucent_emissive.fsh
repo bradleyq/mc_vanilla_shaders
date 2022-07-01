@@ -6,14 +6,10 @@
 uniform sampler2D Sampler0;
 
 uniform vec4 ColorModulator;
-uniform float FogStart;
-uniform float FogEnd;
 
-in float vertexDistance;
 in vec4 vertexColor;
 in vec4 overlayColor;
 in vec2 texCoord0;
-in vec4 normal;
 in vec4 glpos;
 
 out vec4 fragColor;

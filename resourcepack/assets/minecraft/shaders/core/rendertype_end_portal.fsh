@@ -59,9 +59,11 @@ void main() {
     discardControlGLPos(gl_FragCoord.xy, glpos);
     vec4 outColor = vec4(1.0);
     outColor.rgb = textureProj(Sampler0, texProj0).rgb * COLORS[0];
+    
     for (int i = 0; i < EndPortalLayers; i++) {
         outColor.rgb += textureProj(Sampler1, texProj0 * end_portal_layer(float(i + 1))).rgb * COLORS[i];
     }
+
     outColor = getOutColorT(outColor, vec4(1.0), vec2(0.0), gl_FragCoord.xy, FACETYPE_Y, PBRTYPE_STANDARD);
     fragColor = outColor;
 }

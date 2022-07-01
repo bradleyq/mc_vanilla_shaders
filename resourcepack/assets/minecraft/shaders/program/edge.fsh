@@ -11,7 +11,7 @@ flat in mat4 ProjInv;
 out vec4 fragColor;
 
 // moj_import doesn't work in post-process shaders ;_; Felix pls fix
-#define NUMCONTROLS 27
+#define NUMCONTROLS 28
 #define THRESH 0.5
 #define FPRECISION 4000000.0
 #define PROJNEAR 0.05

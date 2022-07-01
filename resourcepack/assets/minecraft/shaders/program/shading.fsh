@@ -17,7 +17,7 @@ in float far;
 out vec4 fragColor;
 
 // moj_import doesn't work in post-process shaders ;_; Felix pls fix
-#define NUMCONTROLS 27
+#define NUMCONTROLS 28
 #define THRESH 0.5
 #define FPRECISION 4000000.0
 #define PROJNEAR 0.05
@@ -415,8 +415,13 @@ void main() {
     float depth = texture(DiffuseDepthSampler, texCoord).r;
     vec2 data = outColor.ba;
     bool isSky = linearizeDepth(depth) >= far - FUDGE;
-    if (!inctrl && !isSky) {
-        outColor = decodeYUV(DiffuseSampler, DiffuseDepthSampler, outColor, texCoord);
+    if (!inctrl) {
+        if (!isSky) {
+            outColor = decodeYUV(DiffuseSampler, DiffuseDepthSampler, outColor, texCoord);
+        }
+        else if (outColor.g / outColor.r > 2.0) {
+            outColor.rgb = vec3(outColor.r);
+        }
     }
 
 

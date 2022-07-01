@@ -2,20 +2,19 @@
     "blend": {
         "func": "add",
         "srcrgb": "srcalpha",
-        "dstrgb": "1-srcalpha"
+        "dstrgb": "1-srcalpha",
+        "srcalpha" : "srcalpha",
+        "dstalpha" : "1-srcalpha"
     },
     "vertex": "rendertype_beacon_beam",
     "fragment": "rendertype_beacon_beam",
     "attributes": [
         "Position",
         "Color",
-        "UV0",
-        "UV2",
-        "Normal"
+        "UV0"
     ],
     "samplers": [
-        { "name": "Sampler0" },
-        { "name": "Sampler2" }
+        { "name": "Sampler0" }
     ],
     "uniforms": [
         { "name": "ModelViewMat", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },

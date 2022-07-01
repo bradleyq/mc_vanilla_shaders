@@ -9,14 +9,12 @@ uniform mat4 ProjMat;
 uniform vec4 ColorModulator;
 uniform float FogStart;
 uniform float FogEnd;
-uniform vec4 FogColor;
 
 in vec4 vertexColor;
 in vec4 baseColor;
 in vec4 overlayColor;
 in vec2 texCoord0;
 in vec2 texCoord2;
-in vec4 normal;
 in vec4 glpos;
 
 out vec4 fragColor;
@@ -47,6 +45,9 @@ void main() {
             outColor.a = 1.0;
             outColor = getOutColorSTDALock(outColor, vertexColor, texCoord2, gl_FragCoord.xy);
         }
+    }
+    else {
+        outColor *= vertexColor;
     }
     
     fragColor = outColor;

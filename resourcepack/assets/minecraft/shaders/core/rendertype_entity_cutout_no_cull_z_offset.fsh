@@ -9,9 +9,7 @@ uniform sampler2D Sampler0;
 uniform vec4 ColorModulator;
 uniform float FogStart;
 uniform float FogEnd;
-uniform vec4 FogColor;
 
-in float vertexDistance;
 in vec4 vertexColor;
 in vec4 baseColor;
 in vec4 overlayColor;
@@ -41,6 +39,9 @@ void main() {
 
     if (!gui && !hand) {
         outColor = getOutColor(outColor, vertexColor, texCoord2, gl_FragCoord.xy, getDirE(normal));
+    }
+    else {
+        outColor *= vertexColor;
     }
     
     fragColor = outColor;

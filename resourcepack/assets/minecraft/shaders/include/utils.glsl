@@ -1,6 +1,6 @@
 #version 150
 
-#define NUMCONTROLS 27
+#define NUMCONTROLS 28
 #define THRESH 0.5
 #define FPRECISION 4000000.0
 #define PROJNEAR 0.05
@@ -60,7 +60,8 @@ Control Map:
 [23] ModelViewMat[2][1]
 [24] ModelViewMat[2][2]
 [25] FogColor
-[26] FogEnd
+[26] FogStart
+[27] FogEnd
 */
 
 /*
@@ -185,19 +186,19 @@ vec2 encodeYUV(vec2 coord, vec3 color) {
 
 vec2 getBA(vec2 lightmask, int type, int facetype, float strength) {
     float b = 255.0;
-    float a = 1.0 - smoothstep(5.0 / 15.0, 12.0 / 15.0, lightmask.y);
+    float a = 255.0;
+    if (type != PBRTYPE_TRANSLUCENT && type != PBRTYPE_TEMISSIVE) {
+        a = 1.0 - smoothstep(5.0 / 15.0, 12.0 / 15.0, lightmask.y);
 
-    if (type != PBRTYPE_EMISSIVE) {
-        a = max(smoothstep(5.0 / 15.0, 1.0, lightmask.x), a);
-    }
+        if (type != PBRTYPE_EMISSIVE) {
+            a = max(smoothstep(5.0 / 15.0, 1.0, lightmask.x), a);
+        }
 
-    a = round(a * 63.0) * 4.0;
-
-    if (type == PBRTYPE_STANDARD) {
+        a = round(a * 63.0) * 4.0;
         a += float(facetype);
     }
-    else {
-        a += float(FACETYPE_S);
+
+    if (type != PBRTYPE_STANDARD) {
         b = round(strength * 15.0) * 16.0 + float(type);
     }
     
@@ -264,7 +265,7 @@ vec4 getOutColorSTDALock(vec4 color, vec4 light, vec2 lightmask, vec2 fragcoord)
     return outCol;
 }
 
-bool isHand(float fogs, float foge) {
+bool isHand(float fogs, float foge) { // also includes panorama
     return fogs >= foge;
 }
 

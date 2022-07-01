@@ -19,7 +19,6 @@ uniform mat4 ProjMat;
 uniform vec3 Light0_Direction;
 uniform vec3 Light1_Direction;
 
-out float vertexDistance;
 out vec4 vertexColor;
 out vec4 baseColor;
 out vec4 overlayColor;
@@ -30,8 +29,6 @@ out vec4 glpos;
 
 void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
-
-    vertexDistance = length((ModelViewMat * vec4(Position, 1.0)).xyz);
 
     if (isGUI(ProjMat)) {
         baseColor = minecraft_mix_light(Light0_Direction, Light1_Direction, Normal, Color);

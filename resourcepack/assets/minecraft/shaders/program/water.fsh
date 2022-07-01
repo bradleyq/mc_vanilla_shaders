@@ -185,10 +185,9 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec4 approxr
         vec3 colortmp = texture2D(DiffuseSampler, 0.5 * pos.xy + vec2(0.5)).rgb;
         rayDir.y = abs(rayDir.y * 0.2);
         rayDir = normalize(rayDir);
-        vec3 fogcol = getAtmosphericScattering(rayDir, sunDir, true);
+        vec3 fogcol = getAtmosphericScattering(rayDir, sunDir, true) * pi;
         fogcol = jodieReinhardTonemap(fogcol);
         fogcol = pow(fogcol, vec3(2.2)); //Back to linear
-        fogcol *= 1.3;
         float count = 1.0;
         float dtmptmp = 0.0;
         vec2 postmp = vec2(0.0);

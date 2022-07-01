@@ -25,7 +25,7 @@ in float far;
 in float fogEnd;
 
 #define NUM_LAYERS 6
-#define NUMCONTROLS 27
+#define NUMCONTROLS 28
 #define THRESH 0.5
 
 #define DEFAULT 0u
@@ -129,18 +129,25 @@ vec3 blendmult( vec3 dst, vec4 src) {
 
 #define zenithOffset -0.04
 #define multiScatterPhase 0.05
-#define density 0.5
+#define atmDensity 0.5
 
 #define anisotropicIntensity 0.0 //Higher numbers result in more anisotropic scattering
 
 #define skyColor vec3(0.3, 0.53, 1.0) * (1.0 + anisotropicIntensity) //Make sure one of the conponents is never 0.0
 
 #define smooth(x) x*x*(3.0-2.0*x)
-#define zenithDensity(x) density / pow(max((x - zenithOffset) / (1.0 - zenithOffset), 0.008), 0.75)
 
-vec3 getSkyAbsorption(vec3 x, float y){
+// #define zenithDensity(x) atmDensity / pow(max((x - zenithOffset) / (1.0 - zenithOffset), 0.008), 0.75)
+#define zenithDensity(x) atmDensity / pow(smoothClamp(((x - zenithOffset < 0.0 ? -(x - zenithOffset) * 0.4 : x - zenithOffset)) / (1.0 - zenithOffset), 0.03, 1.0), 0.75)
+
+float smoothClamp(float x, float a, float b)
+{
+    return smoothstep(0., 1., (x - a)/(b - a))*(b - a) + a;
+}
+
+vec3 getSkyAbsorption(vec3 col, float density, float lpy) {
 	
-	vec3 absorption = x * -y;
+	vec3 absorption = col * -density * (1.0 + pow(clamp(-lpy, 0.0, 1.0), 2.0) * 8.0);
 	     absorption = exp2(absorption) * 2.0;
 	
 	return absorption;
@@ -155,7 +162,7 @@ float getRayleigMultiplier(vec3 p, vec3 lp){
 }
 
 float getMie(vec3 p, vec3 lp){
-	float disk = clamp(1.0 - pow(distance(p, lp), mix(0.4, 0.1, (exp(max(lp.y, 0.0)) - 1.0) / 1.718281828)), 0.0, 1.0);
+	float disk = clamp(1.0 - pow(distance(p, lp), mix(0.3, 0.13, exp(max(lp.y, 0.0)) - 1.0) / 1.718281828), 0.0, 1.0);
 	
 	return disk*disk*(3.0 - 2.0 * disk) * 2.0 * pi;
 }
@@ -167,17 +174,16 @@ vec3 getAtmosphericScattering(vec3 p, vec3 lp, bool fog){
 	
 	float rayleighMult = getRayleigMultiplier(p, lp);
 	
-	vec3 absorption = getSkyAbsorption(skyColor, zenith);
-    vec3 sunAbsorption = getSkyAbsorption(skyColor, zenithDensity(ly + multiScatterPhase));
+	vec3 absorption = getSkyAbsorption(skyColor, zenith, lp.y);
+    vec3 sunAbsorption = getSkyAbsorption(skyColor, zenithDensity(ly + multiScatterPhase), lp.y);
 	vec3 sky = skyColor * zenith * rayleighMult;
 	vec3 mie = getMie(p, lp) * sunAbsorption;
-    if (!fog) mie += getSunPoint(p, lp) * absorption;
+	if (!fog) mie += getSunPoint(p, lp) * absorption;
 	
-	vec3 totalSky = mix(sky * absorption, sky / (sky + 0.5), sunPointDistMult);
+	vec3 totalSky = mix(sky * absorption, sky / (sky * 0.5 + 0.5), sunPointDistMult);
          totalSky += mie;
 	     totalSky *= sunAbsorption * 0.5 + 0.5 * length(sunAbsorption);
 	
-    totalSky = mix(totalSky, vec3(0.1, 0.15, 0.33), clamp(pow(-p.y + zenithOffset, 0.5), 0.0, 1.0));
 	return totalSky;
 }
 
@@ -190,12 +196,12 @@ vec3 jodieReinhardTonemap(vec3 c){
 
 void main() {
     vec3 fragpos = backProject(vec4(scaledCoord, 1.0, 1.0)).xyz;
-    fragpos.y = abs(fragpos.y * 0.2);
     fragpos = normalize(fragpos);
-    vec3 color = getAtmosphericScattering(fragpos, sunDir, true);
+    fragpos.y = abs(fragpos.y * 0.5);
+    fragpos = normalize(fragpos);
+    vec3 color = getAtmosphericScattering(fragpos, sunDir, true) * pi;
     color = jodieReinhardTonemap(color);
     color = pow(color, vec3(2.2)); //Back to linear
-    color *= 1.3;
 
     vec4 calculatedFog = vec4(1.0);
     float sdu = dot(vec3(0.0, 1.0, 0.0), sunDir);
@@ -210,9 +216,9 @@ void main() {
     depth_layers[0] = (getNotControl( DiffuseDepthSampler, texCoord, inctrl).r);
 
     // crumbling, beacon_beam, leash, entity_translucent_emissive(warden glow)
-    color_layers[0] = vec4( getNotControl( DiffuseSampler, texCoord, inctrl).rgb, 1.0 );
+    color_layers[0] = vec4( texture( DiffuseSampler, texCoord).rgb, 1.0 );
     if (depth_layers[0] < 1.0) {
-        color_layers[0] = linear_fog_real(color_layers[0], length(backProject(vec4(scaledCoord, depth_layers[0], 1.0)).xyz), fogEnd * 0.01, 2.25 * fogEnd, calculatedFog);
+        color_layers[0] = linear_fog_real(color_layers[0], length(backProject(vec4(scaledCoord, depth_layers[0], 1.0)).xyz), fogEnd * 0.01, fogEnd * 2.25, calculatedFog);
     }
     active_layers = 1;
 

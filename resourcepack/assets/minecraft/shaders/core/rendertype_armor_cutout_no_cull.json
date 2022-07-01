@@ -10,13 +10,11 @@
         "Position",
         "Color",
         "UV0",
-        "UV1",
         "UV2",
         "Normal"
     ],
     "samplers": [
         { "name": "Sampler0" },
-        { "name": "Sampler1" },
         { "name": "Sampler2" }
     ],
     "uniforms": [
@@ -26,7 +24,6 @@
         { "name": "Light0_Direction", "type": "float", "count": 3, "values": [0.0, 0.0, 0.0] },
         { "name": "Light1_Direction", "type": "float", "count": 3, "values": [0.0, 0.0, 0.0] },
         { "name": "FogStart", "type": "float", "count": 1, "values": [ 0.0 ] },
-        { "name": "FogEnd", "type": "float", "count": 1, "values": [ 1.0 ] },
-        { "name": "FogColor", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] }
+        { "name": "FogEnd", "type": "float", "count": 1, "values": [ 1.0 ] }
     ]
 }

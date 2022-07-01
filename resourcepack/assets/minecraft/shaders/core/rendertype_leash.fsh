@@ -3,11 +3,6 @@
 #moj_import <fog.glsl>
 #moj_import <utils.glsl>
 
-uniform float FogStart;
-uniform float FogEnd;
-uniform vec4 FogColor;
-
-in float vertexDistance;
 in vec2 texCoord2;
 flat in vec4 vertexColor;
 in vec4 glpos;

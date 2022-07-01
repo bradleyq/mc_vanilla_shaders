@@ -14,13 +14,15 @@ out vec4 fragColor;
 
 void main() {
     discardControlGLPos(gl_FragCoord.xy, glpos);
-    vec4 outColor = texture(Sampler0, texCoord0) * vertexColor * ColorModulator;
+    vec4 outColor = texture(Sampler0, texCoord0);
     
     if (outColor.a < 0.1 || (int(gl_FragCoord.x) + int(gl_FragCoord.y)) % 2 == 0) {
         discard;
     }
 
-    if (outColor.r > 0.0 && outColor.g > 0.0 && outColor.b > 0.0) { // hide name behind blocks to prevent z fighting
+    outColor *= vertexColor * ColorModulator;
+
+    if (outColor.r > 0.0 && outColor.g > 0.0 && outColor.b > 0.0 && outColor.a < 0.99) { // hide name behind blocks to prevent z fighting
         discard;
     }
 

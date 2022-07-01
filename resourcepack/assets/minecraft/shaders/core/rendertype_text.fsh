@@ -9,9 +9,7 @@ uniform sampler2D Sampler0;
 uniform vec4 ColorModulator;
 uniform float FogStart;
 uniform float FogEnd;
-uniform vec4 FogColor;
 
-in float vertexDistance;
 in vec4 vertexColor;
 in vec4 baseColor;
 in vec2 texCoord0;
@@ -28,15 +26,20 @@ void main() {
         discardControlGLPos(gl_FragCoord.xy, glpos);
     }
 
-    vec4 outColor = texture(Sampler0, texCoord0) * baseColor * ColorModulator;
+    vec4 outColor = texture(Sampler0, texCoord0);
 
     if (outColor.a < 0.1) {
         discard;
     }
     
+    outColor *= baseColor * ColorModulator;
+    
     if (!gui && !hand) {
         outColor.a = 1.0;
         outColor = getOutColorSTDALock(outColor, vertexColor, texCoord2, gl_FragCoord.xy);
+    }
+    else {
+        outColor *= vertexColor;
     }
     
     fragColor = outColor;

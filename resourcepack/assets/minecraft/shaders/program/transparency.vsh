@@ -101,5 +101,5 @@ void main() {
     ProjInv = inverse(ProjMat * ModeViewMat);
 
     fogColor = texture(DiffuseSampler, start + 25.0 * inc);
-    fogEnd = float(decodeInt(texture(DiffuseSampler, start + 26.0 * inc).xyz));
+    fogEnd = float(decodeInt(texture(DiffuseSampler, start + 27.0 * inc).xyz));
 }

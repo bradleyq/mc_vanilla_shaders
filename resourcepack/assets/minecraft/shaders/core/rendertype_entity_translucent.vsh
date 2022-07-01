@@ -24,7 +24,6 @@ out vec4 baseColor;
 out vec4 overlayColor;
 out vec2 texCoord0;
 out vec2 texCoord2;
-out vec3 normal;
 out vec4 glpos;
 
 void main() {
@@ -43,6 +42,5 @@ void main() {
     texCoord2 = UV2 / 255.0;
     texCoord2.x *= 1.0 - getSun(Sampler2);
     overlayColor = texelFetch(Sampler1, UV1, 0);
-    normal = getInvWorldMat(Light0_Direction, Light1_Direction) * Normal; // will fail in nether but lighting is softer there
     glpos = gl_Position;
 }
