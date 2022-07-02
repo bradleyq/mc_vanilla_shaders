@@ -13,6 +13,7 @@ out vec4 fogColor;
 out mat4 ProjInv;
 out float near;
 out float far;
+out float fogStart;
 out float fogEnd;
 
 // moj_import doesn't work in post-process shaders ;_; Felix pls fix
@@ -101,5 +102,6 @@ void main() {
     ProjInv = inverse(ProjMat * ModeViewMat);
 
     fogColor = texture(DiffuseSampler, start + 25.0 * inc);
+    fogStart = float(decodeInt(texture(DiffuseSampler, start + 26.0 * inc).xyz));
     fogEnd = float(decodeInt(texture(DiffuseSampler, start + 27.0 * inc).xyz));
 }

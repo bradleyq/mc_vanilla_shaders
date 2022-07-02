@@ -22,6 +22,7 @@ in vec4 fogColor;
 in mat4 ProjInv;
 in float near;
 in float far;
+in float fogStart;
 in float fogEnd;
 
 #define NUM_LAYERS 6
@@ -32,6 +33,7 @@ in float fogEnd;
 #define FOGFADE 1u
 #define BLENDMULT 2u
 #define BLENDADD 4u
+#define WATER_FOG vec4(0.0 / 255.0, 37.0 / 255.0, 38.0 / 255.0, 1.0)
 
 vec4 color_layers[NUM_LAYERS];
 float depth_layers[NUM_LAYERS];
@@ -79,7 +81,7 @@ vec4 backProject(vec4 vec) {
     return tmp / tmp.w;
 }
 
-void try_insert( vec4 color, vec4 fog, sampler2D dSampler, uint op ) {
+void try_insert( vec4 color, sampler2D dSampler, vec4 fog, float fstart, float fend, uint op ) {
     if ( color.a == 0.0 ) {
         return;
     }
@@ -87,9 +89,9 @@ void try_insert( vec4 color, vec4 fog, sampler2D dSampler, uint op ) {
     float depth = texture( dSampler, texCoord ).r;
 
     if ((op & FOGFADE) > 0u) {
-        color = linear_fog_real(color, length(backProject(vec4(scaledCoord, depth, 1.0)).xyz), fogEnd * 0.01, 2.0 * fogEnd, vec4(fog.rgb, 0.0));
+        color = linear_fog_real(color, length(backProject(vec4(scaledCoord, depth, 1.0)).xyz), fstart, fend, vec4(fog.rgb, 0.0));
     } else {
-        color = linear_fog_real(color, length(backProject(vec4(scaledCoord, depth, 1.0)).xyz), fogEnd * 0.01, 2.25 * fogEnd, fog);
+        color = linear_fog_real(color, length(backProject(vec4(scaledCoord, depth, 1.0)).xyz), fstart, fend, fog);
     }
 
     color_layers[active_layers] = color;
@@ -199,16 +201,26 @@ void main() {
     fragpos = normalize(fragpos);
     fragpos.y = abs(fragpos.y * 0.5);
     fragpos = normalize(fragpos);
+
+    vec4 calculatedFog = vec4(1.0);
+    float fstart = 0.01 * fogEnd;
+    float fend = 2.25 * fogEnd;
+
     vec3 color = getAtmosphericScattering(fragpos, sunDir, true) * pi;
     color = jodieReinhardTonemap(color);
     color = pow(color, vec3(2.2)); //Back to linear
 
-    vec4 calculatedFog = vec4(1.0);
     float sdu = dot(vec3(0.0, 1.0, 0.0), sunDir);
     if (sdu > 0.0) {
         calculatedFog = vec4(color, 1.0);
     } else {
         calculatedFog.rgb = mix(fogColor.rgb, color, clamp(5.0 * (0.2 - pow(abs(sdu), 1.5)), 0.0, 1.0));
+    }
+
+    if (fogStart < -7.0) {
+        calculatedFog *= WATER_FOG;
+        fstart = -1.0 * fogEnd;
+        fend = 2.0 * fogEnd;
     }
 
     bool inctrl = inControl(texCoord * OutSize, OutSize.x) > -1;
@@ -217,20 +229,20 @@ void main() {
 
     // crumbling, beacon_beam, leash, entity_translucent_emissive(warden glow)
     color_layers[0] = vec4( texture( DiffuseSampler, texCoord).rgb, 1.0 );
-    if (depth_layers[0] < 1.0) {
-        color_layers[0] = linear_fog_real(color_layers[0], length(backProject(vec4(scaledCoord, depth_layers[0], 1.0)).xyz), fogEnd * 0.01, fogEnd * 2.25, calculatedFog);
+    if (depth_layers[0] < 1.0 || fogStart < -7.0) {
+        color_layers[0] = linear_fog_real(color_layers[0], length(backProject(vec4(scaledCoord, depth_layers[0], 1.0)).xyz), fstart, fend, calculatedFog);
     }
     active_layers = 1;
 
-    try_insert( texture( CloudsSampler, texCoord ), calculatedFog, CloudsDepthSampler, FOGFADE);
-    try_insert( texture( TranslucentSampler, texCoord ), calculatedFog, TranslucentDepthSampler, DEFAULT); 
-    try_insert( texture( ParticlesSampler, texCoord ), calculatedFog, ParticlesDepthSampler, DEFAULT);
+    try_insert( texture( CloudsSampler, texCoord ), CloudsDepthSampler, calculatedFog, fstart, fend, FOGFADE);
+    try_insert( texture( TranslucentSampler, texCoord ), TranslucentDepthSampler, calculatedFog, fstart, fend, DEFAULT); 
+    try_insert( texture( ParticlesSampler, texCoord ), ParticlesDepthSampler, calculatedFog, fstart, fend, DEFAULT);
 
     // tripwire   
-    try_insert( texture( WeatherSampler, texCoord ), calculatedFog, WeatherDepthSampler, FOGFADE);
+    try_insert( texture( WeatherSampler, texCoord ), WeatherDepthSampler, calculatedFog, fstart, fend, FOGFADE);
 
     // translucent_moving_block, lines, item_entity_translucent_cull
-    try_insert( texture( ItemEntitySampler, texCoord ), calculatedFog, ItemEntityDepthSampler, DEFAULT);
+    try_insert( texture( ItemEntitySampler, texCoord ), ItemEntityDepthSampler, calculatedFog, fstart, fend, DEFAULT);
     vec3 texelAccum = color_layers[index_layers[0]].rgb;
     for ( int ii = 1; ii < active_layers; ++ii ) {
         if ((op_layers[index_layers[ii]] & BLENDMULT) > 0u) {

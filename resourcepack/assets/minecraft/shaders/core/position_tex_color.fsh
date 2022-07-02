@@ -44,7 +44,7 @@ void main() {
 
         // store FogColor in control pixels
         else if (index == 25) {
-            fragColor = FogColor;
+            fragColor = vec4(FogColor.rgb, 1.0);
         } 
 
         // store FogStart

@@ -31,6 +31,10 @@
 
 #define EMISS_MULT 1.5
 
+#define DIM_OVER_VALID vec4(1.0)
+#define DIM_END_VALID vec4(254.0 / 255.0)
+#define DIM_END vec4(21.0 / 255.0, 17.0 / 255.0, 21.0 / 255.0, 0.0)
+
 /*
 Control Map:
 
@@ -62,6 +66,7 @@ Control Map:
 [25] FogColor
 [26] FogStart
 [27] FogEnd
+[28] Dimension
 */
 
 /*
