@@ -6,10 +6,8 @@ uniform sampler2D TranslucentSampler;
 uniform sampler2D TranslucentDepthSampler;
 uniform sampler2D ItemEntitySampler;
 uniform sampler2D ItemEntityDepthSampler;
-uniform sampler2D ParticlesSampler;
-uniform sampler2D ParticlesDepthSampler;
-uniform sampler2D WeatherSampler;
-uniform sampler2D WeatherDepthSampler;
+uniform sampler2D ParticlesWeatherSampler;
+uniform sampler2D ParticlesWeatherDepthSampler;
 uniform sampler2D CloudsSampler;
 uniform sampler2D CloudsDepthSampler;
 uniform vec2 OutSize;
@@ -25,9 +23,7 @@ in float far;
 in float fogStart;
 in float fogEnd;
 
-#define NUM_LAYERS 6
-#define NUMCONTROLS 28
-#define THRESH 0.5
+#define NUM_LAYERS 5
 
 #define DEFAULT 0u
 #define FOGFADE 1u
@@ -38,30 +34,12 @@ in float fogEnd;
 vec4 color_layers[NUM_LAYERS];
 float depth_layers[NUM_LAYERS];
 uint op_layers[NUM_LAYERS];
-int index_layers[NUM_LAYERS] = int[NUM_LAYERS](0, 1 ,2, 3, 4, 5);
+int index_layers[NUM_LAYERS] = int[NUM_LAYERS](0, 1 ,2, 3, 4);
 int active_layers = 0;
 
 out vec4 fragColor;
 
 vec2 scaledCoord = 2.0 * (texCoord - vec2(0.5));
-
-int inControl(vec2 screenCoord, float screenWidth) {
-    float start = floor(screenWidth / 4.0) * 2.0;
-    int index = int(screenCoord.x - start) / 2;
-    if (screenCoord.y < 1.0 && screenCoord.x > start && int(screenCoord.x) % 2 == 0 && index < NUMCONTROLS) {
-        return index;
-    }
-    return -1;
-}
-
-
-vec4 getNotControl(sampler2D inSampler, vec2 coords, bool inctrl) {
-    if (inctrl) {
-        return (texture(inSampler, coords - vec2(oneTexel.x, 0.0)) + texture(inSampler, coords + vec2(oneTexel.x, 0.0)) + texture(inSampler, coords + vec2(0.0, oneTexel.y))) / 3.0;
-    } else {
-        return texture(inSampler, coords);
-    }
-}
 
 float linearizeDepth(float depth) {
     return (2.0 * near * far) / (far + near - depth * (far - near));    
@@ -223,11 +201,9 @@ void main() {
         fend = 2.0 * fogEnd;
     }
 
-    bool inctrl = inControl(texCoord * OutSize, OutSize.x) > -1;
     op_layers[0] = DEFAULT;
-    depth_layers[0] = (getNotControl( DiffuseDepthSampler, texCoord, inctrl).r);
-
     // crumbling, beacon_beam, leash, entity_translucent_emissive(warden glow)
+    depth_layers[0] = texture( DiffuseDepthSampler, texCoord).r;
     color_layers[0] = vec4( texture( DiffuseSampler, texCoord).rgb, 1.0 );
     if (depth_layers[0] < 1.0 || fogStart < -7.0) {
         color_layers[0] = linear_fog_real(color_layers[0], length(backProject(vec4(scaledCoord, depth_layers[0], 1.0)).xyz), fstart, fend, calculatedFog);
@@ -236,10 +212,7 @@ void main() {
 
     try_insert( texture( CloudsSampler, texCoord ), CloudsDepthSampler, calculatedFog, fstart, fend, FOGFADE);
     try_insert( texture( TranslucentSampler, texCoord ), TranslucentDepthSampler, calculatedFog, fstart, fend, DEFAULT); 
-    try_insert( texture( ParticlesSampler, texCoord ), ParticlesDepthSampler, calculatedFog, fstart, fend, DEFAULT);
-
-    // tripwire   
-    try_insert( texture( WeatherSampler, texCoord ), WeatherDepthSampler, calculatedFog, fstart, fend, FOGFADE);
+    try_insert( texture( ParticlesWeatherSampler, texCoord ), ParticlesWeatherDepthSampler, calculatedFog, fstart, fend, DEFAULT);
 
     // translucent_moving_block, lines, item_entity_translucent_cull
     try_insert( texture( ItemEntitySampler, texCoord ), ItemEntityDepthSampler, calculatedFog, fstart, fend, DEFAULT);

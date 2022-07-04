@@ -17,30 +17,12 @@ in float far;
 out vec4 fragColor;
 
 // moj_import doesn't work in post-process shaders ;_; Felix pls fix
-#define NUMCONTROLS 28
 #define THRESH 0.5
 #define FPRECISION 4000000.0
 #define PROJNEAR 0.05
 #define FUDGE 32.0
 
 #define EMISS_MULT 1.5
-
-int inControl(vec2 screenCoord, float screenWidth) {
-    float start = floor(screenWidth / 4.0) * 2.0;
-    int index = int(screenCoord.x - start) / 2;
-    if (screenCoord.y < 1.0 && screenCoord.x > start && int(screenCoord.x) % 2 == 0 && index < NUMCONTROLS) {
-        return index;
-    }
-    return -1;
-}
-
-vec4 getNotControl(sampler2D inSampler, vec2 coords, bool inctrl) {
-    if (inctrl) {
-        return (texture(inSampler, coords - vec2(oneTexel.x, 0.0)) + texture(inSampler, coords + vec2(oneTexel.x, 0.0)) + texture(inSampler, coords + vec2(0.0, oneTexel.y))) / 3.0;
-    } else {
-        return texture(inSampler, coords);
-    }
-}
 
 vec3 encodeInt(int i) {
     int s = int(i < 0) * 128;
@@ -66,25 +48,6 @@ vec3 encodeFloat(float f) {
 float decodeFloat(vec3 vec) {
     return decodeInt(vec) / FPRECISION;
 }
-
-// vec3 encodeFloat(float val) {
-//     uint sign = val > 0.0 ? 0u : 1u;
-//     uint exponent = uint(clamp(ceil(log2(abs(val))) + 31, 0.0, 63.0));
-//     uint mantissa = uint((abs(val) * pow(2.0, -float(exponent) + 31.0 + 17.0)));
-//     return vec3(
-//         ((sign & 1u) << 7u) | ((exponent & 63u) << 1u) | (mantissa >> 16u) & 1u,
-//         (mantissa >> 8u) & 255u,
-//         mantissa & 255u
-//     ) / 255.0;
-// }
-
-// float decodeFloat(vec3 raw) {
-//     uvec3 scaled = uvec3(raw * 255.0);
-//     uint sign = scaled.r >> 7;
-//     uint exponent = ((scaled.r >> 1u) & 63u);
-//     uint mantissa = ((scaled.r & 1u) << 16u) | (scaled.g << 8u) | scaled.b;
-//     return (-float(sign) * 2.0 + 1.0) * float(mantissa)  * pow(2.0, float(exponent) - 31.0 - 17.0);
-// }
 
 // tweak lighting color here
 #define NOON vec3(1.2, 1.2, 1.2)
@@ -410,23 +373,20 @@ void main() {
     poissonDisk[62] = vec2(-0.545396, 0.538133);
     poissonDisk[63] = vec2(-0.178564, -0.596057);
 
-    bool inctrl = inControl(texCoord * OutSize, OutSize.x) > -1;
     vec4 outColor = texture(DiffuseSampler, texCoord);
     float depth = texture(DiffuseDepthSampler, texCoord).r;
     vec2 data = outColor.ba;
     bool isSky = linearizeDepth(depth) >= far - FUDGE;
-    if (!inctrl) {
-        if (!isSky) {
-            outColor = decodeYUV(DiffuseSampler, DiffuseDepthSampler, outColor, texCoord);
-        }
-        else if (outColor.g / outColor.r > 2.0) {
-            outColor.rgb = vec3(outColor.r);
-        }
+    if (!isSky) {
+        outColor = decodeYUV(DiffuseSampler, DiffuseDepthSampler, outColor, texCoord);
+    }
+    else if (outColor.g / outColor.r > 2.0) {
+        outColor.rgb = vec3(outColor.r);
     }
 
 
-    // not control and sunDir exists
-    if (!inctrl && length(sunDir) > 0.99) {
+    // sunDir exists
+    if (length(sunDir) > 0.99) {
 
         // only do lighting if not sky
         if (!isSky) {
@@ -457,11 +417,11 @@ void main() {
             } 
 
             // first calculate approximate surface normal using depth map
-            depth = getNotControl(DiffuseDepthSampler, normCoord, inControl(normCoord * OutSize, OutSize.x) > -1).r;
-            float depth2 = getNotControl(DiffuseDepthSampler, normCoord + vec2(0.0, oneTexel.y), inControl((normCoord + vec2(0.0, oneTexel.y)) * OutSize, OutSize.x) > -1).r;
-            float depth3 = getNotControl(DiffuseDepthSampler, normCoord + vec2(oneTexel.x, 0.0), inControl((normCoord + vec2(oneTexel.x, 0.0)) * OutSize, OutSize.x) > -1).r;
-            float depth4 = getNotControl(DiffuseDepthSampler, normCoord - vec2(0.0, oneTexel.y), inControl((normCoord - vec2(0.0, oneTexel.y)) * OutSize, OutSize.x) > -1).r;
-            float depth5 = getNotControl(DiffuseDepthSampler, normCoord - vec2(oneTexel.x, 0.0), inControl((normCoord - vec2(oneTexel.x, 0.0)) * OutSize, OutSize.x) > -1).r;
+            depth = texture(DiffuseDepthSampler, normCoord).r;
+            float depth2 = texture(DiffuseDepthSampler, normCoord + vec2(0.0, oneTexel.y)).r;
+            float depth3 = texture(DiffuseDepthSampler, normCoord + vec2(oneTexel.x, 0.0)).r;
+            float depth4 = texture(DiffuseDepthSampler, normCoord - vec2(0.0, oneTexel.y)).r;
+            float depth5 = texture(DiffuseDepthSampler, normCoord - vec2(oneTexel.x, 0.0)).r;
 
             vec2 scaledCoord = 2.0 * (normCoord - vec2(0.5));
 

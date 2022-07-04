@@ -3,17 +3,43 @@
         "swap1",
         "swap2",
         "swap3",
+        "swap4",
+        "swap5",
         "translucent",
         "itemEntity",
         "particles",
         "clouds",
-        "weather"
+        "weather",
+        { "name": "temporals1", "width": 32, "height": 1, "bilinear": false },
+        { "name": "temporals2", "width": 32, "height": 1, "bilinear": false }
     ],
     "passes": [
         {
-            "name": "edge",
+            "name": "preprocess0",
             "intarget": "minecraft:main",
-            "outtarget": "swap3",
+            "outtarget": "temporals2",
+            "auxtargets": [
+                {
+                    "name": "PrevDataSampler",
+                    "id": "temporals1"
+                }
+            ],
+            "uniforms": [
+                {
+                    "name":"FOVGuess",
+                    "values": [ 70.0 ]
+                }
+            ]
+        },
+        {
+            "name": "copy",
+            "intarget": "temporals2",
+            "outtarget": "temporals1"
+        },
+        {
+            "name": "preprocess2",
+            "intarget": "minecraft:main",
+            "outtarget": "swap1",
             "auxtargets": [
                 {
                     "name": "DiffuseDepthSampler",
@@ -22,13 +48,32 @@
             ]
         },
         {
-            "name": "shading",
-            "intarget": "minecraft:main",
-            "outtarget": "swap2",
+            "name": "edge",
+            "intarget": "swap1",
+            "outtarget": "swap3",
             "auxtargets": [
+                {
+                    "name": "DataSampler",
+                    "id": "temporals1"
+                },
                 {
                     "name": "DiffuseDepthSampler",
                     "id": "minecraft:main:depth"
+                }
+            ]
+        },
+        {
+            "name": "shading",
+            "intarget": "swap1",
+            "outtarget": "swap2",
+            "auxtargets": [
+                {
+                    "name": "DataSampler",
+                    "id": "temporals1"
+                },
+                {
+                    "name": "DiffuseDepthSampler",
+                    "id": "swap1:depth"
                 },
                 {
                     "name": "EdgeSampler",
@@ -41,6 +86,10 @@
             "intarget": "swap2",
             "outtarget": "swap3",
             "auxtargets": [
+                {
+                    "name": "DataSampler",
+                    "id": "temporals1"
+                },
                 {
                     "name": "DiffuseDepthSampler",
                     "id": "minecraft:main:depth"
@@ -56,13 +105,36 @@
             ]
         },
         {
-            "name": "transparency",
-            "intarget": "swap2",
-            "outtarget": "swap1",
+            "name": "composite0",
+            "intarget": "particles",
+            "outtarget": "swap4",
             "auxtargets": [
                 {
                     "name": "DiffuseDepthSampler",
-                    "id": "minecraft:main:depth"
+                    "id": "particles:depth"
+                },
+                {
+                    "name": "WeatherSampler",
+                    "id": "weather"
+                },
+                {
+                    "name": "WeatherDepthSampler",
+                    "id": "weather:depth"
+                }
+            ]
+        },
+        {
+            "name": "composite1",
+            "intarget": "swap2",
+            "outtarget": "swap5",
+            "auxtargets": [
+                {
+                    "name": "DataSampler",
+                    "id": "temporals1"
+                },
+                {
+                    "name": "DiffuseDepthSampler",
+                    "id": "swap1:depth"
                 },
                 {
                     "name": "TranslucentSampler",
@@ -81,12 +153,12 @@
                     "id": "itemEntity:depth"
                 },
                 {
-                    "name": "ParticlesSampler",
-                    "id": "particles"
+                    "name": "ParticlesWeatherSampler",
+                    "id": "swap4"
                 },
                 {
-                    "name": "ParticlesDepthSampler",
-                    "id": "particles:depth"
+                    "name": "ParticlesWeatherDepthSampler",
+                    "id": "swap4:depth"
                 },
                 {
                     "name": "CloudsSampler",
@@ -95,20 +167,12 @@
                 {
                     "name": "CloudsDepthSampler",
                     "id": "clouds:depth"
-                },
-                {
-                    "name": "WeatherSampler",
-                    "id": "weather"
-                },
-                {
-                    "name": "WeatherDepthSampler",
-                    "id": "weather:depth"
                 }
             ]
         },
         {
-            "name": "blit",
-            "intarget": "swap1",
+            "name": "copy",
+            "intarget": "swap5",
             "outtarget": "minecraft:main"
         }
     ]

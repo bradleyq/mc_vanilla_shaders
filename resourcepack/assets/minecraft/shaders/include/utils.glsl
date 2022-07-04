@@ -34,6 +34,15 @@
 #define DIM_OVER_VALID vec4(1.0)
 #define DIM_END_VALID vec4(254.0 / 255.0)
 #define DIM_END vec4(21.0 / 255.0, 17.0 / 255.0, 21.0 / 255.0, 0.0)
+#define SNOW_FOG vec4(159.0 / 255.0, 187.0 / 255.0, 200.0 / 255.0, 0.0)
+#define SNOW_END 2.0
+#define SNOW_START 0.0
+#define BLIND_FOG vec4(0.0)
+#define BLIND_START 1.25
+#define BLIND_END 5.0
+#define DARKNESS_FOG vec4(0.0)
+#define DARKNESS_START 11.25
+#define DARKNESS_END 15.0
 
 /*
 Control Map:
@@ -200,7 +209,12 @@ vec2 getBA(vec2 lightmask, int type, int facetype, float strength) {
         }
 
         a = round(a * 63.0) * 4.0;
-        a += float(facetype);
+        if (type == PBRTYPE_STANDARD) {
+            a += float(facetype);
+        }
+        else {
+            a += FACETYPE_S;
+        }
     }
 
     if (type != PBRTYPE_STANDARD) {

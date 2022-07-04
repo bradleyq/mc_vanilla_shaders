@@ -36,25 +36,6 @@ float decodeFloat(vec3 vec) {
     return decodeInt(vec) / FPRECISION;
 }
 
-// vec3 encodeFloat(float val) {
-//     uint sign = val > 0.0 ? 0u : 1u;
-//     uint exponent = uint(clamp(ceil(log2(abs(val))) + 31, 0.0, 63.0));
-//     uint mantissa = uint((abs(val) * pow(2.0, -float(exponent) + 31.0 + 17.0)));
-//     return vec3(
-//         ((sign & 1u) << 7u) | ((exponent & 63u) << 1u) | (mantissa >> 16u) & 1u,
-//         (mantissa >> 8u) & 255u,
-//         mantissa & 255u
-//     ) / 255.0;
-// }
-
-// float decodeFloat(vec3 raw) {
-//     uvec3 scaled = uvec3(raw * 255.0);
-//     uint sign = scaled.r >> 7;
-//     uint exponent = ((scaled.r >> 1u) & 63u);
-//     uint mantissa = ((scaled.r & 1u) << 16u) | (scaled.g << 8u) | scaled.b;
-//     return (-float(sign) * 2.0 + 1.0) * float(mantissa)  * pow(2.0, float(exponent) - 31.0 - 17.0);
-// }
-
 void main() {
     float result = 0.0;
     for (int i = 0; i < 9; i += 1) {

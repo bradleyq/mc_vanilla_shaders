@@ -16,7 +16,7 @@ void main() {
     discardControlGLPos(gl_FragCoord.xy, glpos);
     vec4 outColor = texture(Sampler0, texCoord0);
     
-    if (outColor.a < 0.1 || (int(gl_FragCoord.x) + int(gl_FragCoord.y)) % 2 == 0) {
+    if (outColor.a < 0.1 || (int(gl_FragCoord.x) + int(gl_FragCoord.y)) % 2 == 1) {
         discard;
     }
 
