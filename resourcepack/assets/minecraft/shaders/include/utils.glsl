@@ -33,14 +33,17 @@
 
 #define DIM_OVER_VALID vec4(1.0)
 #define DIM_END_VALID vec4(254.0 / 255.0)
-#define DIM_END vec4(21.0 / 255.0, 17.0 / 255.0, 21.0 / 255.0, 0.0)
-#define SNOW_FOG vec4(159.0 / 255.0, 187.0 / 255.0, 200.0 / 255.0, 0.0)
+#define DIM_END vec3(21.0 / 255.0, 17.0 / 255.0, 21.0 / 255.0)
+#define LAVA_FOG vec3(153.0 / 255.0, 25.0 / 255.0, 0.0)
+#define LAVA_END 2.0
+#define LAVA_START 0.0
+#define SNOW_FOG vec3(159.0 / 255.0, 187.0 / 255.0, 200.0 / 255.0)
 #define SNOW_END 2.0
 #define SNOW_START 0.0
-#define BLIND_FOG vec4(0.0)
+#define BLIND_FOG vec3(0.0)
 #define BLIND_START 1.25
 #define BLIND_END 5.0
-#define DARKNESS_FOG vec4(0.0)
+#define DARKNESS_FOG vec3(0.0)
 #define DARKNESS_START 11.25
 #define DARKNESS_END 15.0
 
