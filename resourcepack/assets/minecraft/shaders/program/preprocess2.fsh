@@ -16,6 +16,7 @@ out vec4 fragColor;
 #define FPRECISION 4000000.0
 #define PROJNEAR 0.05
 #define PROJFAR 1024.0
+#define FUDGE 32.0
 #define PI 3.14159265358979
 
 #define PBRTYPE_STANDARD 0
@@ -28,6 +29,10 @@ out vec4 fragColor;
 #define FACETYPE_X 1
 #define FACETYPE_Z 2
 #define FACETYPE_S 3
+
+float linearizeDepth(float depth) {
+    return (2.0 * PROJNEAR * PROJFAR) / (PROJFAR + PROJNEAR - depth * (PROJFAR - PROJNEAR));    
+}
 
 vec2 getControl(int index, vec2 screenSize) {
     return vec2(floor(screenSize.x / 4.0) * 2.0 + float(index) * 2.0 + 0.5, 0.5) / screenSize;
@@ -100,9 +105,13 @@ void main() {
     }
     else {
         outColor = texture(DiffuseSampler, texCoord);
+        outDepth = texture(DiffuseDepthSampler, texCoord).r;
 
         // remove translucent checker pixels pixels
-        if ((int(gl_FragCoord.x) + int(gl_FragCoord.y)) % 2 == 0 && int(outColor.a * 255.0) % 4 == FACETYPE_S && int(outColor.b * 255.0) % 8 >= PBRTYPE_TRANSLUCENT) {
+        if ((int(gl_FragCoord.x) + int(gl_FragCoord.y)) % 2 == 0 
+          && linearizeDepth(outDepth) < PROJFAR - FUDGE 
+          && int(outColor.a * 255.0) % 4 == FACETYPE_S 
+          && int(outColor.b * 255.0) % 8 >= PBRTYPE_TRANSLUCENT) {
             vec4 p0 = texture(DiffuseSampler, texCoord - vec2(oneTexel.x, 0.0));
             vec4 p1 = texture(DiffuseSampler, texCoord + vec2(oneTexel.x, 0.0));
             vec4 p2 = texture(DiffuseSampler, texCoord - vec2(0.0, oneTexel.y));
@@ -117,9 +126,6 @@ void main() {
             // outDepth += texture(DiffuseDepthSampler, texCoord - vec2(0.0, oneTexel.y)).r;
             // outDepth += texture(DiffuseDepthSampler, texCoord + vec2(0.0, oneTexel.y)).r;
             // outDepth /= 4.0;
-        }
-        else {
-            outDepth = texture(DiffuseDepthSampler, texCoord).r;
         }
     }
 
