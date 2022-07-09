@@ -12,7 +12,7 @@ in vec2 oneTexel;
 out vec4 fragColor;
 
 // moj_import doesn't work in post-process shaders ;_; Felix pls fix
-#define NUMCONTROLS 28
+#define NUMCONTROLS 30
 #define FPRECISION 4000000.0
 #define PROJNEAR 0.05
 #define PROJFAR 1024.0
@@ -77,15 +77,6 @@ int inControl(vec2 screenCoord, float screenWidth) {
 }
 
 
-vec4 getNotControl(sampler2D inSampler, vec2 coords, bool inctrl) {
-    if (inctrl) {
-        return (texture(inSampler, coords - vec2(oneTexel.x, 0.0)) + texture(inSampler, coords + vec2(oneTexel.x, 0.0)) + texture(inSampler, coords + vec2(0.0, oneTexel.y))) / 3.0;
-    } else {
-        return texture(inSampler, coords);
-    }
-}
-
-
 void main() {
     vec4 outColor = vec4(0.0);
     float outDepth = texture(DiffuseDepthSampler, texCoord).r;
@@ -120,12 +111,12 @@ void main() {
             // average luma left right up down, average chroma up down, take material of left
             outColor = vec4((p0.r + p1.r + p2.r + p3.r) / 4.0, (p2.g + p3.g) / 2.0, p0.b, p0.a);
 
-            // take left depth
+            // average left and right depth if they are within 0.25
             outDepth = texture(DiffuseDepthSampler, texCoord - vec2(oneTexel.x, 0.0)).r;
-            // outDepth += texture(DiffuseDepthSampler, texCoord + vec2(oneTexel.x, 0.0)).r;
-            // outDepth += texture(DiffuseDepthSampler, texCoord - vec2(0.0, oneTexel.y)).r;
-            // outDepth += texture(DiffuseDepthSampler, texCoord + vec2(0.0, oneTexel.y)).r;
-            // outDepth /= 4.0;
+            float dtmp = texture(DiffuseDepthSampler, texCoord + vec2(oneTexel.x, 0.0)).r;
+            if (abs(linearizeDepth(outDepth) - linearizeDepth(dtmp)) < 0.25) {
+                outDepth = (outDepth + dtmp) / 2.0;
+            }
         }
     }
 

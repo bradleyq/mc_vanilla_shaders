@@ -57,6 +57,11 @@ void main() {
             fragColor = vec4(encodeInt(int(round(FogEnd))), 1.0);
         } 
         
+        // store Dimension
+        else if (index == 28) {
+            fragColor = DIM_END;
+        }
+
         // blackout control pixels for sunDir so sun can write to them (by default, all pixels are FogColor)
         else {
             fragColor = vec4(0.0, 0.0, 0.0, 1.0);

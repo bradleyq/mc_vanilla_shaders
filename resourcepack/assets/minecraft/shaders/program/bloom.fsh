@@ -87,7 +87,7 @@ void main() {
     poissonDisk[62] = vec2(-0.545396, 0.538133);
     poissonDisk[63] = vec2(-0.178564, -0.596057);
 
-    vec3 OutTexel = texture2D(DiffuseSampler, texCoord).rgb;
+    vec3 OutTexel = texture(DiffuseSampler, texCoord).rgb;
     
     vec2 tapScale = vec2(AMT / aspectRatio, AMT); // Fixed step for varying resolutions
 
@@ -95,7 +95,7 @@ void main() {
     vec3 colortmp = vec3(0.0);
     float lumtmp = 0.0;
     for (int ii = 0; ii < TAPS; ++ii) {
-        colortmp = texture2D(DiffuseSampler, texCoord + poissonDisk[ii] * tapScale).rgb;
+        colortmp = texture(DiffuseSampler, texCoord + poissonDisk[ii] * tapScale).rgb;
         lumtmp = luma_skewed(colortmp);
         bloomAccumulator += colortmp / clamp(exp((1.0 - lumtmp) * 6.0), 1.0, 1000.0) * (1.0 - pow(length(poissonDisk[ii]), 4.0));
         //                                                         ^ thresh adjust 

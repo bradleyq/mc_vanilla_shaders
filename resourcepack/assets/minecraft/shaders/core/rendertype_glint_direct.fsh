@@ -3,6 +3,7 @@
 #moj_import <fog.glsl>
 #moj_import <utils.glsl>
 
+uniform mat4 ModelViewMat;
 uniform mat4 ProjMat;
 uniform sampler2D Sampler0;
 
@@ -17,6 +18,7 @@ out vec4 fragColor;
 void main() {
     bool gui = isGUI(ProjMat);
     bool hand = isHand(FogStart, FogEnd);
+    bool notpickup = notPickup(ModelViewMat);
 
     vec4 outColor = texture(Sampler0, texCoord0);
     
@@ -28,7 +30,7 @@ void main() {
     outColor.rgb *= 0.5;
     outColor.a = 1.0;
 
-    if (!gui && !hand) {
+    if (!gui && !hand && notpickup) {
         outColor.rgb *= 0.75;
         outColor = getOutColorSTDALock(outColor, vec4(1.0), vec2(0.0), gl_FragCoord.xy);
         outColor.gb = vec2(clamp(outColor.g - 0.5, 0.0, 0.5), 0.0);

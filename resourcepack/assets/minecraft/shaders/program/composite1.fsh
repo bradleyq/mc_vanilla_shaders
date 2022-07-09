@@ -22,6 +22,8 @@ in float near;
 in float far;
 in float fogStart;
 in float fogEnd;
+in float underWater;
+in float raining;
 
 #define NUM_LAYERS 5
 
@@ -29,7 +31,6 @@ in float fogEnd;
 #define FOGFADE 1u
 #define BLENDMULT 2u
 #define BLENDADD 4u
-#define WATER_FOG vec4(0.0 / 255.0, 37.0 / 255.0, 38.0 / 255.0, 1.0)
 
 vec4 color_layers[NUM_LAYERS];
 float depth_layers[NUM_LAYERS];
@@ -181,7 +182,7 @@ void main() {
     fragpos = normalize(fragpos);
 
     vec4 calculatedFog = vec4(1.0);
-    float fstart = 0.01 * fogEnd;
+    float fstart = underWater > 0.5 ? fogStart : 0.01 * fogEnd;
     float fend = 2.25 * fogEnd;
 
     vec3 color = getAtmosphericScattering(fragpos, sunDir, true) * pi;
@@ -189,25 +190,24 @@ void main() {
     color = pow(color, vec3(2.2)); //Back to linear
 
     float sdu = dot(vec3(0.0, 1.0, 0.0), sunDir);
-    if (sdu > 0.0) {
+    if (underWater > 0.5) {
+        calculatedFog.rgb = fogColor.rgb;
+    }
+    else if (sdu > 0.0) {
         calculatedFog = vec4(color, 1.0);
     } else {
         calculatedFog.rgb = mix(fogColor.rgb, color, clamp(5.0 * (0.2 - pow(abs(sdu), 1.5)), 0.0, 1.0));
     }
 
-    if (fogStart < -7.0) {
-        calculatedFog *= WATER_FOG;
-        fstart = -1.0 * fogEnd;
-        fend = 2.0 * fogEnd;
-    }
-
     op_layers[0] = DEFAULT;
     // crumbling, beacon_beam, leash, entity_translucent_emissive(warden glow)
     depth_layers[0] = texture( DiffuseDepthSampler, texCoord).r;
-    color_layers[0] = vec4( texture( DiffuseSampler, texCoord).rgb, 1.0 );
-    if (depth_layers[0] < 1.0 || fogStart < -7.0) {
-        color_layers[0] = linear_fog_real(color_layers[0], length(backProject(vec4(scaledCoord, depth_layers[0], 1.0)).xyz), fstart, fend, calculatedFog);
+    vec4 color0 = vec4( texture( DiffuseSampler, texCoord).rgb, 1.0 );
+
+    if (depth_layers[0] < 1.0 || underWater > 0.5) {
+        color0 = linear_fog_real(color0, length(backProject(vec4(scaledCoord, depth_layers[0], 1.0)).xyz), fstart, fend, calculatedFog);
     }
+    color_layers[0] = color0;
     active_layers = 1;
 
     try_insert( texture( CloudsSampler, texCoord ), CloudsDepthSampler, calculatedFog, fstart, fend, FOGFADE);

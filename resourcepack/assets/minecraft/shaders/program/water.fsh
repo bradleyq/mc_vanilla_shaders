@@ -10,7 +10,11 @@ in vec2 oneTexel;
 in vec3 sunDir;
 in float near;
 in float far;
+in vec4 fogColor;
+in float fogStart;
 in float fogEnd;
+in float underWater;
+in float raining;
 in float cosFOVsq;
 in float aspectRatio;
 in mat4 Proj;
@@ -159,7 +163,7 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec4 approxr
         pos = Proj * vec4(rayPos.xyz, 1.0);
         pos.xyz /= pos.w;
         if (pos.x < -1.0 || pos.x > 1.0 || pos.y < -1.0 || pos.y > 1.0 || pos.z < 0.0 || pos.z > 1.0) break;
-        dtmp_nolin = texture2D(DiffuseDepthSampler, 0.5 * pos.xy + vec2(0.5)).r;
+        dtmp_nolin = texture(DiffuseDepthSampler, 0.5 * pos.xy + vec2(0.5)).r;
         dtmp = linearizeDepth(dtmp_nolin);
         dist = abs(linearizeDepth(pos.z) - dtmp);
 
@@ -177,25 +181,31 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec4 approxr
 
     }
 
-    vec3 skycol = getAtmosphericScattering(rayDir, sunDir, false) * pi;
-    skycol = jodieReinhardTonemap(skycol);
-    skycol = pow(skycol, vec3(2.2)); //Back to linear
+    vec3 skycol = fogColor.rgb;
+    if (underWater < 0.5) {
+        skycol = getAtmosphericScattering(rayDir, sunDir, false) * pi;
+        skycol = jodieReinhardTonemap(skycol);
+        skycol = pow(skycol, vec3(2.2)); //Back to linear
+    }
     vec4 candidate = vec4(skycol, 1.0);
     if (dtmp + SSR_IGNORETHRESH > fragdepth && linearizeDepth(pos.z) < dtmp + SSR_IGNORETHRESH && pos.y <= 1.0 && dtmp < far * 0.5) {
-        vec3 colortmp = texture2D(DiffuseSampler, 0.5 * pos.xy + vec2(0.5)).rgb;
+        vec3 colortmp = texture(DiffuseSampler, 0.5 * pos.xy + vec2(0.5)).rgb;
         rayDir.y = abs(rayDir.y * 0.2);
         rayDir = normalize(rayDir);
-        vec3 fogcol = getAtmosphericScattering(rayDir, sunDir, true) * pi;
-        fogcol = jodieReinhardTonemap(fogcol);
-        fogcol = pow(fogcol, vec3(2.2)); //Back to linear
+        vec3 fogcol = fogColor.rgb;
+        if (underWater < 0.5) {
+            fogcol = getAtmosphericScattering(rayDir, sunDir, true) * pi;
+            fogcol = jodieReinhardTonemap(fogcol);
+            fogcol = pow(fogcol, vec3(2.2)); //Back to linear
+        }
         float count = 1.0;
         float dtmptmp = 0.0;
         vec2 postmp = vec2(0.0);
         for (int i = 0; i < SSR_BLURTAPS; i += 1) {
             postmp = pos.xy + randsamples[i + SSR_BLURSAMPLEOFFSET] * SSR_BLURR * vec2(1.0 / aspectRatio, 1.0);
-            dtmptmp = linearizeDepth(texture2D(DiffuseDepthSampler, 0.5 * postmp + vec2(0.5)).r);
+            dtmptmp = linearizeDepth(texture(DiffuseDepthSampler, 0.5 * postmp + vec2(0.5)).r);
             if (abs(dtmp - dtmptmp) < SSR_IGNORETHRESH) {
-                vec3 tmpcolortmp = texture2D(DiffuseSampler, 0.5 * postmp + vec2(0.5)).rgb;
+                vec3 tmpcolortmp = texture(DiffuseSampler, 0.5 * postmp + vec2(0.5)).rgb;
                 colortmp += tmpcolortmp;
                 count += 1.0;
             }
@@ -208,7 +218,6 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec4 approxr
     candidate = mix(candidate, vec4(skycol, 1.0), clamp(pow(max(abs(pos.x), abs(pos.y)), 8.0), 0.0, 1.0));
     return candidate;
 }
-
 
 void main() {
 
@@ -279,19 +288,19 @@ void main() {
     poissonDisk[63] = vec2(-0.178564, -0.596057);
 
     vec4 outColor = vec4(0.0);
-    vec4 color = texture2D(TranslucentSampler, texCoord);
+    vec4 color = texture(TranslucentSampler, texCoord);
 
     if (color.a > 0.0) {
-        float ldepth = texture2D(TranslucentDepthSampler, texCoord).r;
+        float ldepth = texture(TranslucentDepthSampler, texCoord).r;
         float lineardepth = linearizeDepth(ldepth);
-        float ldepth2 = (texture2D(TranslucentDepthSampler, texCoord + vec2(0.0, oneTexel.y)).r);
-        float ldepth3 = (texture2D(TranslucentDepthSampler, texCoord + vec2(oneTexel.x, 0.0)).r);
-        float ldepth4 = (texture2D(TranslucentDepthSampler, texCoord - vec2(0.0, oneTexel.y)).r);
-        float ldepth5 = (texture2D(TranslucentDepthSampler, texCoord - vec2(oneTexel.x, 0.0)).r);
-        float gdepth2 = (texture2D(DiffuseDepthSampler, texCoord + vec2(0.0, oneTexel.y)).r);
-        float gdepth3 = (texture2D(DiffuseDepthSampler, texCoord + vec2(oneTexel.x, 0.0)).r);
-        float gdepth4 = (texture2D(DiffuseDepthSampler, texCoord - vec2(0.0, oneTexel.y)).r);
-        float gdepth5 = (texture2D(DiffuseDepthSampler, texCoord - vec2(oneTexel.x, 0.0)).r);
+        float ldepth2 = (texture(TranslucentDepthSampler, texCoord + vec2(0.0, oneTexel.y)).r);
+        float ldepth3 = (texture(TranslucentDepthSampler, texCoord + vec2(oneTexel.x, 0.0)).r);
+        float ldepth4 = (texture(TranslucentDepthSampler, texCoord - vec2(0.0, oneTexel.y)).r);
+        float ldepth5 = (texture(TranslucentDepthSampler, texCoord - vec2(oneTexel.x, 0.0)).r);
+        float gdepth2 = (texture(DiffuseDepthSampler, texCoord + vec2(0.0, oneTexel.y)).r);
+        float gdepth3 = (texture(DiffuseDepthSampler, texCoord + vec2(oneTexel.x, 0.0)).r);
+        float gdepth4 = (texture(DiffuseDepthSampler, texCoord - vec2(0.0, oneTexel.y)).r);
+        float gdepth5 = (texture(DiffuseDepthSampler, texCoord - vec2(oneTexel.x, 0.0)).r);
 
 
         vec2 scaledCoord = 2.0 * (texCoord - vec2(0.5));
@@ -320,14 +329,14 @@ void main() {
 
         float smoothing = min(NORMAL_SMOOTHING, texCoord.y);
         if (int(color.a * 255.0) % 2 == 0) {
-            float ldepth6 = (texture2D(TranslucentDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(0.0, 1.0)).r);
-            float ldepth7 = (texture2D(TranslucentDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(aspectRatio, 0.0)).r);
-            float ldepth8 = (texture2D(TranslucentDepthSampler, texCoord - smoothing * vec2(0.0, 1.0)).r);
-            float ldepth9 = (texture2D(TranslucentDepthSampler, texCoord - NORMAL_SMOOTHING * vec2(aspectRatio, 0.0)).r);
-            float gdepth6 = (texture2D(DiffuseDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(0.0, 1.0)).r);
-            float gdepth7 = (texture2D(DiffuseDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(aspectRatio, 0.0)).r);
-            float gdepth8 = (texture2D(DiffuseDepthSampler, texCoord - smoothing * vec2(0.0, 1.0)).r);
-            float gdepth9 = (texture2D(DiffuseDepthSampler, texCoord - NORMAL_SMOOTHING * vec2(aspectRatio, 0.0)).r);
+            float ldepth6 = (texture(TranslucentDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(0.0, 1.0)).r);
+            float ldepth7 = (texture(TranslucentDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(aspectRatio, 0.0)).r);
+            float ldepth8 = (texture(TranslucentDepthSampler, texCoord - smoothing * vec2(0.0, 1.0)).r);
+            float ldepth9 = (texture(TranslucentDepthSampler, texCoord - NORMAL_SMOOTHING * vec2(aspectRatio, 0.0)).r);
+            float gdepth6 = (texture(DiffuseDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(0.0, 1.0)).r);
+            float gdepth7 = (texture(DiffuseDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(aspectRatio, 0.0)).r);
+            float gdepth8 = (texture(DiffuseDepthSampler, texCoord - smoothing * vec2(0.0, 1.0)).r);
+            float gdepth9 = (texture(DiffuseDepthSampler, texCoord - NORMAL_SMOOTHING * vec2(aspectRatio, 0.0)).r);
 
             vec3 p6 = backProject(vec4(scaledCoord + 2.0 * NORMAL_SMOOTHING * vec2(0.0, 1.0), ldepth6, 1.0)).xyz;
             p6 = p6 - fragpos;
@@ -362,9 +371,9 @@ void main() {
         }
         reflection = r / SSR_TAPS;
         
-        float fresnel = exp(-20 * pow(dot(normalize(fragpos), normal), 2.0));
-        float lum = luminance(reflection.rgb);
-        outColor = vec4(reflection.rgb, min(min(fresnel * max(lum, 1.0), reflection.a), lum * 2.0));
+        float fresnel = clamp(exp(-20 * pow(dot(normalize(fragpos), normal), 2.0)) * (1.0 + 9.0 * underWater), 0.0, 1.0);
+        float lum = luminance(reflection.rgb) * (1.0 + 6.0 * underWater);
+        outColor = vec4(reflection.rgb, min(min(fresnel * max(lum, 1.0), reflection.a), lum));
     }
 
     fragColor = color;

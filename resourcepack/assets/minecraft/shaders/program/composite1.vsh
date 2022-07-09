@@ -16,10 +16,15 @@ out float near;
 out float far;
 out float fogStart;
 out float fogEnd;
+out float underWater;
+out float raining;
 
 // moj_import doesn't work in post-process shaders ;_; Felix pls fix
 #define FPRECISION 4000000.0
 #define PROJNEAR 0.05
+
+#define FLAG_UNDERWATER 1<<0
+#define FLAG_RAINING    1<<1
 
 vec2 getControl(int index, vec2 screenSize) {
     return vec2(float(index) + 0.5, 0.5) / screenSize;
@@ -86,4 +91,8 @@ void main() {
     fogColor = texture(DataSampler, start + 25.0 * inc);
     fogStart = float(decodeInt(texture(DataSampler, start + 26.0 * inc).xyz));
     fogEnd = float(decodeInt(texture(DataSampler, start + 27.0 * inc).xyz));
+    
+    int flags = int(texture(DataSampler, start + 29.0 * inc).r * 255.0);
+    underWater = float((flags & FLAG_UNDERWATER) > 0);
+    raining = float((flags & FLAG_RAINING) > 0);
 }

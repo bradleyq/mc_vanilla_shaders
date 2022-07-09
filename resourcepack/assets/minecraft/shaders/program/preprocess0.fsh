@@ -14,21 +14,29 @@ out vec4 fragColor;
 #define PROJFAR 1024.0
 #define PI 3.14159265358979
 
-#define DIM_OVER_VALID vec4(1.0)
-#define DIM_END_VALID vec4(254.0 / 255.0)
-#define DIM_END vec3(21.0 / 255.0, 17.0 / 255.0, 21.0 / 255.0)
-#define LAVA_FOG vec3(153.0 / 255.0, 25.0 / 255.0, 0.0)
-#define LAVA_START 0.0
-#define LAVA_END 2.0
-#define SNOW_FOG vec3(159.0 / 255.0, 187.0 / 255.0, 200.0 / 255.0)
-#define SNOW_START 0.0
-#define SNOW_END 2.0
-#define BLIND_FOG vec3(0.0)
-#define BLIND_START 1.25
-#define BLIND_END 5.0
-#define DARKNESS_FOG vec3(0.0)
-#define DARKNESS_START 11.25
-#define DARKNESS_END 15.0
+#define DIM_OVER vec4(1.0, 1.0, 1.0, 1.0)
+#define DIM_END vec4(0.5, 0.5, 0.5, 1.0)
+#define DIM_NETHER vec4(0.0, 0.0, 0.0, 1.0)
+#define DIM_UNKNOWN vec4(0.0)
+
+#define TINT_WATER vec3(0.0 / 255.0, 248.0 / 255.0, 255.0 / 255.0)
+#define FOG_WATER vec3(0.0 / 255.0, 37.0 / 255.0, 38.0 / 255.0)
+#define FOG_END vec3(21.0 / 255.0, 17.0 / 255.0, 21.0 / 255.0)
+#define FOG_LAVA vec3(153.0 / 255.0, 25.0 / 255.0, 0.0)
+#define FOG_LAVA_END 2.0
+#define FOG_LAVA_START 0.0
+#define FOG_SNOW vec3(159.0 / 255.0, 187.0 / 255.0, 200.0 / 255.0)
+#define FOG_SNOW_END 2.0
+#define FOG_SNOW_START 0.0
+#define FOG_BLIND vec3(0.0)
+#define FOG_BLIND_START 1.25
+#define FOG_BLIND_END 5.0
+#define FOG_DARKNESS vec3(0.0)
+#define FOG_DARKNESS_START 11.25
+#define FOG_DARKNESS_END 15.0
+
+#define FLAG_UNDERWATER 1<<0
+#define FLAG_RAINING    1<<1
 
 
 vec2 getControl(int index, vec2 screenSize) {
@@ -96,7 +104,7 @@ Control Map:
 [26] FogStart
 [27] FogEnd
 [28] Dimension
-[29]
+[29] MiscFlags bit0:underwater bit1:raining 
 [30]
 [31]
 */
@@ -148,20 +156,51 @@ void main() {
         }
         else if (index == 27) {
             float range = 128.0;
-            float lava = 1.0 - smoothstep(0.0, 0.05, length(temp.rgb - LAVA_FOG));
-            range = mix(range, LAVA_END, lava);
-            float snow = 1.0 - smoothstep(0.0, 0.05, length(temp.rgb - SNOW_FOG));
-            range = mix(range, SNOW_END, snow);
-            float blind = 1.0 - smoothstep(0.0, 0.05, length(temp.rgb - DARKNESS_FOG));
-            range = mix(range, DARKNESS_END, blind);
+            float lava = 1.0 - smoothstep(0.0, 0.05, length(temp.rgb - FOG_LAVA));
+            range = mix(range, FOG_LAVA_END, lava);
+            float snow = 1.0 - smoothstep(0.0, 0.05, length(temp.rgb - FOG_SNOW));
+            range = mix(range, FOG_SNOW_END, snow);
+            float blind = 1.0 - smoothstep(0.0, 0.05, length(temp.rgb - FOG_DARKNESS));
+            range = mix(range, FOG_DARKNESS_END, blind);
             outColor = vec4(encodeInt(int(range)), 0.0);
+        }
+        else if (index == 28) {
+            outColor = DIM_UNKNOWN;
+            if(length(temp.rgb - FOG_END) < 0.005) {
+                outColor = DIM_END;
+            }
         }
         else {
             outColor = vec4(0.0);
         }
     }
     else {
-        if (index <= 28) {
+        if (index == 25) {
+            int fstart = decodeInt(texture(DiffuseSampler, start + float(26) * inc).rgb);
+            if (fstart == -8) {
+                outColor = vec4(FOG_WATER, 1.0);
+            } else {
+                outColor = temp;
+            }
+        }
+        else if (index == 29) {
+            int currflags = int(texture(DiffuseSampler, start + float(29) * inc).r * 255.0);
+            int fstart = decodeInt(texture(DiffuseSampler, start + float(26) * inc).rgb);
+            if (fstart == -8) {
+                currflags |= FLAG_UNDERWATER;
+            }
+            outColor = vec4(float(currflags) / 255.0, 0.0, 0.0, 1.0);
+        }
+        else if (index == 26) {
+            vec4 temp2 = texture(DiffuseSampler, start + float(26) * inc);
+            int fstart = decodeInt(temp2.rgb);
+            if (fstart == -8) {
+                outColor = vec4(encodeInt(int(-1.0 * float(decodeInt(texture(DiffuseSampler, start + float(27) * inc).rgb)))), 1.0);
+            } else {
+                outColor = temp2;
+            }
+        }
+        else if (index <= 28) {
             outColor = texture(DiffuseSampler, start + float(index) * inc);
         }
     }

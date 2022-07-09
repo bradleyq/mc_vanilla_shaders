@@ -251,7 +251,7 @@ float Shadow(vec3 fragpos, vec3 sundir, float fragdepth, vec3 surfacenorm, float
         pos = Proj * vec4(rayPos.xyz, 1.0);
         pos.xyz /= pos.w;
         if (pos.x < -1.0 || pos.x > 1.0 || pos.y < -1.0 || pos.y > 1.0 || pos.z < 0.0 || pos.z > 1.0) return 1.0;
-        dtmp = linearizeDepth(texture2D(DiffuseDepthSampler, 0.5 * pos.xy + vec2(0.5)).r);
+        dtmp = linearizeDepth(texture(DiffuseDepthSampler, 0.5 * pos.xy + vec2(0.5)).r);
         dist = (linearizeDepth(pos.z) - dtmp);
 
         if (dist < max(length(rayStep) * pow(length(rayRefine), 0.25) * (1.0 + 3.0 * clamp(dot(normalize(fragpos), -sunDir) + 0.5, 0.0, 1.0)), 1.0) && dist > length(fragpos) / 512.0) {
@@ -485,6 +485,8 @@ void main() {
                 lightColor = max(lightColor, vec3(EMISS_MULT));
             }
             outColor.rgb = mix(outColor.rgb * mix(lightColor, vec3(1.0), applyLight), lightColor, 0.0);
+
+            // outColor.rgb = mix(color0.rgb, color0.rgb * WATER_TINT, smoothstep(0, far, length(fragpos)));
 
             // desaturate bright pixels for more realistic feel
             outColor.rgb = mix(outColor.rgb, vec3(length(outColor.rgb)/sqrt(3.0)), luma(outColor.rgb) * 0.5);

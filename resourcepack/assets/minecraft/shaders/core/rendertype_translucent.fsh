@@ -17,6 +17,6 @@ void main() {
     if (isWater > 0.5) {
         fragColor.a = float(int(fragColor.a * 255.0) / 2 * 2) / 255.0; 
     } else {
-        fragColor.a = float(min(int(fragColor.a * 255.0) / 2 * 2 + 1, 253)) / 255.0; 
+        fragColor.a = float(int(fragColor.a * 255.0) / 2 * 2 + 1) / 255.0; 
     }
 }

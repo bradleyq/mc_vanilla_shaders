@@ -1,6 +1,6 @@
 #version 150
 
-#define NUMCONTROLS 28
+#define NUMCONTROLS 30
 #define THRESH 0.5
 #define FPRECISION 4000000.0
 #define PROJNEAR 0.05
@@ -31,21 +31,24 @@
 
 #define EMISS_MULT 1.5
 
-#define DIM_OVER_VALID vec4(1.0)
-#define DIM_END_VALID vec4(254.0 / 255.0)
-#define DIM_END vec3(21.0 / 255.0, 17.0 / 255.0, 21.0 / 255.0)
-#define LAVA_FOG vec3(153.0 / 255.0, 25.0 / 255.0, 0.0)
-#define LAVA_END 2.0
-#define LAVA_START 0.0
-#define SNOW_FOG vec3(159.0 / 255.0, 187.0 / 255.0, 200.0 / 255.0)
-#define SNOW_END 2.0
-#define SNOW_START 0.0
-#define BLIND_FOG vec3(0.0)
-#define BLIND_START 1.25
-#define BLIND_END 5.0
-#define DARKNESS_FOG vec3(0.0)
-#define DARKNESS_START 11.25
-#define DARKNESS_END 15.0
+#define DIM_OVER vec4(1.0, 1.0, 1.0, 1.0)
+#define DIM_END vec4(0.5, 0.5, 0.5, 1.0)
+#define DIM_NETHER vec4(0.0, 0.0, 0.0, 1.0)
+#define DIM_UNKNOWN vec4(0.0)
+
+#define FOG_END vec3(21.0 / 255.0, 17.0 / 255.0, 21.0 / 255.0)
+#define FOG_LAVA vec3(153.0 / 255.0, 25.0 / 255.0, 0.0)
+#define FOG_LAVA_END 2.0
+#define FOG_LAVA_START 0.0
+#define FOG_SNOW vec3(159.0 / 255.0, 187.0 / 255.0, 200.0 / 255.0)
+#define FOG_SNOW_END 2.0
+#define FOG_SNOW_START 0.0
+#define FOG_BLIND vec3(0.0)
+#define FOG_BLIND_START 1.25
+#define FOG_BLIND_END 5.0
+#define FOG_DARKNESS vec3(0.0)
+#define FOG_DARKNESS_START 11.25
+#define FOG_DARKNESS_END 15.0
 
 /*
 Control Map:
@@ -79,6 +82,7 @@ Control Map:
 [26] FogStart
 [27] FogEnd
 [28] Dimension
+[29] MiscFlags bit0:underwater bit1:raining 
 */
 
 /*
@@ -289,6 +293,17 @@ vec4 getOutColorSTDALock(vec4 color, vec4 light, vec2 lightmask, vec2 fragcoord)
 
 bool isHand(float fogs, float foge) { // also includes panorama
     return fogs >= foge;
+}
+
+bool notPickup(mat4 mvm) {
+    return mvm[0][0] == 1.0 && mvm[1][1] == 1.0 && mvm[2][2] == 1.0 && mvm[3][3] == 1.0 && mvm[0][2] == 0.0 && mvm[2][0] == 0.0;
+}
+
+bool notPickup2(mat4 mvm) {
+    return mvm[0][1] == 0.0 && mvm[0][2] == 0.0 && mvm[0][3] == 0.0 && 
+           mvm[1][0] == 0.0 && mvm[1][2] == 0.0 && mvm[1][3] == 0.0 && 
+           mvm[2][0] == 0.0 && mvm[2][1] == 0.0 && mvm[2][3] == 0.0 && 
+           mvm[3][0] == 0.0 && mvm[3][1] == 0.0 && mvm[3][2] == 0.0 && mvm[3][3] == 1.0;
 }
 
 /*
