@@ -12,16 +12,15 @@ CL:
 - Java Alpha-PBR support (Emissive)
 
 Known issues:
-- flat nether shading
-- flat end shading
+- flat nether lighting
+- flat end lighting
 - glitchy items on pickup
 - rain sky during day
 - optifine #moj_import bug
-- lava / blindness / darkness / powdersnow fog broken
 - grass too dark in some biomes
 - shadows are wonky
 - Alpha-PBR Subsurface, specular, metalness
-- solid transparency checkered
+- solid transparency invisible
 - sun, moon, stars, not reflected
 
 ## Overview
