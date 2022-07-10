@@ -49,6 +49,12 @@ Basic shader that adds as much as possible from OptiFine shaders to the vanilla 
               <figcaption align="middle">shader v2</figcaption>
             </td>
         </tr>
+        <tr>
+            <td align="middle">
+              <img src="images/5.png"/> 
+              <figcaption align="middle">shader v3 (alpha)</figcaption>
+            </td>
+        </tr>
     </table>
 </div>
 
