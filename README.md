@@ -14,7 +14,6 @@ CL:
 Known issues:
 - flat nether lighting
 - flat end lighting
-- screen flash on item pickup
 - rain sky during day
 - optifine #moj_import bug
 - grass too dark in some biomes
