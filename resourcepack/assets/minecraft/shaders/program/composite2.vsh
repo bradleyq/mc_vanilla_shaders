@@ -8,12 +8,23 @@ uniform vec2 AuxSize0;
 uniform sampler2D DataSampler;
 
 out vec2 texCoord;
-flat out vec2 oneTexel;
-flat out mat4 ProjInv;
+out vec2 oneTexel;
+out vec3 sunDir;
+out vec4 fogColor;
+out mat4 ProjInv;
+out float near;
+out float far;
+out float fogStart;
+out float fogEnd;
+out float underWater;
+out float raining;
 
 // moj_import doesn't work in post-process shaders ;_; Felix pls fix
 #define FPRECISION 4000000.0
 #define PROJNEAR 0.05
+
+#define FLAG_UNDERWATER 1<<0
+#define FLAG_RAINING    1<<1
 
 vec2 getControl(int index, vec2 screenSize) {
     return vec2(float(index) + 0.5, 0.5) / screenSize;
@@ -62,11 +73,26 @@ void main() {
                             decodeFloat(texture(DataSampler, start + 9.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 10.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 11.0 * inc).xyz),  decodeFloat(texture(DataSampler, start + 12.0 * inc).xyz),
                             decodeFloat(texture(DataSampler, start + 13.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 14.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 15.0 * inc).xyz), 0.0);
 
-    float near = PROJNEAR;
-    float far = round(ProjMat[3][2] * PROJNEAR / (ProjMat[3][2] + 2.0 * PROJNEAR) / 64.0) * 64.0;
+    mat4 ModeViewMat = mat4(decodeFloat(texture(DataSampler, start + 16.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 17.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 18.0 * inc).xyz), 0.0,
+                            decodeFloat(texture(DataSampler, start + 19.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 20.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 21.0 * inc).xyz), 0.0,
+                            decodeFloat(texture(DataSampler, start + 22.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 23.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 24.0 * inc).xyz), 0.0,
+                            0.0, 0.0, 0.0, 1.0);
 
-    ProjInv = inverse(transpose(mat4(ProjMat[0][0], 0.0, 0.0, 0.0,
-                           0.0, ProjMat[1][1], 0.0, 0.0,
-                           0.0, 0.0, -(far + near)/(far - near), -2.0 * far * near / (far - near),
-                           0.0, 0.0, -1.0, 0.0)));
+    near = PROJNEAR;
+    far = ProjMat[3][2] * PROJNEAR / (ProjMat[3][2] + 2.0 * PROJNEAR);
+
+    sunDir = normalize((inverse(ModeViewMat) * vec4(decodeFloat(texture(DataSampler, start).xyz), 
+                                                    decodeFloat(texture(DataSampler, start + inc).xyz), 
+                                                    decodeFloat(texture(DataSampler, start + 2.0 * inc).xyz),
+                                                    1.0)).xyz);
+    
+    ProjInv = inverse(ProjMat * ModeViewMat);
+
+    fogColor = texture(DataSampler, start + 25.0 * inc);
+    fogStart = float(decodeInt(texture(DataSampler, start + 26.0 * inc).xyz));
+    fogEnd = float(decodeInt(texture(DataSampler, start + 27.0 * inc).xyz));
+    
+    int flags = int(texture(DataSampler, start + 29.0 * inc).r * 255.0);
+    underWater = float((flags & FLAG_UNDERWATER) > 0);
+    raining = float((flags & FLAG_RAINING) > 0);
 }

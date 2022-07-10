@@ -1,4 +1,4 @@
-#version 150
+#version 330
 
 uniform sampler2D DiffuseSampler;
 uniform sampler2D DiffuseDepthSampler;
@@ -48,6 +48,28 @@ vec3 encodeFloat(float f) {
 float decodeFloat(vec3 vec) {
     return decodeInt(vec) / FPRECISION;
 }
+
+vec4 encodeUInt(uint i) {
+    uint r = (i) % 256u;
+    uint g = (i >> 8u) % 256u;
+    uint b = (i >> 16u) % 256u;
+    uint a = (i >> 24u) % 256u;
+    return vec4(float(r) / 255.0, float(g) / 255.0, float(b) / 255.0 , float(a) / 255.0);
+}
+
+uint decodeUInt(vec4 ivec) {
+    ivec *= 255.0;
+    return uint(ivec.r) + (uint(ivec.g) << 8u) + (uint(ivec.b) << 16u) + (uint(ivec.a) << 24u);
+}
+
+vec4 encodeDepth(float depth) {
+    return encodeUInt(floatBitsToUint(depth)); 
+}
+
+float decodeDepth(vec4 depth) {
+    return uintBitsToFloat(decodeUInt(depth)); 
+}
+
 
 // tweak lighting color here
 #define NOON vec3(1.2, 1.2, 1.2)
@@ -183,7 +205,7 @@ float hash12(vec2 p)
 
 float doAmbientOcclusion(vec2 tcoord, vec2 uv, vec3 p, vec3 cnorm)
 {
-    vec3 diff = backProject(vec4(2.0 * (tcoord + uv - vec2(0.5)), texture(DiffuseDepthSampler, tcoord + uv).r, 1.0)).xyz - p;
+    vec3 diff = backProject(vec4(2.0 * (tcoord + uv - vec2(0.5)), decodeDepth(texture(DiffuseDepthSampler, tcoord + uv)), 1.0)).xyz - p;
     float l = length(diff);
     vec3 v = diff/(l + 0.0000001);
     float d = l*AO_SCALE;
@@ -232,7 +254,7 @@ float luminance(vec3 rgb) {
     return  dot(rgb, vec3(0.2126, 0.7152, 0.0722));
 }
 
-float Shadow(vec3 fragpos, vec3 sundir, float fragdepth, vec3 surfacenorm, float rand) {
+float Shadow(vec3 fragpos, vec3 sundir, float fragdepth, float rand) {
     vec3 rayStart   = fragpos + abs(rand) * sundir * S_STEPSIZE;
     vec3 rayDir     = sundir;
     vec3 rayStep    = (S_STEPSIZE + S_STEPSIZE * 0.5 * (ditherGradNoise(abs(rand))-0.5)) * rayDir;
@@ -251,7 +273,7 @@ float Shadow(vec3 fragpos, vec3 sundir, float fragdepth, vec3 surfacenorm, float
         pos = Proj * vec4(rayPos.xyz, 1.0);
         pos.xyz /= pos.w;
         if (pos.x < -1.0 || pos.x > 1.0 || pos.y < -1.0 || pos.y > 1.0 || pos.z < 0.0 || pos.z > 1.0) return 1.0;
-        dtmp = linearizeDepth(texture(DiffuseDepthSampler, 0.5 * pos.xy + vec2(0.5)).r);
+        dtmp = linearizeDepth(decodeDepth(texture(DiffuseDepthSampler, 0.5 * pos.xy + vec2(0.5))));
         dist = (linearizeDepth(pos.z) - dtmp);
 
         if (dist < max(length(rayStep) * pow(length(rayRefine), 0.25) * (1.0 + 3.0 * clamp(dot(normalize(fragpos), -sunDir) + 0.5, 0.0, 1.0)), 1.0) && dist > length(fragpos) / 512.0) {
@@ -374,7 +396,7 @@ void main() {
     poissonDisk[63] = vec2(-0.178564, -0.596057);
 
     vec4 outColor = texture(DiffuseSampler, texCoord);
-    float depth = texture(DiffuseDepthSampler, texCoord).r;
+    float depth = decodeDepth(texture(DiffuseDepthSampler, texCoord));
     vec2 data = outColor.ba;
     bool isSky = linearizeDepth(depth) >= far - FUDGE;
     if (!isSky) {
@@ -417,11 +439,11 @@ void main() {
             } 
 
             // first calculate approximate surface normal using depth map
-            depth = texture(DiffuseDepthSampler, normCoord).r;
-            float depth2 = texture(DiffuseDepthSampler, normCoord + vec2(0.0, oneTexel.y)).r;
-            float depth3 = texture(DiffuseDepthSampler, normCoord + vec2(oneTexel.x, 0.0)).r;
-            float depth4 = texture(DiffuseDepthSampler, normCoord - vec2(0.0, oneTexel.y)).r;
-            float depth5 = texture(DiffuseDepthSampler, normCoord - vec2(oneTexel.x, 0.0)).r;
+            depth = decodeDepth(texture(DiffuseDepthSampler, normCoord));
+            float depth2 = decodeDepth(texture(DiffuseDepthSampler, normCoord + vec2(0.0, oneTexel.y)));
+            float depth3 = decodeDepth(texture(DiffuseDepthSampler, normCoord + vec2(oneTexel.x, 0.0)));
+            float depth4 = decodeDepth(texture(DiffuseDepthSampler, normCoord - vec2(0.0, oneTexel.y)));
+            float depth5 = decodeDepth(texture(DiffuseDepthSampler, normCoord - vec2(oneTexel.x, 0.0)));
 
             vec2 scaledCoord = 2.0 * (normCoord - vec2(0.5));
 
@@ -473,7 +495,7 @@ void main() {
             // apply lighting color. not quite standard diffuse light equation since the blocks are already "pre-lit"
             float shade = 0.0;
             for (int k = 0; k < S_TAPS; k += 1) {
-                shade += Shadow(fragpos, normalize(sunDir + S_PENUMBRA * vec3(poissonDisk[k].x, 0.0, poissonDisk[k].y)), linearizeDepth(depth), normal, poissonDisk[k + 10].x);
+                shade += Shadow(fragpos, normalize(sunDir + S_PENUMBRA * vec3(poissonDisk[k].x, 0.0, poissonDisk[k].y)), linearizeDepth(depth), poissonDisk[k + 10].x);
             }
             shade /= S_TAPS;
             shade = mix(shade, 1.0, clamp(-sdu * 5.0, 0.0, 1.0));

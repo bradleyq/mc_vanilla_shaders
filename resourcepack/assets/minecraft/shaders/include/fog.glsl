@@ -1,4 +1,4 @@
-#version 150
+#version 330
 
 //dummy to remove fog on all shaders
 vec4 linear_fog(vec4 inColor, float vertexDistance, float fogStart, float fogEnd, vec4 fogColor) {

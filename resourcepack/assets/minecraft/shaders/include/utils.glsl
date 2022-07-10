@@ -1,4 +1,4 @@
-#version 150
+#version 330
 
 #define NUMCONTROLS 30
 #define THRESH 0.5

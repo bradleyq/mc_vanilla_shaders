@@ -1,4 +1,4 @@
-#version 150
+#version 330
 
 #moj_import <matrix.glsl>
 #moj_import <utils.glsl>

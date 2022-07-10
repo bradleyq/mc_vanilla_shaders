@@ -1,4 +1,4 @@
-#version 150
+#version 330
 
 #moj_import <light.glsl>
 #moj_import <utils_vsh.glsl>
