@@ -20,8 +20,9 @@ out vec4 fragColor;
 
 void main() {
     bool gui = isGUI(ProjMat);
+    bool hand = isHand(FogStart, FogEnd);
     
-    if (!gui) {
+    if (!gui && !hand) {
         discardControlGLPos(gl_FragCoord.xy, glpos);
     }
 
@@ -33,7 +34,7 @@ void main() {
     
     outColor *= baseColor * ColorModulator;
     
-    if (!gui) {
+    if (!gui && !hand) {
         outColor.a = 1.0;
         outColor = getOutColorSTDALock(outColor, vertexColor, texCoord2, gl_FragCoord.xy);
     }

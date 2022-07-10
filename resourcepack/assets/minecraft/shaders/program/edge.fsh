@@ -80,8 +80,8 @@ void main() {
     float vcompd = 0.0;
     float hcompd = 0.0;
 
-    vcomp = pow(0.5 * (dot(normalize(p2 - p0), normalize(p2 - p4)) + 1.0), 2.0);
-    hcomp = pow(0.5 * (dot(normalize(p2 - p1), normalize(p2 - p3)) + 1.0), 2.0);
+    vcomp  = pow(0.5 * (dot(normalize(p2 - p0), normalize(p2 - p4)) + 1.0), 2.0);
+    hcomp  = pow(0.5 * (dot(normalize(p2 - p1), normalize(p2 - p3)) + 1.0), 2.0);
     vcompd = pow(0.5 * (dot(normalize(p2 - p5), normalize(p2 - p8)) + 1.0), 2.0);
     hcompd = pow(0.5 * (dot(normalize(p2 - p6), normalize(p2 - p7)) + 1.0), 2.0);
 

@@ -6,6 +6,7 @@
         "swap4",
         "swap5",
         "swap6",
+        "test",
         "translucent",
         "itemEntity",
         "particles",
@@ -75,7 +76,68 @@
             ]
         },
         {
-            "name": "shading",
+            "name": "shading0",
+            "intarget": "swap3",
+            "outtarget": "swap5",
+            "auxtargets": [
+                {
+                    "name": "DataSampler",
+                    "id": "temporals1"
+                },
+                {
+                    "name": "DiffuseDepthSampler",
+                    "id": "swap1"
+                },
+                {
+                    "name": "EdgeSampler",
+                    "id": "swap4"
+                }
+            ]
+        },
+        {
+            "name": "shading1",
+            "intarget": "swap5",
+            "outtarget": "swap6",
+            "auxtargets": [
+                {
+                    "name": "DataSampler",
+                    "id": "temporals1"
+                },
+                {
+                    "name": "DiffuseDepthSampler",
+                    "id": "swap1"
+                }
+            ],
+            "uniforms": [
+                {
+                    "name":"DirX",
+                    "values": [ 1.0 ]
+                }
+            ]
+        },
+        {
+            "name": "shading1",
+            "intarget": "swap6",
+            "outtarget": "swap5",
+            "auxtargets": [
+                {
+                    "name": "DataSampler",
+                    "id": "temporals1"
+                },
+                {
+                    "name": "DiffuseDepthSampler",
+                    "id": "swap1"
+                }
+            ],
+            "uniforms": [
+                {
+                    "name":"DirX",
+                    "values": [ 0.0 ]
+                }
+            ]
+        },
+        {
+            "name": "shading2",
             "intarget": "swap3",
             "outtarget": "swap2",
             "auxtargets": [
@@ -90,6 +152,10 @@
                 {
                     "name": "EdgeSampler",
                     "id": "swap4"
+                },
+                {
+                    "name": "ShadingSampler",
+                    "id": "swap5"
                 }
             ]
         },
