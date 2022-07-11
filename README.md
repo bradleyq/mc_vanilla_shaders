@@ -10,6 +10,7 @@ CL:
 - directional light
 - Screen Space Shadows
 - Java Alpha-PBR support (Emissive)
+- multiplicative water blending
 
 Known issues:
 - flat nether lighting
@@ -17,10 +18,9 @@ Known issues:
 - rain sky during day
 - optifine #moj_import bug
 - grass too dark in some biomes
-- shadows are wonky
+- shadows are ... ok
 - Alpha-PBR Subsurface, specular, metalness
-- solid transparency invisible
-- sun, moon, stars, not reflected
+- moon, stars, not reflected
 
 ## Overview
 Basic shader that adds as much as possible from OptiFine shaders to the vanilla transparency shader available in "Fabulous" graphics setting. Due to limited material, light, time, and shadow information, most advanced features are not possible. A good number, however, are. I have ported them here. Most samples are from the BSL shader, however much of it is heavily modified to fit with the vanilla pipeline. Supports all FOV and render distances.
