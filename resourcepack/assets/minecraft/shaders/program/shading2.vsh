@@ -9,11 +9,9 @@ uniform sampler2D DataSampler;
 
 out vec2 texCoord;
 out vec2 oneTexel;
-out vec3 sunDir;
-out mat4 Proj;
-out mat4 ProjInv;
 out float near;
 out float far;
+out float fov;
 
 // moj_import doesn't work in post-process shaders ;_; Felix pls fix
 #define FPRECISION 4000000.0
@@ -66,24 +64,7 @@ void main() {
                         decodeFloat(texture(DataSampler, start + 9.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 10.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 11.0 * inc).xyz),  decodeFloat(texture(DataSampler, start + 12.0 * inc).xyz),
                         decodeFloat(texture(DataSampler, start + 13.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 14.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 15.0 * inc).xyz), 0.0);
 
-    mat4 ModelViewMat = mat4(decodeFloat(texture(DataSampler, start + 16.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 17.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 18.0 * inc).xyz), 0.0,
-                        decodeFloat(texture(DataSampler, start + 19.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 20.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 21.0 * inc).xyz), 0.0,
-                        decodeFloat(texture(DataSampler, start + 22.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 23.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 24.0 * inc).xyz), 0.0,
-                        0.0, 0.0, 0.0, 1.0);
-
-    sunDir = (inverse(ModelViewMat) * vec4(decodeFloat(texture(DataSampler, start).xyz), 
-                                         decodeFloat(texture(DataSampler, start + inc).xyz), 
-                                         decodeFloat(texture(DataSampler, start + 2.0 * inc).xyz),
-                                         1.0)).xyz;
     near = PROJNEAR;
     far = ProjMat[3][2] * PROJNEAR / (ProjMat[3][2] + 2.0 * PROJNEAR);
-
-    if (length(sunDir) == 0.0) { // TODO: end and nether detect, ignore sunDir
-        sunDir = vec3(0.0, -1.0, 0.0);
-    }
-
-    sunDir = normalize(sunDir);
-
-    Proj = ProjMat * ModelViewMat;
-    ProjInv = inverse(Proj);
+    fov = atan(1.0, ProjMat[1][1]) * 114.591559;
 }

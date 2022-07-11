@@ -13,10 +13,13 @@ in vec2 texCoord0;
 out vec4 fragColor;
 
 void main() {
-    fragColor = texture(Sampler0, texCoord0) * vertexColor * ColorModulator;
+    vec4 outColor = texture(Sampler0, texCoord0) * vertexColor * ColorModulator;
     if (isWater > 0.5) {
-        fragColor.a = float(int(fragColor.a * 255.0) / 2 * 2) / 255.0; 
+        outColor.a = float(int(outColor.a * 255.0) / 2 * 2) / 255.0; 
     } else {
-        fragColor.a = float(int(fragColor.a * 255.0) / 2 * 2 + 1) / 255.0; 
+        outColor.a = pow(outColor.a, 0.5);
+        outColor.a = float(int(outColor.a * 255.0) / 2 * 2 + 1) / 255.0; 
     }
+
+    fragColor = outColor;
 }

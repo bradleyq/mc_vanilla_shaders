@@ -4,14 +4,13 @@
         "srcrgb": "one",
         "dstrgb": "zero"
     },
-    "vertex": "water",
-    "fragment": "water",
+    "vertex": "water1",
+    "fragment": "water1",
     "attributes": [ "Position" ],
     "samplers": [
         { "name": "DiffuseSampler" },
         { "name": "DataSampler" },
-        { "name": "DiffuseDepthSampler" },
-        { "name": "TranslucentSampler" },
+        { "name": "TerrianDepthSampler" },
         { "name": "TranslucentDepthSampler" }
     ],
     "uniforms": [

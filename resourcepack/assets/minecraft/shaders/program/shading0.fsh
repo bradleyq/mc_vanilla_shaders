@@ -83,7 +83,7 @@ vec4 backProject(vec4 vec) {
 #define AO_SAMPLES 32
 #define AO_INTENSITY 3.0
 #define AO_SCALE 2.5
-#define AO_BIAS 0.1
+#define AO_BIAS 0.15
 #define AO_SAMPLE_RAD 0.5
 #define AO_MAX_DISTANCE 3.0
 
@@ -158,7 +158,7 @@ float luminance(vec3 rgb) {
 float Shadow(vec3 fragpos, vec3 sundir, float fragdepth, float rand) {
     vec3 rayStart   = fragpos + abs(rand) * sundir * S_STEPSIZE;
     vec3 rayDir     = sundir;
-    vec3 rayStep    = (S_STEPSIZE + S_STEPSIZE * 0.25 * (rand + 1.0)) * rayDir;
+    vec3 rayStep    = (S_STEPSIZE + S_STEPSIZE * 0.5 * (rand + 1.0)) * rayDir;
     vec3 rayPos     = rayStart + rayStep;
     vec3 rayPrevPos = rayStart;
     vec3 rayRefine  = rayStep;
@@ -206,17 +206,12 @@ float Shadow(vec3 fragpos, vec3 sundir, float fragdepth, float rand) {
     return 1.0;
 }
 
-vec4 decodeYUV(sampler2D tex, sampler2D depth, vec4 inCol, vec2 coord) {
+vec4 decodeYUV(sampler2D tex, vec4 inCol, vec2 coord) {
     vec2 pixCoord = coord * OutSize;
     vec4 outCol = vec4(1.0);
     vec2 dir = vec2(pixCoord.x <= 0.5 ? 1.0 : -1.0, pixCoord.y <= 0.5 ? 1.0 : 0.0);
-    float d = decodeDepth(texture(depth, coord + dir * oneTexel));
-    float sec = 0.0;
-    if (linearizeDepth(d) >= far - FUDGE) {
-        sec = 0.5;
-    } else {
-        sec = texture(tex, coord + dir * oneTexel).y;
-    }
+    float sec = texture(tex, coord + dir * oneTexel).y;
+    // }
     vec3 yuv = vec3(0.0);
     if (int(pixCoord.x) % 2 == 0) {
         yuv = vec3(inCol.xy, sec);
@@ -308,7 +303,7 @@ void main() {
         normCoord.y -= 0.5;
         top = true;
     }
-    normCoord.y = normCoord.y * 2.0;
+    normCoord.y = normCoord.y * 2.0 - oneTexel.y * 0.5;
 
     float depth = decodeDepth(texture(DiffuseDepthSampler, normCoord));
     bool isSky = linearizeDepth(depth) >= far - FUDGE;

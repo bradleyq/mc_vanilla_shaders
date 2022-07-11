@@ -10,6 +10,22 @@
 #define TINY 8e-8
 #define PI 3.14159265359
 
+#define TINT_WATER vec3(0.0 / 255.0, 248.0 / 255.0, 255.0 / 255.0)
+#define FOG_WATER vec3(0.0 / 255.0, 37.0 / 255.0, 38.0 / 255.0)
+#define FOG_END vec3(21.0 / 255.0, 17.0 / 255.0, 21.0 / 255.0)
+#define FOG_LAVA vec3(153.0 / 255.0, 25.0 / 255.0, 0.0)
+#define FOG_LAVA_END 2.0
+#define FOG_LAVA_START 0.0
+#define FOG_SNOW vec3(159.0 / 255.0, 187.0 / 255.0, 200.0 / 255.0)
+#define FOG_SNOW_END 2.0
+#define FOG_SNOW_START 0.0
+#define FOG_BLIND vec3(0.0)
+#define FOG_BLIND_START 1.25
+#define FOG_BLIND_END 5.0
+#define FOG_DARKNESS vec3(0.0)
+#define FOG_DARKNESS_START 11.25
+#define FOG_DARKNESS_END 15.0
+
 /*
  * Returns the FOV in degrees
  * Calculates using the fact that top/near = tan(theta / 2)

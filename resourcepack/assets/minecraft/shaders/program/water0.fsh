@@ -126,8 +126,9 @@ vec3 jodieReinhardTonemap(vec3 c){
 #define SSR_MAXREFINESAMPLES 5
 #define SSR_STEPSIZE 0.7
 #define SSR_STEPREFINE 0.2
-#define SSR_STEPINCREASE 1.2
+#define SSR_STEPINCREASE 1.25
 #define SSR_IGNORETHRESH 2.0
+#define SSR_INVALIDTHRESH 30.0
 #define SSR_BLURR 0.01
 #define SSR_BLURTAPS 3
 #define SSR_BLURSAMPLEOFFSET 17
@@ -167,7 +168,7 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec4 approxr
         dtmp = linearizeDepth(dtmp_nolin);
         dist = abs(linearizeDepth(pos.z) - dtmp);
 
-        if (dist < length(rayStep) * pow(length(rayRefine), 0.11) * 2.0) {
+        if (dist < length(rayStep) * pow(length(rayRefine), 0.25) * 3.0) {
             refine++;
             if (refine >= SSR_MAXREFINESAMPLES)	break;
             rayRefine  -= rayStep;
@@ -187,8 +188,9 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec4 approxr
         skycol = jodieReinhardTonemap(skycol);
         skycol = pow(skycol, vec3(2.2)); //Back to linear
     }
+    
     vec4 candidate = vec4(skycol, 1.0);
-    if (dtmp + SSR_IGNORETHRESH > fragdepth && linearizeDepth(pos.z) < dtmp + SSR_IGNORETHRESH && pos.y <= 1.0 && dtmp < far * 0.5) {
+    if (dtmp + SSR_IGNORETHRESH > fragdepth && linearizeDepth(pos.z) < dtmp + SSR_INVALIDTHRESH && pos.y <= 1.0 && dtmp < far * 0.5) {
         vec3 colortmp = texture(DiffuseSampler, 0.5 * pos.xy + vec2(0.5)).rgb;
         rayDir.y = abs(rayDir.y * 0.2);
         rayDir = normalize(rayDir);
@@ -211,8 +213,9 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec4 approxr
             }
         }
         colortmp /= count;
+        float fstart = underWater > 0.5 ? fogStart : 0.01 * fogEnd;
         candidate = vec4(colortmp, 1.0);
-        candidate = linear_fog_real(candidate, clamp(length(backProject(vec4(pos.xy, dtmp_nolin, 1.0)).xyz - fragpos), fogEnd * 0.01, 2.25 * fogEnd), 0.0, 2.25 * fogEnd, vec4(fogcol, 1.0));
+        candidate = linear_fog_real(candidate, length(backProject(vec4(pos.xy, dtmp_nolin, 1.0)).xyz - fragpos), fstart, 2.25 * fogEnd, vec4(fogcol, 1.0));
     }
     
     candidate = mix(candidate, vec4(skycol, 1.0), clamp(pow(max(abs(pos.x), abs(pos.y)), 8.0), 0.0, 1.0));
@@ -371,13 +374,13 @@ void main() {
         }
         reflection = r / SSR_TAPS;
         
-        float fresnel = clamp(exp(-20 * pow(dot(normalize(fragpos), normal), 2.0)) * (1.0 + 9.0 * underWater), 0.0, 1.0);
-        float lum = luminance(reflection.rgb) * (1.0 + 6.0 * underWater);
-        outColor = vec4(reflection.rgb, min(min(fresnel * max(lum, 1.0), reflection.a), lum));
+        float fresnel = clamp(exp((underWater * 15 - 25) * pow(dot(normalize(fragpos), normal), 2.0)) * (0.8 + 7.2 * underWater), 0.0, 1.0);
+        float lum = luminance(reflection.rgb) * (1.5 + 7.0 * underWater);
+        outColor = vec4(reflection.rgb, min(min(fresnel * lum, 1.0), reflection.a));
     }
 
-    fragColor = color;
-    fragColor.rgb = mix(fragColor.rgb, outColor.rgb, outColor.a);
+    // fragColor = color;
+    fragColor = vec4(outColor.rgb, outColor.a);
     // if (int(color.a * 255.0) % 2 == 0) {
     //     fragColor.r = 1.0;
     //     fragColor.a = 1.0;

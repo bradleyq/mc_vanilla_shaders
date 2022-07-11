@@ -4,22 +4,15 @@
         "srcrgb": "one",
         "dstrgb": "zero"
     },
-    "vertex": "composite2",
-    "fragment": "composite2",
+    "vertex": "shading3",
+    "fragment": "shading3",
     "attributes": [ "Position" ],
     "samplers": [
         { "name": "DiffuseSampler" },
         { "name": "DataSampler" },
         { "name": "DiffuseDepthSampler" },
-        { "name": "TranslucentSampler" },
-        { "name": "TranslucentDepthSampler" },
-        { "name": "ReflectionSampler" },
-        { "name": "ItemEntitySampler" },
-        { "name": "ItemEntityDepthSampler" },
-        { "name": "ParticlesWeatherSampler" },
-        { "name": "ParticlesWeatherDepthSampler" },
-        { "name": "CloudsSampler" },
-        { "name": "CloudsDepthSampler" }
+        { "name": "EdgeSampler" },
+        { "name": "ShadingSampler" }
     ],
     "uniforms": [
         { "name": "ProjMat",    "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },

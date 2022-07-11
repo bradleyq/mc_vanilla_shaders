@@ -36,6 +36,8 @@
 #define DIM_NETHER vec4(0.0, 0.0, 0.0, 1.0)
 #define DIM_UNKNOWN vec4(0.0)
 
+#define TINT_WATER vec3(0.0 / 255.0, 248.0 / 255.0, 255.0 / 255.0)
+#define FOG_WATER vec3(0.0 / 255.0, 37.0 / 255.0, 38.0 / 255.0)
 #define FOG_END vec3(21.0 / 255.0, 17.0 / 255.0, 21.0 / 255.0)
 #define FOG_LAVA vec3(153.0 / 255.0, 25.0 / 255.0, 0.0)
 #define FOG_LAVA_END 2.0

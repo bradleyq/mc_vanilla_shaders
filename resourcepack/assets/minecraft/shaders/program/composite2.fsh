@@ -4,6 +4,7 @@ uniform sampler2D DiffuseSampler;
 uniform sampler2D DiffuseDepthSampler;
 uniform sampler2D TranslucentSampler;
 uniform sampler2D TranslucentDepthSampler;
+uniform sampler2D ReflectionSampler;
 uniform sampler2D ItemEntitySampler;
 uniform sampler2D ItemEntityDepthSampler;
 uniform sampler2D ParticlesWeatherSampler;
@@ -31,6 +32,7 @@ in float raining;
 #define FOGFADE 1u
 #define BLENDMULT 2u
 #define BLENDADD 4u
+#define HASREFLECT 8u
 
 vec4 color_layers[NUM_LAYERS];
 float depth_layers[NUM_LAYERS];
@@ -112,8 +114,10 @@ vec3 blend( vec3 dst, vec4 src ) {
     // return ( dst * ( 1.0 - src.a ) ) + src.rgb;
 }
 
+#define BLENDMULT_FACTOR 0.5
+
 vec3 blendmult( vec3 dst, vec4 src) {
-    return dst * mix(vec3(1.0), src.rgb, src.a);
+    return BLENDMULT_FACTOR * dst * mix(vec3(1.0), src.rgb, src.a) + (1.0 - BLENDMULT_FACTOR) * mix(dst.rgb, src.rgb, src.a);
 }
 
 /*
@@ -228,19 +232,24 @@ void main() {
     }
     color_layers[0] = color0;
     active_layers = 1;
+    vec4 reflection = texture(ReflectionSampler, texCoord);
 
-    try_insert( texture(CloudsSampler, texCoord), texture(CloudsDepthSampler, texCoord).r, calculatedFog, fstart, fend, FOGFADE);
-    try_insert( texture(TranslucentSampler, texCoord), texture(TranslucentDepthSampler, texCoord).r, calculatedFog, fstart, fend, DEFAULT); 
+    try_insert( texture(CloudsSampler, texCoord), texture(CloudsDepthSampler, texCoord).r, calculatedFog, fend * 0.1, fend * 1.5, FOGFADE);
+    try_insert( texture(TranslucentSampler, texCoord), texture(TranslucentDepthSampler, texCoord).r, calculatedFog, fstart, fend, BLENDMULT | HASREFLECT); 
     try_insert( texture(ParticlesWeatherSampler, texCoord), decodeDepth(texture(ParticlesWeatherDepthSampler, texCoord)), calculatedFog, fstart, fend, DEFAULT);
 
     // translucent_moving_block, lines, item_entity_translucent_cull
     try_insert( texture(ItemEntitySampler, texCoord), texture(ItemEntityDepthSampler, texCoord).r, calculatedFog, fstart, fend, DEFAULT);
     vec3 texelAccum = color_layers[index_layers[0]].rgb;
     for ( int ii = 1; ii < active_layers; ++ii ) {
-        if ((op_layers[index_layers[ii]] & BLENDMULT) > 0u) {
+        uint flags = op_layers[index_layers[ii]];
+        if ((flags & BLENDMULT) > 0u) {
             texelAccum = blendmult( texelAccum, color_layers[index_layers[ii]]);
         } else {
             texelAccum = blend( texelAccum, color_layers[index_layers[ii]]);
+        }
+        if ((flags & HASREFLECT) > 0u) {
+            texelAccum = mix(texelAccum, linear_fog_real(reflection, length(backProject(vec4(scaledCoord, depth_layers[ii], 1.0)).xyz), fstart, fend, calculatedFog).rgb, reflection.a);
         }
     }
 

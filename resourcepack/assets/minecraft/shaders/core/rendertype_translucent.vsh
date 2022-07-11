@@ -1,6 +1,7 @@
 #version 330
 
 #moj_import <light.glsl>
+#moj_import <utils_vsh.glsl>
 
 in vec3 Position;
 in vec4 Color;
@@ -45,7 +46,7 @@ void main() {
         }
 
         //water color correction
-        col.rgb = mix(col.rgb, vec3(0.39, 0.725, 0.725), 0.5);
+        col.rgb = mix(col.rgb, TINT_WATER.rgb, 0.5);
     }
 
     gl_Position = ProjMat * ModelViewMat * (vec4(position, 1.0) + vec4(0.0, (a1 + a2 + a3 + a4) / 64.0, 0.0, 0.0));

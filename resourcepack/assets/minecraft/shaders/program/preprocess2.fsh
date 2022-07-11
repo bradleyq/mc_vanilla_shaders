@@ -93,19 +93,32 @@ void main() {
     else {
         outColor = texture(DiffuseSampler, texCoord);
         float depth = texture(DiffuseDepthSampler, texCoord).r;
+        int pbrtype = int(outColor.b * 255.0) % 8;
 
         // remove translucent checker pixels pixels
         if ((int(gl_FragCoord.x) + int(gl_FragCoord.y)) % 2 == 0 
           && linearizeDepth(depth) < PROJFAR - FUDGE 
           && int(outColor.a * 255.0) % 4 == FACETYPE_S 
-          && int(outColor.b * 255.0) % 8 >= PBRTYPE_TRANSLUCENT) {
+          && pbrtype >= PBRTYPE_TRANSLUCENT) {
             vec4 p0 = texture(DiffuseSampler, texCoord - vec2(oneTexel.x, 0.0));
             vec4 p1 = texture(DiffuseSampler, texCoord + vec2(oneTexel.x, 0.0));
             vec4 p2 = texture(DiffuseSampler, texCoord - vec2(0.0, oneTexel.y));
             vec4 p3 = texture(DiffuseSampler, texCoord + vec2(0.0, oneTexel.y));
 
             // average luma left right up down, average chroma up down, take material of left
-            outColor = vec4((p0.r + p1.r + p2.r + p3.r) / 4.0, (p2.g + p3.g) / 2.0, p0.b, p0.a);
+            vec2 yuv = vec2((p0.r + p1.r + p2.r + p3.r) / 4.0, (p2.g + p3.g) / 2.0 - 0.5);
+
+            float strength = clamp(float(int(outColor.b * 255.0) / 16) / 15.0, 0.0, 1.0);
+            vec2 specialComp = vec2(outColor.r, outColor.g - 0.5);
+            if (pbrtype == PBRTYPE_TEMISSIVE) {
+                yuv += specialComp * strength;
+            }
+            else if (pbrtype == PBRTYPE_TRANSLUCENT) {
+                yuv = mix(yuv, specialComp, strength);
+            }
+            yuv.g += 0.5;
+
+            outColor = vec4(yuv, p0.b, p0.a);
         }
     }
 

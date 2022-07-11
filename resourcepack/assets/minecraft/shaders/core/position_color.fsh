@@ -77,18 +77,18 @@ bool getPixel(uint character, int x, int y) {
 }
 
 void main() {
-    
-    if (!isGUI(ProjMat)) {
+    bool gui = isGUI(ProjMat);
+    if (!gui) {
         discardControl(gl_FragCoord.xy, ScreenSize.x);
     }
     
-    vec4 color = vertexColor;
+    vec4 color = vertexColor * ColorModulator;
 
     if (color.a == 0.0) {
         discard;
     }
 
-    if (isGUI(ProjMat) && (length(color.rgb - vec3(16 / 255.0)) < 0.001 || length(color.rgb - vec3(239.0 / 255.0, 50.0 / 255.0, 61.0 / 255.0)) < 0.001)) {
+    if (gui && (length(color.rgb - vec3(16 / 255.0)) < 0.001 || length(color.rgb - vec3(239.0 / 255.0, 50.0 / 255.0, 61.0 / 255.0)) < 0.001)) {
         ivec2 pixel = ivec2(gl_FragCoord.xy);
         ivec2 offset = pixel - ORIGIN;
 
@@ -103,6 +103,9 @@ void main() {
             }
         }
     }
+    else if (!gui) {
+        color = getOutColorSTDALock(color, vec4(1.0), vec2(0.0), gl_FragCoord.xy);
+    }
     
-    fragColor = color * ColorModulator;
+    fragColor = color;
 }
