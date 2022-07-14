@@ -38,7 +38,7 @@ void main() {
 
     if (!gui && !hand) {
         if (outColor.a < 254.5 / 255.0) {
-            outColor = getOutColorT(outColor, vec4(0.0), vec2(0.0), gl_FragCoord.xy, FACETYPE_S, PBRTYPE_TRANSLUCENT);
+            outColor = getOutColorT(outColor * vertexColor, vec4(0.0), vec2(0.0), gl_FragCoord.xy, FACETYPE_S, PBRTYPE_TRANSLUCENT);
             outColor.a = 1.0;
         }
         else {

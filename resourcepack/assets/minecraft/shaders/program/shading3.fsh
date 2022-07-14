@@ -2,6 +2,7 @@
 
 uniform sampler2D DiffuseSampler;
 uniform sampler2D DiffuseDepthSampler;
+uniform sampler2D DiffuseTSampler;
 uniform sampler2D EdgeSampler;
 uniform sampler2D ShadingSampler;
 uniform vec2 OutSize;
@@ -14,6 +15,8 @@ in mat4 Proj;
 in mat4 ProjInv;
 in float near;
 in float far;
+in float raining;
+in float underWater;
 
 out vec4 fragColor;
 
@@ -24,6 +27,12 @@ out vec4 fragColor;
 #define FUDGE 32.0
 
 #define EMISS_MULT 1.5
+
+#define TINT_WATER vec3(0.0 / 255.0, 248.0 / 255.0, 255.0 / 255.0)
+#define WATER_COLOR_DEPTH 5.0
+
+#define FLAG_UNDERWATER 1<<0
+#define FLAG_RAINING    1<<1
 
 vec3 encodeInt(int i) {
     int s = int(i < 0) * 128;
@@ -191,9 +200,14 @@ float PRNG(int seed) {
 vec4 decodeYUV(sampler2D tex, vec4 inCol, vec2 coord) {
     vec2 pixCoord = coord * OutSize;
     vec4 outCol = vec4(1.0);
-    vec2 dir = vec2(pixCoord.x <= 0.5 ? 1.0 : -1.0, pixCoord.y <= 0.5 ? 1.0 : 0.0);
-    float sec = texture(tex, coord + dir * oneTexel).y;
-    // }
+    // vec2 dir = vec2(pixCoord.x <= 0.5 ? 1.0 : -1.0, pixCoord.y <= 0.5 ? 1.0 : 0.0);
+    float sec1 = texture(tex, coord + vec2(1.0, 0.0) * oneTexel).y;
+    float sec2 = texture(tex, coord + vec2(-1.0, 0.0) * oneTexel).y;
+    float sec = sec1;
+    if (abs(sec2 - 0.5) < abs(sec1 - 0.5)) {
+        sec = sec2;
+    }
+
     vec3 yuv = vec3(0.0);
     if (int(pixCoord.x) % 2 == 0) {
         yuv = vec3(inCol.xy, sec);
@@ -208,6 +222,18 @@ vec4 decodeYUV(sampler2D tex, vec4 inCol, vec2 coord) {
     outCol.b = yuv.x * 1.0 + yuv.y * 1.765 + yuv.z * 0.0;
     return outCol;
 }
+
+vec3 blend( vec3 dst, vec4 src ) {
+    return mix(dst.rgb, src.rgb, src.a);
+    // return ( dst * ( 1.0 - src.a ) ) + src.rgb;
+}
+
+#define BLENDMULT_FACTOR 0.5
+
+vec3 blendmult( vec3 dst, vec4 src) {
+    return BLENDMULT_FACTOR * dst * mix(vec3(1.0), src.rgb, src.a) + (1.0 - BLENDMULT_FACTOR) * mix(dst.rgb, src.rgb, src.a);
+}
+
 
 void main() {
 
@@ -376,9 +402,12 @@ void main() {
                 outColor.rgb *= EMISS_MULT;
                 lightColor = max(lightColor, vec3(EMISS_MULT));
             }
+
             outColor.rgb = mix(outColor.rgb * mix(lightColor, vec3(1.0), applyLight), lightColor, 0.0);
 
-            // outColor.rgb = mix(color0.rgb, color0.rgb * WATER_TINT, smoothstep(0, far, length(fragpos)));
+            if (underWater > 0.5) {
+                outColor.rgb = mix(outColor.rgb, outColor.rgb * TINT_WATER, smoothstep(0, WATER_COLOR_DEPTH * 6.0, length(fragpos)));
+            }
 
             // desaturate bright pixels for more realistic feel
             outColor.rgb = mix(outColor.rgb, vec3(length(outColor.rgb)/sqrt(3.0)), luma(outColor.rgb) * 0.5);
@@ -431,6 +460,16 @@ void main() {
                 outColor.rgb = mix(outColor.rgb, color, clamp(5.0 * (0.2 - pow(abs(sdu), 1.5)), 0.0, 1.0));
             }
 
+        }
+
+        vec4 translucent = texture(DiffuseTSampler, texCoord);
+        if (translucent.a > 0.0) {
+            if (int(translucent.a * 255.0) % 2 == 0) { // PBRTYPE_TRANSLUCENT
+                outColor.rgb = blendmult(outColor.rgb, translucent);
+            }
+            else { // PBRTYPE_TEMISSIVE
+                outColor.rgb += translucent.rgb * translucent.a * EMISS_MULT;
+            }
         }
     }
 

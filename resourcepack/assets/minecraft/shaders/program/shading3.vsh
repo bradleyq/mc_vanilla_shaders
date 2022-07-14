@@ -14,10 +14,15 @@ out mat4 Proj;
 out mat4 ProjInv;
 out float near;
 out float far;
+out float raining;
+out float underWater;
 
 // moj_import doesn't work in post-process shaders ;_; Felix pls fix
 #define FPRECISION 4000000.0
 #define PROJNEAR 0.05
+
+#define FLAG_UNDERWATER 1<<0
+#define FLAG_RAINING    1<<1
 
 vec2 getControl(int index, vec2 screenSize) {
     return vec2(float(index) + 0.5, 0.5) / screenSize;
@@ -86,4 +91,8 @@ void main() {
 
     Proj = ProjMat * ModelViewMat;
     ProjInv = inverse(Proj);
+
+    int flags = int(texture(DataSampler, start + 29.0 * inc).r * 255.0);
+    underWater = float((flags & FLAG_UNDERWATER) > 0);
+    raining = float((flags & FLAG_RAINING) > 0);
 }

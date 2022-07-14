@@ -62,9 +62,20 @@
             ]
         },
         {
-            "name": "edge",
-            "intarget": "swap3",
+            "name": "preprocess3",
+            "intarget": "minecraft:main",
             "outtarget": "swap4",
+            "auxtargets": [
+                {
+                    "name": "DiffuseDepthSampler",
+                    "id": "minecraft:main:depth"
+                }
+            ]
+        },
+        {
+            "name": "edge",
+            "intarget": "swap4",
+            "outtarget": "swap5",
             "auxtargets": [
                 {
                     "name": "DataSampler",
@@ -78,8 +89,8 @@
         },
         {
             "name": "shading0",
-            "intarget": "swap3",
-            "outtarget": "swap5",
+            "intarget": "swap5",
+            "outtarget": "swap6",
             "auxtargets": [
                 {
                     "name": "DataSampler",
@@ -91,14 +102,14 @@
                 },
                 {
                     "name": "EdgeSampler",
-                    "id": "swap4"
+                    "id": "swap5"
                 }
             ]
         },
         {
             "name": "shading1",
-            "intarget": "swap5",
-            "outtarget": "swap6",
+            "intarget": "swap6",
+            "outtarget": "swap7",
             "auxtargets": [
                 {
                     "name": "DataSampler",
@@ -118,8 +129,8 @@
         },
         {
             "name": "shading2",
-            "intarget": "swap6",
-            "outtarget": "swap5",
+            "intarget": "swap7",
+            "outtarget": "swap6",
             "auxtargets": [
                 {
                     "name": "DataSampler",
@@ -139,7 +150,7 @@
         },
         {
             "name": "shading3",
-            "intarget": "swap3",
+            "intarget": "swap4",
             "outtarget": "swap2",
             "auxtargets": [
                 {
@@ -151,12 +162,16 @@
                     "id": "swap1"
                 },
                 {
+                    "name": "DiffuseTSampler",
+                    "id": "swap3"
+                },
+                {
                     "name": "EdgeSampler",
-                    "id": "swap4"
+                    "id": "swap5"
                 },
                 {
                     "name": "ShadingSampler",
-                    "id": "swap5"
+                    "id": "swap6"
                 }
             ]
         },

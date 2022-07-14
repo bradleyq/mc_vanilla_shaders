@@ -76,57 +76,58 @@ int inControl(vec2 screenCoord, float screenWidth) {
     return -1;
 }
 
-vec4 encodeUInt(uint i) {
-    uint r = (i) % 256u;
-    uint g = (i >> 8u) % 256u;
-    uint b = (i >> 16u) % 256u;
-    uint a = (i >> 24u) % 256u;
-    return vec4(float(r) / 255.0, float(g) / 255.0, float(b) / 255.0 , float(a) / 255.0);
+vec2 encodeYUV(vec2 coord, vec3 color) {
+    vec2 outCol = vec2(0.0);
+    outCol.x = color.r * 0.299 + color.g * 0.587 + color.b * 0.114;
+    if (int(coord.x) % 2 == 0) {
+        outCol.y = color.r * -0.169 + color.g * -0.331 + color.b * 0.5 + 0.5;
+    }
+    else {
+        outCol.y = color.r * 0.5 + color.g * -0.419 + color.b * -0.081 + 0.5;
+    }
+    return outCol;
 }
 
-uint decodeUInt(vec4 ivec) {
-    ivec *= 255.0;
-    return uint(ivec.r) + (uint(ivec.g) << 8u) + (uint(ivec.b) << 16u) + (uint(ivec.a) << 24u);
+vec4 sampleTexture(sampler2D sampler, vec2 texCoord, float depth) {
+    vec4 outColor = texture(DiffuseSampler, texCoord);
+    if (depth >= PROJFAR - FUDGE && outColor.a == 0.0) {
+        outColor.rg = encodeYUV(texCoord * InSize, outColor.rgb);
+        outColor.ba = vec2(1.0);
+    }
+    return outColor;
 }
-
-vec4 encodeDepth(float depth) {
-    return encodeUInt(floatBitsToUint(depth)); 
-}
-
-float decodeDepth(vec4 depth) {
-    return uintBitsToFloat(decodeUInt(depth)); 
-}
-
 
 void main() {
     vec4 outColor = vec4(0.0);
-    float outDepth = texture(DiffuseDepthSampler, texCoord).r;
     bool inctrl = inControl(texCoord * OutSize, OutSize.x) > -1;
+
+    float d0 = linearizeDepth(texture(DiffuseDepthSampler, texCoord - vec2(oneTexel.x, 0.0)).r);
+    float d1 = linearizeDepth(texture(DiffuseDepthSampler, texCoord + vec2(oneTexel.x, 0.0)).r);
+    float d2 = linearizeDepth(texture(DiffuseDepthSampler, texCoord + vec2(0.0, oneTexel.y)).r);
+    vec4 p0 = sampleTexture(DiffuseSampler, texCoord - vec2(oneTexel.x, 0.0), d0);
+    vec4 p1 = sampleTexture(DiffuseSampler, texCoord + vec2(oneTexel.x, 0.0), d1);
+    vec4 p2 = sampleTexture(DiffuseSampler, texCoord + vec2(0.0, oneTexel.y), d2);
 
     // remove control pixel
     if (inctrl) {
-        // average left and right depths
-        outDepth = (texture(DiffuseDepthSampler, texCoord - vec2(oneTexel.x, 0.0)).r + texture(DiffuseDepthSampler, texCoord + vec2(oneTexel.x, 0.0)).r) / 2.0;
+        // average luma of left right up, take chroma of above, take material of left
+        outColor = vec4((p0.r + p1.r + p2.r) / 3.0, p2.g, p0.b, p0.a);
     }
     else {
-        outColor = texture(DiffuseSampler, texCoord);
-        outDepth = texture(DiffuseDepthSampler, texCoord).r;
+        float depth = linearizeDepth(texture(DiffuseDepthSampler, texCoord).r);
+        outColor = sampleTexture(DiffuseSampler, texCoord, depth);
+        int pbrtype = int(outColor.b * 255.0) % 8;
 
         // remove translucent checker pixels pixels
         if ((int(gl_FragCoord.x) + int(gl_FragCoord.y)) % 2 == 0 
-          && linearizeDepth(outDepth) < PROJFAR - FUDGE 
+          && depth < PROJFAR - FUDGE 
           && int(outColor.a * 255.0) % 4 == FACETYPE_S 
-          && int(outColor.b * 255.0) % 8 >= PBRTYPE_TRANSLUCENT) {
-
-            // average left and right depth if they are within 0.25
-            outDepth = texture(DiffuseDepthSampler, texCoord - vec2(oneTexel.x, 0.0)).r;
-            float dtmp = texture(DiffuseDepthSampler, texCoord + vec2(oneTexel.x, 0.0)).r;
-            if (abs(linearizeDepth(outDepth) - linearizeDepth(dtmp)) < 0.25) {
-                outDepth = (outDepth + dtmp) / 2.0;
-            }
+          && pbrtype >= PBRTYPE_TRANSLUCENT) {
+            // average luma left right up, take chroma up, take material of left
+            vec2 yuv = vec2((p0.r + p1.r + p2.r) / 3.0, (p2.g));
+            outColor = vec4(yuv, p0.b, p0.a);
         }
     }
 
-    outColor = encodeDepth(outDepth);
     fragColor = outColor;
 }

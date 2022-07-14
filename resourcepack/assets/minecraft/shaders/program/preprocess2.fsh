@@ -76,50 +76,133 @@ int inControl(vec2 screenCoord, float screenWidth) {
     return -1;
 }
 
+vec3 YUV2RGB(vec3 yuv) {
+    vec3 outColor = vec3(0.0);
+    yuv.yz -= 0.5;
+    outColor.r = yuv.x * 1.0 + yuv.y * 0.0 + yuv.z * 1.4;
+    outColor.g = yuv.x * 1.0 + yuv.y * -0.343 + yuv.z * -0.711;
+    outColor.b = yuv.x * 1.0 + yuv.y * 1.765 + yuv.z * 0.0;
+    return outColor;
+}
 
 void main() {
     vec4 outColor = vec4(0.0);
-    bool inctrl = inControl(texCoord * OutSize, OutSize.x) > -1;
+    vec2 adjustedCoord = texCoord;
+    if (gl_FragCoord.y < 0.75) { // avoid control pixel row
+        adjustedCoord.y += oneTexel.y;
+    }
 
-    // remove control pixel
-    if (inctrl) {
-        vec4 p0 = texture(DiffuseSampler, texCoord - vec2(oneTexel.x, 0.0));
-        vec4 p1 = texture(DiffuseSampler, texCoord + vec2(oneTexel.x, 0.0));
-        vec4 p2 = texture(DiffuseSampler, texCoord + vec2(0.0, oneTexel.y));
+    // float strength = clamp(float(int(outColor.b * 255.0) / 16) / 15.0, 0.0, 1.0);
+    // int(outColor.a * 255.0) % 4 == FACETYPE_S 
+    // int pbrtype = int(outColor.b * 255.0) % 8;
+    //     if (int(pixCoord.x) % 2 == 0) {
+    //     yuv = vec3(inCol.xy, sec);
+    // }
+    // else {
+    //     yuv = vec3(inCol.x, sec, inCol.y);
+    // }
 
-        // average luma of left right up, take chroma of above, take material of left
-        outColor = vec4((p0.r + p1.r + p2.r) / 3.0, p2.g, p0.b, p0.a);
+    vec3 yuv = vec3(0.0);
+    float strength = 0.0;
+    bool valid = false;
+    float bval = 0.0;
+    float bvalcount = 0.0;
+    int pbrtype = PBRTYPE_STANDARD;
+
+    if ((int(adjustedCoord.x * OutSize.x) + int(adjustedCoord.y * OutSize.y)) % 2 == 0) {
+        vec4 p0 = texture(DiffuseSampler, adjustedCoord);
+        pbrtype = int(p0.b * 255.0) % 8;
+
+        if (p0.a == 1.0 && pbrtype >= PBRTYPE_TRANSLUCENT) {
+            valid = true;
+            strength = clamp(float(int(p0.b * 255.0) / 16) / 15.0, 0.0, 1.0);
+            yuv.rg = p0.rg;
+
+            vec4 ptmp = texture(DiffuseSampler, adjustedCoord + vec2(-oneTexel.x, oneTexel.y));
+            if (ptmp.a == 1.0 && pbrtype == int(ptmp.b * 255.0) % 8) {
+                bvalcount += 1.0;
+                bval += ptmp.g;
+            }
+
+            ptmp = texture(DiffuseSampler, adjustedCoord + vec2(oneTexel.x, oneTexel.y));
+            if (ptmp.a == 1.0 && pbrtype == int(ptmp.b * 255.0) % 8) {
+                bvalcount += 1.0;
+                bval += ptmp.g;
+            }
+
+            if (gl_FragCoord.y > 1.75) { // avoid control pixel row
+                ptmp = texture(DiffuseSampler, adjustedCoord + vec2(-oneTexel.x, -oneTexel.y));
+                if (ptmp.a == 1.0 && pbrtype == int(ptmp.b * 255.0) % 8) {
+                    bvalcount += 1.0;
+                    bval += ptmp.g;
+                }
+
+                ptmp = texture(DiffuseSampler, adjustedCoord + vec2(oneTexel.x, -oneTexel.y));
+                if (ptmp.a == 1.0 && pbrtype == int(ptmp.b * 255.0) % 8) {
+                    bvalcount += 1.0;
+                    bval += ptmp.g;
+                }
+            }
+
+            if (bvalcount == 0.0) { // no valid supplementary pixels, default to 0.5
+                bval += 0.5;
+                bvalcount += 1.0;
+            }
+        }
     }
     else {
-        outColor = texture(DiffuseSampler, texCoord);
-        float depth = texture(DiffuseDepthSampler, texCoord).r;
-        int pbrtype = int(outColor.b * 255.0) % 8;
+        vec4 p0 = texture(DiffuseSampler, adjustedCoord + vec2(0.0, oneTexel.y));
+        pbrtype = int(p0.b * 255.0) % 8;
 
-        // remove translucent checker pixels pixels
-        if ((int(gl_FragCoord.x) + int(gl_FragCoord.y)) % 2 == 0 
-          && linearizeDepth(depth) < PROJFAR - FUDGE 
-          && int(outColor.a * 255.0) % 4 == FACETYPE_S 
-          && pbrtype >= PBRTYPE_TRANSLUCENT) {
-            vec4 p0 = texture(DiffuseSampler, texCoord - vec2(oneTexel.x, 0.0));
-            vec4 p1 = texture(DiffuseSampler, texCoord + vec2(oneTexel.x, 0.0));
-            vec4 p2 = texture(DiffuseSampler, texCoord - vec2(0.0, oneTexel.y));
-            vec4 p3 = texture(DiffuseSampler, texCoord + vec2(0.0, oneTexel.y));
+        // avoid control pixel row
+        vec4 p1 = gl_FragCoord.y > 1.75 ? texture(DiffuseSampler, adjustedCoord + vec2(0.0, -oneTexel.y)) : vec4(0.0);
+        int pbrtypetmp = int(p1.b * 255.0) % 8;
 
-            // average luma left right up down, average chroma up down, take material of left
-            vec2 yuv = vec2((p0.r + p1.r + p2.r + p3.r) / 4.0, (p2.g + p3.g) / 2.0 - 0.5);
+        vec2 rgval = vec2(0.0);
+        float rgvalcount = 0.0;
 
-            float strength = clamp(float(int(outColor.b * 255.0) / 16) / 15.0, 0.0, 1.0);
-            vec2 specialComp = vec2(outColor.r, outColor.g - 0.5);
-            if (pbrtype == PBRTYPE_TEMISSIVE) {
-                yuv += specialComp * strength;
-            }
-            else if (pbrtype == PBRTYPE_TRANSLUCENT) {
-                yuv = mix(yuv, specialComp, strength);
-            }
-            yuv.g += 0.5;
-
-            outColor = vec4(yuv, p0.b, p0.a);
+        if (p0.a == 1.0 && pbrtype >= PBRTYPE_TRANSLUCENT) {
+            rgval += p0.rg;
+            rgvalcount += 1.0;
         }
+
+        if (p1.a == 1.0 && pbrtypetmp >= PBRTYPE_TRANSLUCENT) {
+            rgval += p1.rg;
+            rgvalcount += 1.0;
+            pbrtype = pbrtypetmp;
+            p0 = p1;
+        }
+
+        if (rgvalcount > 0.0) {
+            vec4 ptmp = texture(DiffuseSampler, adjustedCoord + vec2(-oneTexel.x, 0));
+            if (ptmp.a == 1.0 && pbrtype == int(ptmp.b * 255.0) % 8) {
+                bvalcount += 1.0;
+                bval += ptmp.g;
+            }
+
+            ptmp = texture(DiffuseSampler, adjustedCoord + vec2(oneTexel.x, 0));
+            if (ptmp.a == 1.0 && pbrtype == int(ptmp.b * 255.0) % 8) {
+                bvalcount += 1.0;
+                bval += ptmp.g;
+            }
+
+            if (bvalcount > 0.0) { // only a valid pixel if at least one left right and one up down
+                valid = true;
+                strength = clamp(float(int(p0.b * 255.0) / 16) / 15.0, 0.0, 1.0);
+                yuv.rg = rgval / rgvalcount;
+            }
+        }
+    }
+
+    if (valid) {
+        yuv.b = bval / bvalcount;
+
+        if (int(gl_FragCoord.x) % 2 == 1) {
+            yuv = yuv.rbg;
+        }
+
+        outColor.rgb = YUV2RGB(yuv);
+        outColor.a = float(int(strength * 255.0) / 2 * 2 + int(pbrtype == PBRTYPE_TEMISSIVE)) / 255.0;
     }
 
     fragColor = outColor;

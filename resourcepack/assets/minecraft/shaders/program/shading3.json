@@ -11,6 +11,7 @@
         { "name": "DiffuseSampler" },
         { "name": "DataSampler" },
         { "name": "DiffuseDepthSampler" },
+        { "name": "DiffuseTSampler" },
         { "name": "EdgeSampler" },
         { "name": "ShadingSampler" }
     ],

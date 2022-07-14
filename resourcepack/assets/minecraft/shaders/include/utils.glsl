@@ -172,6 +172,13 @@ float decodeFloat(vec3 vec) {
 //     return (-float(sign) * 2.0 + 1.0) * float(mantissa)  * pow(2.0, float(exponent) - 31.0 - 17.0);
 // }
 
+// bool isGlowing(vec2 uv2) { // detect glowing signs / maps, but also catches maps and signs on glowstone in direct sky light. unfortunate....
+//     if (uv2.x >= 209.999 && uv2.y >= 239.999) { 
+//         return true;
+//     }
+//     return false;
+// }
+
 int getDirE(vec3 normal) {
     int dir = FACETYPE_Y;
     float dotx = abs(dot(normal, vec3(1.0, 0.0, 0.0)));

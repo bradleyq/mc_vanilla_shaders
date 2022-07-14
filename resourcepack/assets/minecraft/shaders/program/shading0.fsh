@@ -147,10 +147,6 @@ int xorshift(int value) {
     return value;
 }
 
-float ditherGradNoise(vec3 pos, float rand) {
-  return hash12( (pos.xy + pos.z) * 101. + 69. * rand);// fract(52.9829189 * fract(0.06711056 * (gl_FragCoord.x + rand) + 0.00583715 * gl_FragCoord.y));
-}
-
 float luminance(vec3 rgb) {
     return  dot(rgb, vec3(0.2126, 0.7152, 0.0722));
 }
@@ -204,27 +200,6 @@ float Shadow(vec3 fragpos, vec3 sundir, float fragdepth, float rand) {
         return strength;
     }
     return 1.0;
-}
-
-vec4 decodeYUV(sampler2D tex, vec4 inCol, vec2 coord) {
-    vec2 pixCoord = coord * OutSize;
-    vec4 outCol = vec4(1.0);
-    vec2 dir = vec2(pixCoord.x <= 0.5 ? 1.0 : -1.0, pixCoord.y <= 0.5 ? 1.0 : 0.0);
-    float sec = texture(tex, coord + dir * oneTexel).y;
-    // }
-    vec3 yuv = vec3(0.0);
-    if (int(pixCoord.x) % 2 == 0) {
-        yuv = vec3(inCol.xy, sec);
-    }
-    else {
-        yuv = vec3(inCol.x, sec, inCol.y);
-    }
-
-    yuv.yz -= 0.5;
-    outCol.r = yuv.x * 1.0 + yuv.y * 0.0 + yuv.z * 1.4;
-    outCol.g = yuv.x * 1.0 + yuv.y * -0.343 + yuv.z * -0.711;
-    outCol.b = yuv.x * 1.0 + yuv.y * 1.765 + yuv.z * 0.0;
-    return outCol;
 }
 
 void main() {
