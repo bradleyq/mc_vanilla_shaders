@@ -11,6 +11,7 @@ Basic shader that adds as much as possible from OptiFine shaders to the vanilla 
 - Adaptive FOV
 - Voxel shadows + SSS
 - SSR + approximate
+- Water waves
 - Inferred surface normals
 - Tonemapping
 - Multiplicative transparency blending
