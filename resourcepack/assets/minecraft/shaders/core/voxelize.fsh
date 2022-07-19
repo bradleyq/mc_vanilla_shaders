@@ -56,6 +56,9 @@ void main() {
         if (ivec2(gl_FragCoord.xy) != pixel)
             discard;
     } else {
+        if (gl_FragCoord.y > 1.0 || gl_FragCoord.x > 3.0) {
+            discard;
+        }
         vec3 storedChunkOffset = mod(ChunkOffset, vec3(16)) / 16.0;
         fragColor = vec4(encodeFloat(storedChunkOffset[int(gl_FragCoord.x)]), 1);
     }

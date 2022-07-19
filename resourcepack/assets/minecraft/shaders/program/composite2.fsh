@@ -13,6 +13,7 @@ uniform sampler2D WeatherDepthSampler;
 uniform sampler2D CloudsDepthSampler;
 
 in vec2 texCoord;
+in vec2 oneTexel;
 
 out vec4 fragColor;
 
@@ -59,12 +60,16 @@ void try_insert( vec4 color, vec4 spec, float depth, float op ) {
 }
 
 void main() {
-    try_insert(texture(TranslucentSampler, texCoord), texture(TranslucentSpecSampler, texCoord), texture(TranslucentDepthSampler, texCoord).r, 0.5);
-    try_insert(texture(ParticlesSampler, texCoord), vec4(0.0), texture(ParticlesDepthSampler, texCoord).r, 1.0);
-    try_insert(texture(PartialCompositeSampler, texCoord), vec4(0.0), min(min(texture(ItemEntityDepthSampler, texCoord).r, texture(WeatherDepthSampler, texCoord).r), texture(CloudsDepthSampler, texCoord).r), 0.0);
+    vec2 realCoord = texCoord;
+    if (gl_FragCoord.x < 3.0 && gl_FragCoord.y < 1.0) {
+        realCoord.y += oneTexel.y;
+    }
+    try_insert(texture(TranslucentSampler, realCoord), texture(TranslucentSpecSampler, realCoord), texture(TranslucentDepthSampler, realCoord).r, 0.5);
+    try_insert(texture(ParticlesSampler, realCoord), vec4(0.0), texture(ParticlesDepthSampler, realCoord).r, 1.0);
+    try_insert(texture(PartialCompositeSampler, realCoord), vec4(0.0), min(min(texture(ItemEntityDepthSampler, realCoord).r, texture(WeatherDepthSampler, realCoord).r), texture(CloudsDepthSampler, realCoord).r), 0.0);
 
-    float diffuseDepth = texture(DiffuseDepthSampler, texCoord).r;
-    vec3 OutTexel = texture(DiffuseSampler, texCoord).rgb;
+    float diffuseDepth = texture(DiffuseDepthSampler, realCoord).r;
+    vec3 OutTexel = texture(DiffuseSampler, realCoord).rgb;
     vec4 ColorTmp = vec4(0.0);
     vec4 SpecTmp  = vec4(0.0);
     for (int ii = 0; ii < active_layers; ++ii) {
