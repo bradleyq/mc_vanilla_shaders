@@ -1,14 +1,15 @@
-# Basic Shaders for Vanilla 1.16
+# Basic Shaders for Vanilla 1.17
 <img src="images/4.png" /> 
 
 ## Overview
-Basic shader that adds as much as possible from OptiFine shaders to the vanilla transparency shader available in "Fabulous" graphics setting. Due to limited material, light, time, and shadow information, most advanced features are not possible. A good number, however, are. I have ported them here. Most samples are from the BSL shader, however much of it is heavily modified to fit with the vanilla pipeline. Supports FOV 30-140, distance 12-32. For best experience, use FOV 70 with render distance 16!
+Basic shader that adds as much as possible from OptiFine shaders to the vanilla transparency shader available in "Fabulous" graphics setting. Due to limited material, light, time, and shadow information, most advanced features are not possible. A good number, however, are. I have ported them here. Most samples are from the BSL shader, however much of it is heavily modified to fit with the vanilla pipeline. Shadows use Bálint's voxelizer. Supports FOV <140, distance 12-32. For best experience, use FOV 70 with render distance 16!
 
 ### Features
 - FXAA
 - Bloom
 - Adaptive exposure
 - Adaptive FOV
+- Voxel shadows + SSS
 - SSR + approximate
 - Inferred surface normals
 - Tonemapping
@@ -43,3 +44,4 @@ See License.md for licensing. This pack requires Fabulous graphics on. Supports 
 
 ## Credits
 - **BSL shaders - capttatsu** for reference code for some of the features (SSR, Tonemapping).
+- **VanillaVoxellizationTemplate - Bálint** for voxelization: https://github.com/BalintCsala/VanillaVoxellizationTemplate
