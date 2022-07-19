@@ -1,0 +1,28 @@
+{
+    "parent": "block/block",
+    "textures": {
+        "marker": "minecraft:block/marker"
+    },
+    "elements": [
+        {   
+			"from": [ 0, 0, 0 ],
+            "to": [ 16, 16, 16 ],
+            "faces": {
+                "down":  { "texture": "#down", "cullface": "down" },
+                "up":    { "texture": "#up", "cullface": "up" },
+                "north": { "texture": "#north", "cullface": "north" },
+                "south": { "texture": "#south", "cullface": "south" },
+                "west":  { "texture": "#west", "cullface": "west" },
+                "east":  { "texture": "#east", "cullface": "east" }
+            }
+        },
+        {
+            "from": [ 1, 1, 1 ],
+            "to": [ 15, 15, 15 ],
+            "faces": {
+                "up":    { "texture": "#marker" },
+                "down":  { "texture": "#marker" }
+            }
+        }
+    ]
+}

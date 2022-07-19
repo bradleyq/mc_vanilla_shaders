@@ -1,11 +1,11 @@
-#version 120
+#version 150
 
-attribute vec4 Position;
+in vec4 Position;
 
 uniform vec2 OutSize;
 uniform vec2 Scale;
 
-varying vec2 texCoord;
+out vec2 texCoord;
 
 // Modified blit to work for copying between buffers of different sizes
 

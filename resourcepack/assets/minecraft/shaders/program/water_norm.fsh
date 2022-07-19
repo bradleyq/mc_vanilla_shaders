@@ -1,12 +1,14 @@
-#version 120
+#version 150
 
 uniform sampler2D DiffuseSampler;
 uniform sampler2D DiffuseDepthSampler;
 uniform float BlurSize;
 
-varying vec2 texCoord;
-varying vec2 oneTexel;
-varying float aspectRatio;
+in vec2 texCoord;
+in vec2 oneTexel;
+in float aspectRatio;
+
+out vec4 fragColor;
 
 #define near 0.00004882812 
 #define far 1.0
@@ -108,15 +110,15 @@ void main() {
     poissonDisk[62] = vec2(-0.545396, 0.538133);
     poissonDisk[63] = vec2(-0.178564, -0.596057);
 
-    vec4 outColor = texture2D(DiffuseSampler, texCoord);
+    vec4 outColor = texture(DiffuseSampler, texCoord);
     if (outColor.a > 0.0) {
         float height = min(length(outColor.rgb) * 0.69336127435, 1.0);
-        float radius = clamp(near / LinearizeDepth(texture2D(DiffuseDepthSampler, texCoord).r) * BlurSize, 0.0, 0.25);
+        float radius = clamp(near / LinearizeDepth(texture(DiffuseDepthSampler, texCoord).r) * BlurSize, 0.0, 0.25);
         float count = 1.0;
         int iterations = int(min(radius / oneTexel.y, 8.0) / 8.0 * float(HEIGHTMAP_TAPS));
 
         for (int i = 0; i < iterations; i += 1) {
-            vec4 tmpColor = texture2D(DiffuseSampler, texCoord + poissonDisk[i] * radius * vec2(1.0 / aspectRatio, 1.0));
+            vec4 tmpColor = texture(DiffuseSampler, texCoord + poissonDisk[i] * radius * vec2(1.0 / aspectRatio, 1.0));
             if (tmpColor.a > 0.0) {
                 height += min(length(tmpColor.rgb) * 0.69336127435, 1.0);
                 count += 1.0;
@@ -126,5 +128,5 @@ void main() {
         outColor = vec4(encodeInt(int(height * HEIGHTMAP_PRECISION)), 1.0);
     }
 
-    gl_FragColor = outColor;
+    fragColor = outColor;
 }

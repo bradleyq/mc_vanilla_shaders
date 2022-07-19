@@ -1,8 +1,10 @@
-#version 120
+#version 150
 
 uniform sampler2D DiffuseSampler;
 
-varying vec2 texCoord;
+in vec2 texCoord;
+
+out vec4 fragColor;
 
 #define TonemapExposure 1.1 
 #define TonemapWhiteCurve 70.4 
@@ -37,9 +39,9 @@ vec3 colorSaturation(vec3 x){
 
 void main() {
 
-    vec3 color = texture2D(DiffuseSampler, texCoord).rgb;
+    vec3 color = texture(DiffuseSampler, texCoord).rgb;
     color = colorSaturation(color);
     color = BSLTonemap(color);
 
-    gl_FragColor = vec4(color, 1.0);
+    fragColor = vec4(color, 1.0);
 }
