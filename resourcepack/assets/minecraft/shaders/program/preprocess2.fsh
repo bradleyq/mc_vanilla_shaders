@@ -113,7 +113,7 @@ void main() {
         vec4 p0 = texture(DiffuseSampler, adjustedCoord);
         pbrtype = int(p0.b * 255.0) % 8;
 
-        if (p0.a == 1.0 && pbrtype >= PBRTYPE_TRANSLUCENT) {
+        if (p0.a == 1.0 && pbrtype == PBRTYPE_TRANSLUCENT || pbrtype == PBRTYPE_TEMISSIVE) {
             valid = true;
             strength = clamp(float(int(p0.b * 255.0) / 16) / 15.0, 0.0, 1.0);
             yuv.rg = p0.rg;
@@ -161,12 +161,12 @@ void main() {
         vec2 rgval = vec2(0.0);
         float rgvalcount = 0.0;
 
-        if (p0.a == 1.0 && pbrtype >= PBRTYPE_TRANSLUCENT) {
+        if (p0.a == 1.0 && pbrtype == PBRTYPE_TRANSLUCENT || pbrtype == PBRTYPE_TEMISSIVE) {
             rgval += p0.rg;
             rgvalcount += 1.0;
         }
 
-        if (p1.a == 1.0 && pbrtypetmp >= PBRTYPE_TRANSLUCENT) {
+        if (p1.a == 1.0 && pbrtypetmp == PBRTYPE_TRANSLUCENT || pbrtype == PBRTYPE_TEMISSIVE) {
             rgval += p1.rg;
             rgvalcount += 1.0;
             pbrtype = pbrtypetmp;

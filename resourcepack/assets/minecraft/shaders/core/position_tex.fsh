@@ -69,7 +69,10 @@ void main() {
         } 
         else if (isSun > 0.25) {
             color = getOutColorSTDALock(color, vec4(1.0), vec2(0.0), gl_FragCoord.xy);
+
+            // additive moon means grayscale only. Also add 0 to data component b.
             color.g = 0.0;
+            color.b = 0.0;
         }
     }
     
