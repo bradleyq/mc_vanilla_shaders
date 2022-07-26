@@ -34,6 +34,18 @@ out vec4 fragColor;
 #define FLAG_UNDERWATER 1<<0
 #define FLAG_RAINING    1<<1
 
+#define PBRTYPE_STANDARD 0
+#define PBRTYPE_EMISSIVE 1
+#define PBRTYPE_SUBSURFACE 2
+#define PBRTYPE_TRANSLUCENT 3
+#define PBRTYPE_TEMISSIVE 4
+
+#define FACETYPE_Y 0
+#define FACETYPE_X 1
+#define FACETYPE_Z 2
+#define FACETYPE_S 3
+
+
 vec3 encodeInt(int i) {
     int s = int(i < 0) * 128;
     i = abs(i);
@@ -82,7 +94,7 @@ float decodeDepth(vec4 depth) {
 
 
 // tweak lighting color here
-#define NOON vec3(1.2, 1.2, 1.2)
+#define NOON vec3(1.2, 1.15, 1.1)
 #define NOONA vec3(0.5, 0.55, 0.75)
 #define NOONM vec3(0.45, 0.5, 0.7)
 #define EVENING vec3(1.35, 1.0, 0.5)
@@ -119,7 +131,7 @@ vec4 backProject(vec4 vec) {
 
 #define zenithOffset -0.04
 #define multiScatterPhase 0.05
-#define atmDensity 0.5
+#define atmDensity 0.4
 
 #define anisotropicIntensity 0.0 //Higher numbers result in more anisotropic scattering
 
@@ -234,7 +246,6 @@ vec3 blendmult( vec3 dst, vec4 src) {
     return BLENDMULT_FACTOR * dst * mix(vec3(1.0), src.rgb, src.a) + (1.0 - BLENDMULT_FACTOR) * mix(dst.rgb, src.rgb, src.a);
 }
 
-
 void main() {
 
     vec2 poissonDisk[64];
@@ -321,7 +332,7 @@ void main() {
             int face = int(data.y * 255.0) % 4;
             int stype = int(data.x * 255.0) % 8;
             float applyLight = clamp(float(int(data.y * 255.0) / 4) / 63.0, 0.0, 1.0);
-            if (face == 3 && stype == 0) {
+            if (face == FACETYPE_S && stype == PBRTYPE_STANDARD) {
                 applyLight = clamp(float(int(data.x * 255.0) / 16) / 15.0, 0.0, 1.0);
             }
             int tmpFace;
@@ -385,32 +396,44 @@ void main() {
                 backside = mix(EVENINGM, NOONM, sdu);
             } else {
                 direct = mix(EVENING, NIGHT, pow(-sdu * 2.0, 0.5));
-                ambient = mix(EVENINGA, NIGHTA, pow(-sdu, 0.3));
-                backside = mix(EVENINGM, NIGHTM, pow(-sdu, 0.3));
+                ambient = mix(EVENINGA, NIGHTA, pow(-sdu, 0.5));
+                backside = mix(EVENINGM, NIGHTM, pow(-sdu, 0.5));
             }
 
             // apply ambient occlusion.
-            outColor.rgb *= vec3(texture(ShadingSampler, texCoord).g);
+            outColor.rgb *= vec3(texture(ShadingSampler, texCoord).b);
 
             // apply lighting color. not quite standard diffuse light equation since the blocks are already "pre-lit"
             vec3 shade = vec3(texture(ShadingSampler, texCoord).r);
 
+            vec3 eyedir = normalize(fragpos);
+            float comp_bp = max(pow(dot(reflect(sunDir, normal), eyedir), 8.0), 0.0);
+            float comp_diff = dot(normal, sunDir);
+
             vec3 lightColor = ambient;
-            lightColor += (direct - ambient) * clamp((dot(normal, sunDir) + 0.05) * shade, 0.0, 1.0); 
+
+            if (face == FACETYPE_S && stype == PBRTYPE_SUBSURFACE) {
+                float volume = texture(ShadingSampler, texCoord).g;
+                float comp_sss = max(mix(pow(1.0 - volume, 2.0) - pow(length(scaledCoord), 4.0), comp_diff, 0.25), comp_diff);
+                lightColor += (direct - ambient) * clamp((comp_bp * 0.25 + comp_sss + 0.05) * shade, 0.0, 1.0); 
+            }
+            else {
+                lightColor += (direct - ambient) * clamp((comp_bp * 0.25 + comp_diff + 0.05) * shade, 0.0, 1.0); 
+            }
             lightColor += (backside - ambient) * clamp(dot(normal, moonDir), 0.0, 1.0); 
-            if (face == 3 && stype == 1) {
+            if (face == FACETYPE_S && stype == PBRTYPE_EMISSIVE) {
                 outColor.rgb *= EMISS_MULT;
                 lightColor = max(lightColor, vec3(EMISS_MULT));
             }
 
-            outColor.rgb = mix(outColor.rgb * mix(lightColor, vec3(1.0), applyLight), lightColor, 0.0);
+            outColor.rgb = mix(outColor.rgb * mix(lightColor, vec3(1.0), applyLight), lightColor, 0.0);//clamp(0.25 * (luma(lightColor) * (1.0 - applyLight) - 1.0), 0.0, 1.0));
 
             if (underWater > 0.5) {
                 outColor.rgb = mix(outColor.rgb, outColor.rgb * TINT_WATER, smoothstep(0, WATER_COLOR_DEPTH * 6.0, length(fragpos)));
             }
 
             // desaturate bright pixels for more realistic feel
-            outColor.rgb = mix(outColor.rgb, vec3(length(outColor.rgb)/sqrt(3.0)), luma(outColor.rgb) * 0.5);
+            outColor.rgb = mix(outColor.rgb, vec3(luma(outColor.rgb)), pow(luma(outColor.rgb), 2.0) * 0.5);
 
             // outColor.rgb = vec3(applyLight);
 

@@ -133,7 +133,7 @@ vec3 blendmult( vec3 dst, vec4 src) {
 
 #define zenithOffset -0.04
 #define multiScatterPhase 0.05
-#define atmDensity 0.5
+#define atmDensity 0.4
 
 #define anisotropicIntensity 0.0 //Higher numbers result in more anisotropic scattering
 

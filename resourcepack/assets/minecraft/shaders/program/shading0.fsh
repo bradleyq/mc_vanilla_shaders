@@ -138,6 +138,7 @@ float spiralAO(vec2 uv, vec3 p, vec3 n, float rad)
 #define S_STEPREFINE 0.4
 #define S_STEPINCREASE 1.2
 #define S_IGNORETHRESH 6.0
+#define S_BIAS 0.001
 
 int xorshift(int value) {
     // Xorshift*32
@@ -151,55 +152,83 @@ float luminance(vec3 rgb) {
     return  dot(rgb, vec3(0.2126, 0.7152, 0.0722));
 }
 
-float Shadow(vec3 fragpos, vec3 sundir, float fragdepth, float rand) {
+vec2 Volumetric(vec3 fragpos, vec3 sundir, float fragdepth, float rand) {
+    float distBias = length(fragpos) / 512.0;
     vec3 rayStart   = fragpos + abs(rand) * sundir * S_STEPSIZE;
     vec3 rayDir     = sundir;
-    vec3 rayStep    = (S_STEPSIZE + S_STEPSIZE * 0.5 * (rand + 1.0)) * rayDir;
+    vec3 rayStep    = (S_STEPSIZE + S_STEPSIZE * 0.5 * (rand + 1.0)) * rayDir * (1.0 + distBias * 5.0);
     vec3 rayPos     = rayStart + rayStep;
     vec3 rayPrevPos = rayStart;
     vec3 rayRefine  = rayStep;
 
-    int refine  = 0;
     vec4 pos    = vec4(0.0);
     float edge  = 0.0;
     float dtmp  = 0.0;
     float dist  = 0.0;
     float distmult = 1.0;
-    float strength = 0.0;
+    float strength = 1.0;
+    float strengthaccum = 0.0;
+    bool enter = false;
+    bool exit = false;
+    float enterdist = S_IGNORETHRESH + 1.0;
+    float enterdepth = 0.0;
+    vec3 enterpos = vec3(0.0);
+    vec3 exitpos = vec3(0.0);
+    float volume = 0.0;
 
     for (int i = 0; i < S_SAMPLES; i += 1) {
         pos = Proj * vec4(rayPos.xyz, 1.0);
         pos.xyz /= pos.w;
-        if (pos.x < -1.0 || pos.x > 1.0 || pos.y < -1.0 || pos.y > 1.0 || pos.z < 0.0 || pos.z > 1.0) return 1.0;
+        if (pos.x < -1.0 || pos.x > 1.0 || pos.y < -1.0 || pos.y > 1.0 || pos.z < 0.0 || pos.z > 1.0) {
+            exitpos = rayPos;
+            exit = true;
+            break;
+        }
         dtmp = linearizeDepth(decodeDepth(texture(DiffuseDepthSampler, 0.5 * pos.xy + vec2(0.5))));
         dist = (linearizeDepth(pos.z) - dtmp);
 
-        if (dist < distmult * max(length(rayStep) * pow(length(rayRefine), 0.25) * (1.0 + 2.0 * clamp(pow(abs(dot(normalize(fragpos), sunDir)), 4.0), 0.0, 1.0)), 0.2) && dist > length(fragpos) / 512.0) {
+        if (!enter && dist < distmult * max(length(rayStep) * pow(length(rayRefine), 0.25) * (1.0 + 2.0 * clamp(pow(abs(dot(normalize(fragpos), sunDir)), 4.0), 0.0, 1.0)), 0.2) && dist > distBias) {
+            strength = strengthaccum;
+            enterpos = rayPos;
+            enterdist = dist;
+            enterdepth = dtmp;
+            rayStep = rayDir * S_STEPSIZE;
+            enter = true;
+        }
+        else if (enter && dist < distBias) {
+            exitpos = rayPos;
+            exit = true;
             break;
         }
 
-        if (dist > length(fragpos) / 512.0) {
+        if (dist > distBias) {
             distmult *= 1.3;
         }
         else if (distmult > 1.2) {
             distmult /= 1.3;
         }
 
-        rayStep        *= S_STEPINCREASE;
-        rayPrevPos      = rayPos;
-        rayRefine      += rayStep;
-        rayPos          = rayStart+rayRefine;
+        rayStep   *= S_STEPINCREASE;
+        rayPrevPos = rayPos;
+        rayRefine += rayStep;
+        rayPos     = rayStart+rayRefine;
 
-        if (i == S_SAMPLES - 1.0) {
-        return 1.0;
-        }
-        strength += 1.0 / S_SAMPLES;
+        strengthaccum += 1.0 / S_SAMPLES;
     }
 
-    if (dist < S_IGNORETHRESH && dtmp < far * 0.5) {
-        return strength;
+    float interpt = length(fragpos - enterpos);
+
+    if (enter && !exit && interpt < 2.0) {
+        volume = 1.0;
     }
-    return 1.0;
+    else if (enter && exit && interpt < 2.0) {
+        volume = max(length(exitpos - enterpos), volume);
+    }
+
+    if (enterdist > S_IGNORETHRESH || enterdepth > far * 0.5) {
+        strength = 1.0;
+    }
+    return vec2(strength, volume);
 }
 
 void main() {
@@ -332,15 +361,15 @@ void main() {
                 vec3 fragpos = backProject(vec4(scaledCoord, depth, 1.0)).xyz;
 
                 // calculate shadow.
-                float shade = 0.0;
+                vec2 shade = vec2(0.0);
                 for (int k = 0; k < S_TAPS; k += 1) {
                     int pindex = (k + int(gl_FragCoord.x * gl_FragCoord.y)) % 60;
-                    shade += Shadow(fragpos, normalize(sunDir + S_PENUMBRA * vec3(poissonDisk[pindex].x, 0.0, poissonDisk[pindex].y)), linearizeDepth(depth), poissonDisk[pindex+1].x);
+                    shade += Volumetric(fragpos * (1.0 - S_BIAS), normalize(sunDir + S_PENUMBRA * vec3(poissonDisk[pindex].x, 0.0, poissonDisk[pindex].y)), linearizeDepth(depth), poissonDisk[pindex+1].x);
                 }
                 shade /= S_TAPS;
-                shade = shade * shade * shade;
-                shade = mix(shade, 1.0, clamp(-sdu * 5.0, 0.0, 1.0));
-                outColor.rgb *= shade;
+                shade.x = shade.x * shade.x * shade.x;
+                shade.x = mix(1.0, shade.x, pow(max(sdu, 0.0), 0.25));
+                outColor.rg = shade;
             }
 
         } 

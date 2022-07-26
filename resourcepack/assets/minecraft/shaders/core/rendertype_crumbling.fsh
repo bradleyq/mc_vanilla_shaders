@@ -1,4 +1,5 @@
 #version 330
+#define FSH
 
 #moj_import <utils.glsl>
 
@@ -21,6 +22,8 @@ void main() {
     }
 
     outColor *= vertexColor * ColorModulator;
+    outColor.a = (1.0 - outColor.r) * 0.75;
+    outColor.rgb = vec3(0.0);
     outColor = getOutColorT(outColor, vec4(0.0), vec2(0.0), gl_FragCoord.xy, FACETYPE_S, PBRTYPE_TRANSLUCENT);
     fragColor = outColor;
 }

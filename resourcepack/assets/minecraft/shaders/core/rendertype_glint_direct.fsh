@@ -1,4 +1,5 @@
 #version 330
+#define FSH
 
 #moj_import <fog.glsl>
 #moj_import <utils.glsl>

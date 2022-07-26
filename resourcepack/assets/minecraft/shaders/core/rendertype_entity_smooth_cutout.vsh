@@ -1,4 +1,5 @@
 #version 330
+#define VSH
 
 #moj_import <light.glsl>
 

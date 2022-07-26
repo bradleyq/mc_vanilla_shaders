@@ -1,4 +1,5 @@
 #version 330
+#define FSH
 
 #moj_import <matrix.glsl>
 #moj_import <utils.glsl>
@@ -64,6 +65,6 @@ void main() {
         outColor.rgb += textureProj(Sampler1, texProj0 * end_portal_layer(float(i + 1))).rgb * COLORS[i];
     }
 
-    outColor = getOutColorT(outColor, vec4(1.0), vec2(0.0), gl_FragCoord.xy, FACETYPE_Y, PBRTYPE_STANDARD);
+    outColor = getOutColorT(outColor, vec4(1.0), vec2(1.0, 0.0), gl_FragCoord.xy, FACETYPE_Y, PBRTYPE_STANDARD);
     fragColor = outColor;
 }

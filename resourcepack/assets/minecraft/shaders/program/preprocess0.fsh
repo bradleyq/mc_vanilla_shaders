@@ -14,10 +14,10 @@ out vec4 fragColor;
 #define PROJFAR 1024.0
 #define PI 3.14159265358979
 
-#define DIM_OVER vec4(1.0, 1.0, 1.0, 1.0)
-#define DIM_END vec4(0.5, 0.5, 0.5, 1.0)
-#define DIM_NETHER vec4(0.0, 0.0, 0.0, 1.0)
-#define DIM_UNKNOWN vec4(0.0)
+#define DIM_UNKNOWN 0
+#define DIM_OVER 1
+#define DIM_END 2
+#define DIM_NETHER 3
 
 #define TINT_WATER vec3(0.0 / 255.0, 248.0 / 255.0, 255.0 / 255.0)
 #define FOG_WATER vec3(0.0 / 255.0, 37.0 / 255.0, 38.0 / 255.0)
@@ -165,9 +165,9 @@ void main() {
             outColor = vec4(encodeInt(int(range)), 0.0);
         }
         else if (index == 28) {
-            outColor = DIM_UNKNOWN;
+            outColor = vec4(0.0);
             if(length(temp.rgb - FOG_END) < 0.005) {
-                outColor = DIM_END;
+                outColor = vec4(vec3(DIM_END), 1.0);
             }
         }
         else {

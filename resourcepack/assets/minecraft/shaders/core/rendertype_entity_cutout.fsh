@@ -1,4 +1,5 @@
 #version 330
+#define FSH
 
 #moj_import <fog.glsl>
 #moj_import <utils.glsl>
@@ -32,7 +33,7 @@ void main() {
     
     vec4 outColor = texture(Sampler0, texCoord0);
 
-    if (outColor.a < 0.1) {
+    if (outColor.a < ALPHACUTOFF) {
         discard;
     }
 
@@ -44,6 +45,7 @@ void main() {
     }
     else {
         outColor *= vertexColor;
+        outColor.a = float(outColor.a > ALPHACUTOFF);
     }
     
     fragColor = outColor;

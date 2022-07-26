@@ -1,6 +1,8 @@
 #version 330
+#define VSH
 
 #moj_import <light.glsl>
+#moj_import <utils.glsl>
 
 in vec3 Position;
 in vec4 Color;
@@ -8,11 +10,13 @@ in vec2 UV0;
 in ivec2 UV2;
 in vec3 Normal;
 
+uniform sampler2D Sampler0;
 uniform sampler2D Sampler2;
 
 uniform mat4 ModelViewMat;
 uniform mat4 ProjMat;
 uniform vec3 ChunkOffset;
+uniform float GameTime;
 
 out vec4 vertexColor;
 out vec4 baseColor;
@@ -24,17 +28,39 @@ out vec4 glpos;
 #define GREEN_FUZZ 0.04
 
 void main() {
-    gl_Position = ProjMat * ModelViewMat * vec4(Position + ChunkOffset, 1.0);
+    vec4 position = vec4(Position + ChunkOffset, 1.0);
+
+    int alpha255 = int(textureLod(Sampler0, UV0, -4).a * 255.0);
+    if (alpha255 == WAVINGS || alpha255 == WAVINGT) {
+        position.x += 0.05 * sin(sin(GameTime * 100 * PI) * 8.0 + mod(Position.x, 16.0) + Position.y);
+        position.z += 0.05 * sin(sin(GameTime * 60 * PI) * 6.0 + 978.0 + mod(Position.z, 16.0) + Position.y);
+    } 
+    gl_Position = ProjMat * ModelViewMat * position;
 
     vec4 col = Color;
-
-    if (Color.g > Color.b && Color.g + GREEN_FUZZ > Color.r) {
-        vec3 swamp = vec3(106.0 / 255.0, 112.0 / 255.0, 57.0 / 255.0); // special handling to darken swamp colors
-        col = vec4(normalize(Color.rgb) * 210.0 / 255.0 * (1.0 - 0.2 * smoothstep(0.995, 1.0, dot(normalize(col.rgb), normalize(swamp)))), 1.0);
-    } 
-    else if (Color.r == Color.g && Color.g == Color.b) {
+    float up = 255.0;
+    float down = 127.0;
+    if (getDim(Sampler2) == DIM_NETHER) {
+        up = 229.0;
+        down = 229.0;
+    }
+    if (dot(Normal, vec3(0.0, -1.0, 0.0)) > 0.999) {
+        col *= 255.0 / down;
+    }
+    else if (dot(Normal, vec3(0.0, 1.0, 0.0)) > 0.999) {
+        col *= 255.0 / up;
+    }
+    else if (abs(dot(Normal, vec3(1.0, 0.0, 0.0))) > 0.999) {
+        col *= 255.0 / 153.0;
+    }
+    else if (abs(dot(Normal, vec3(0.0, 0.0, 1.0))) > 0.999) {
+        col *= 255.0 / 204.0;
+    }
+    else if (col.r == col.g && col.g == col.b){
         col = vec4(1.0);
     }
+    col.rgb = min(col.rgb, 1.0);
+    col.a = 1.0;
     
     baseColor = col;
     vertexColor = minecraft_sample_lightmap(Sampler2, UV2);

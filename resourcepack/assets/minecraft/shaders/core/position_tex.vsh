@@ -1,4 +1,5 @@
 #version 330
+#define VSH
 
 in vec3 Position;
 in vec2 UV0;

@@ -49,7 +49,7 @@ vec4 backProject(vec4 vec) {
 
 #define zenithOffset -0.04
 #define multiScatterPhase 0.05
-#define atmDensity 0.5
+#define atmDensity 0.4
 
 #define anisotropicIntensity 0.0 //Higher numbers result in more anisotropic scattering
 

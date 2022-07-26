@@ -9,7 +9,10 @@
 #define LIGHT0_DIRECTION vec3(0.2, 1.0, -0.7) // Default light 0 direction everywhere except in inventory
 #define LIGHT1_DIRECTION vec3(-0.2, 1.0, 0.7) // Default light 1 direction everywhere except in nether and inventory
 
-#define SUBSSMIN 22
+#define ALPHACUTOFF 21.5 / 255.0
+#define WAVINGT 21
+#define WAVINGS 22
+#define SUBSSMIN 21
 #define SUBSSMAX 47
 #define EMISSMIN 48
 #define EMISSMAX 72
@@ -31,10 +34,10 @@
 
 #define EMISS_MULT 1.5
 
-#define DIM_OVER vec4(1.0, 1.0, 1.0, 1.0)
-#define DIM_END vec4(0.5, 0.5, 0.5, 1.0)
-#define DIM_NETHER vec4(0.0, 0.0, 0.0, 1.0)
-#define DIM_UNKNOWN vec4(0.0)
+#define DIM_UNKNOWN 0
+#define DIM_OVER 1
+#define DIM_END 2
+#define DIM_NETHER 3
 
 #define TINT_WATER vec3(0.0 / 255.0, 248.0 / 255.0, 255.0 / 255.0)
 #define FOG_WATER vec3(0.0 / 255.0, 37.0 / 255.0, 38.0 / 255.0)
@@ -110,6 +113,7 @@ int inControl(vec2 screenCoord, float screenWidth) {
     return -1;
 }
 
+#ifdef FSH
 // discards the current pixel if it is control
 void discardControl(vec2 screenCoord, float screenWidth) {
     if (inControl(screenCoord, screenWidth) >= 0) {
@@ -122,6 +126,7 @@ void discardControlGLPos(vec2 screenCoord, vec4 glpos) {
     float screenWidth = round(screenCoord.x * 2.0 / (glpos.x / glpos.w + 1.0));
     discardControl(screenCoord, screenWidth);
 }
+#endif
 
 // get screen coordinates of a particular control index
 vec2 getControl(int index, vec2 screenSize) {
@@ -249,7 +254,7 @@ vec4 getOutColorT(vec4 color, vec4 light, vec2 lightmask, vec2 fragcoord, int fa
         outCol.rgb = color.rgb * mix(light.rgb / (1.0 + strength * (EMISS_MULT - 1.0)), vec3(1.0), strength);
     }
     else if (type == PBRTYPE_SUBSURFACE) { // subsurface
-        outCol.rgb = color.rgb * mix(light.rgb, vec3(length(light.rgb)), strength);
+        outCol.rgb = color.rgb * light.rgb;
     }
     else if (type == PBRTYPE_TRANSLUCENT || type == PBRTYPE_TEMISSIVE) { // translucent
         outCol.rgb = color.rgb;
@@ -315,6 +320,11 @@ bool notPickup2(mat4 mvm) {
            mvm[3][0] == 0.0 && mvm[3][1] == 0.0 && mvm[3][2] == 0.0 && mvm[3][3] == 1.0;
 }
 
+int getDim(sampler2D lightmap) {
+    vec4 lm = texelFetch(lightmap, ivec2(0), 0);
+    return int(lm.r == lm.g && lm.g == lm.b) + 2 * int(lm.g > lm.r) + 3 * int(lm.r > lm.g);
+}
+
 /*
  * Created by Onnowhere (https://github.com/onnowhere)
  * Utility functions for Minecraft core vertex shaders
@@ -346,19 +356,11 @@ bool isPanorama(mat4 ProjMat) {
 }
 
 /*
- * Returns if rendering in the nether given light directions
- * In the nether, the light directions are parallel but in opposite directions
- */
-bool isNether(vec3 light0, vec3 light1) {
-    return light0 == -light1;
-}
-
-/*
  * Returns camera to world space matrix given light directions
  * Creates matrix by comparing world space light directions to camera space light directions
  */
 mat3 getWorldMat(vec3 light0, vec3 light1) {
-    if (isNether(light0, light1)) {
+    if (light0 == -light1) {
         // Cannot determine matrix in the nether due to parallel light directions
         return mat3(1.0);
     }

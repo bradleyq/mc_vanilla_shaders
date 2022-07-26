@@ -108,7 +108,7 @@ vec3 JoinedBilateralGaussianBlur(vec2 uv1, vec2 uv2, vec2 duv, float sigX, float
         float fv = Gaussian( sigV, abs(sd - depth) );
         
         total += fg*fv;
-        ret += fg*fv * vec3(texture(DiffuseSampler, uv1 + vec2(offsetx, offsety / 2.0)).r, texture(DiffuseSampler, uv2 + vec2(offsetx, offsety / 2.0)).r, 0.0);
+        ret += fg*fv * vec3(texture(DiffuseSampler, uv1 + vec2(offsetx, offsety / 2.0)).rg, texture(DiffuseSampler, uv2 + vec2(offsetx, offsety / 2.0)).r);
     }
         
     return ret / total;

@@ -1,4 +1,5 @@
 #version 330
+#define FSH
 
 #moj_import <utils.glsl>
 
@@ -70,7 +71,7 @@ void main() {
             
             // store Dimension
             else if (index == 28) {
-                outColor = DIM_END;
+                outColor = vec4(vec3(float(DIM_END) / 255.0), 1.0);
             }
 
             // blackout control pixels for sunDir so sun can write to them (by default, all pixels are FogColor)

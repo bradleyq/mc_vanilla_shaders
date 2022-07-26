@@ -1,6 +1,7 @@
 #version 330
+#define VSH
 
-#moj_import <utils_vsh.glsl>
+#moj_import <utils.glsl>
 
 in vec3 Position;
 in vec4 Color;
