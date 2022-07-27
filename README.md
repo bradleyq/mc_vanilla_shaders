@@ -18,9 +18,13 @@ Known issues:
 - shadows are ... ok
 - Alpha-PBR specular, metalness
 - moon, stars, not reflected
-- Emissive clipping
-- No bloom
-- Particle / water rendering order wonkiness
+- emissive clipping
+- no bloom
+- YUV artifacts in thick fog
+- sky reflected incorrectly in end and nether
+- water fog not working in end and nether
+- some translucents visible over fog
+- poor fps near water
 
 ## Overview
 Basic shader that adds as much as possible from OptiFine shaders to the vanilla transparency shader available in "Fabulous" graphics setting. Due to limited material, light, time, and shadow information, most advanced features are not possible. A good number, however, are. I have ported them here. Most samples are from the BSL shader, however much of it is heavily modified to fit with the vanilla pipeline. Supports all FOV and render distances.
