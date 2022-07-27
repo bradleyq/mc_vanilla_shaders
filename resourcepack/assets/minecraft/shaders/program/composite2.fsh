@@ -21,8 +21,7 @@ in vec4 fogColor;
 in mat4 ProjInv;
 in float near;
 in float far;
-in float fogStart;
-in float fogEnd;
+in float fogLambda;
 in float underWater;
 in float raining;
 
@@ -69,13 +68,9 @@ float linearizeDepth(float depth) {
     return (2.0 * near * far) / (far + near - depth * (far - near));    
 }
 
-vec4 linear_fog_real(vec4 inColor, float vertexDistance, float fogStart, float fogEnd, vec4 fogColor) {
-    if (vertexDistance <= fogStart) {
-        return inColor;
-    }
-
-    float fogValue = vertexDistance < fogEnd ? smoothstep(fogStart, fogEnd, vertexDistance) : 1.0;
-    return mix(inColor, fogColor, fogValue);
+vec4 exponential_fog(vec4 inColor, vec4 fogColor, float depth, float lambda) {
+    float fogValue = exp(-lambda * depth);
+    return mix(fogColor, inColor, fogValue);
 }
 
 vec4 backProject(vec4 vec) {
@@ -83,15 +78,17 @@ vec4 backProject(vec4 vec) {
     return tmp / tmp.w;
 }
 
-void try_insert( vec4 color, float depth, vec4 fog, float fstart, float fend, uint op ) {
+float euclidianDistance(vec4 coord) {
+    return length(backProject(coord).xyz);
+}
+
+float cylindricalDistance(vec4 coord) {
+    return length(backProject(coord).xz);
+}
+
+void try_insert( vec4 color, float depth, uint op ) {
     if ( color.a == 0.0 ) {
         return;
-    }
-
-    if ((op & FOGFADE) > 0u) {
-        color = linear_fog_real(color, length(backProject(vec4(scaledCoord, depth, 1.0)).xyz), fstart, fend, vec4(fog.rgb, 0.0));
-    } else {
-        color = linear_fog_real(color, length(backProject(vec4(scaledCoord, depth, 1.0)).xyz), fstart, fend, fog);
     }
 
     color_layers[active_layers] = color;
@@ -205,8 +202,6 @@ void main() {
     fragpos = normalize(fragpos);
 
     vec4 calculatedFog = vec4(1.0);
-    float fstart = underWater > 0.5 ? fogStart : 0.01 * fogEnd;
-    float fend = 2.25 * fogEnd;
 
     vec3 color = getAtmosphericScattering(fragpos, sunDir, true) * pi;
     color = jodieReinhardTonemap(color);
@@ -223,35 +218,51 @@ void main() {
     }
 
     op_layers[0] = DEFAULT;
-    // crumbling, beacon_beam, leash, entity_translucent_emissive(warden glow)
+    // crumbling, beacon_beam, leash, entity_translucent_emissive(warden glow), chunk border lines
     depth_layers[0] = decodeDepth(texture( DiffuseDepthSampler, texCoord));
-    vec4 color0 = vec4( texture( DiffuseSampler, texCoord).rgb, 1.0 );
+    vec4 diffusecolor = vec4( texture( DiffuseSampler, texCoord).rgb, 1.0 );
+    float currdist = euclidianDistance(vec4(scaledCoord, depth_layers[0], 1.0));
+    bool sky = depth_layers[0] == 1.0;
 
-    if (depth_layers[0] < 1.0 || underWater > 0.5) {
-        color0 = linear_fog_real(color0, length(backProject(vec4(scaledCoord, depth_layers[0], 1.0)).xyz), fstart, fend, calculatedFog);
-    }
-    color_layers[0] = color0;
+    color_layers[0] = diffusecolor;
     active_layers = 1;
     vec4 reflection = texture(ReflectionSampler, texCoord);
 
-    try_insert( texture(CloudsSampler, texCoord), texture(CloudsDepthSampler, texCoord).r, calculatedFog, fend * 0.1, fend * 1.5, FOGFADE);
-    try_insert( texture(TranslucentSampler, texCoord), texture(TranslucentDepthSampler, texCoord).r, calculatedFog, fstart, fend, BLENDMULT | HASREFLECT); 
-    try_insert( texture(ParticlesWeatherSampler, texCoord), decodeDepth(texture(ParticlesWeatherDepthSampler, texCoord)), calculatedFog, fstart, fend, DEFAULT);
+    float clouddepth = texture(CloudsDepthSampler, texCoord).r;
+    vec4 cloudcolor = texture(CloudsSampler, texCoord);
+    try_insert( exponential_fog(cloudcolor, vec4(cloudcolor.rgb, 0.0), cylindricalDistance(vec4(scaledCoord, clouddepth, 1.0)), fogLambda * 2.0), clouddepth, FOGFADE);
 
+    // glass, water
+    try_insert( texture(TranslucentSampler, texCoord), texture(TranslucentDepthSampler, texCoord).r, BLENDMULT | HASREFLECT); 
+    // rain, snow, tripwire
+    try_insert( texture(ParticlesWeatherSampler, texCoord), decodeDepth(texture(ParticlesWeatherDepthSampler, texCoord)), DEFAULT);
     // translucent_moving_block, lines, item_entity_translucent_cull
-    try_insert( texture(ItemEntitySampler, texCoord), texture(ItemEntityDepthSampler, texCoord).r, calculatedFog, fstart, fend, DEFAULT);
-    vec3 texelAccum = color_layers[index_layers[0]].rgb;
+    try_insert( texture(ItemEntitySampler, texCoord), texture(ItemEntityDepthSampler, texCoord).r, DEFAULT);
+
+
+    vec4 texelAccum = vec4(color_layers[index_layers[0]].rgb, 1.0);
     for ( int ii = 1; ii < active_layers; ++ii ) {
-        uint flags = op_layers[index_layers[ii]];
+        int index = index_layers[ii];
+        uint flags = op_layers[index];
+        float dist = euclidianDistance(vec4(scaledCoord, depth_layers[index], 1.0));
+        if (!sky || underWater > 0.5) texelAccum = exponential_fog(texelAccum, calculatedFog, currdist - dist, fogLambda);
+        if ((flags & FOGFADE) == 0u) {
+            sky = false;
+            currdist = dist;
+        }
         if ((flags & BLENDMULT) > 0u) {
-            texelAccum = blendmult( texelAccum, color_layers[index_layers[ii]]);
+            texelAccum.rgb = blendmult( texelAccum.rgb, color_layers[index]);
         } else {
-            texelAccum = blend( texelAccum, color_layers[index_layers[ii]]);
+            texelAccum.rgb = blend( texelAccum.rgb, color_layers[index]);
         }
         if ((flags & HASREFLECT) > 0u) {
-            texelAccum = mix(texelAccum, linear_fog_real(reflection, length(backProject(vec4(scaledCoord, depth_layers[ii], 1.0)).xyz), fstart, fend, calculatedFog).rgb, reflection.a);
+            texelAccum.rgb = mix(texelAccum.rgb, reflection.rgb, reflection.a);
         }
     }
 
-    fragColor = vec4( texelAccum.rgb, 1.0 );
+    if (!sky || underWater > 0.5) {
+        texelAccum = exponential_fog(texelAccum, calculatedFog, currdist, fogLambda);
+    }
+
+    fragColor = texelAccum;
 }

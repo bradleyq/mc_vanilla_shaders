@@ -10,26 +10,31 @@ in vec2 UV0;
 in ivec2 UV2;
 in vec3 Normal;
 
+uniform sampler2D Sampler0;
 uniform sampler2D Sampler2;
 
 uniform mat4 ModelViewMat;
 uniform mat4 ProjMat;
 uniform vec3 ChunkOffset;
+uniform float GameTime;
 
 out vec4 vertexColor;
+out vec4 baseColor;
 out vec2 texCoord0;
 out vec2 texCoord2;
 out vec3 normal;
 out vec4 glpos;
 
 void main() {
-    gl_Position = ProjMat * ModelViewMat * vec4(Position + ChunkOffset, 1.0);
-    
-    // vec4 col = vec4(1.0);
+    vec4 position = vec4(Position + ChunkOffset, 1.0);
 
-    // if (!(Color.r == Color.g && Color.g == Color.b)) {
-    //     col = vec4(normalize(Color.rgb) * 210.0 / 255.0, 1.0);
-    // }
+    int alpha255 = int(textureLod(Sampler0, UV0, -4).a * 255.0);
+    if (alpha255 == WAVINGS || alpha255 == WAVINGT) {
+        position.x += 0.05 * sin(sin(GameTime * 100 * PI) * 8.0 + mod(Position.x, 16.0) + Position.y);
+        position.z += 0.05 * sin(sin(GameTime * 60 * PI) * 6.0 + 978.0 + mod(Position.z, 16.0) + Position.y);
+    } 
+    gl_Position = ProjMat * ModelViewMat * position;
+
     vec4 col = Color;
     float up = 255.0;
     float down = 127.0;
@@ -52,10 +57,10 @@ void main() {
     else if (col.r == col.g && col.g == col.b){
         col = vec4(1.0);
     }
-    col.rgb = min(col.rgb, 1.0);
-    col.a = 1.0;
+    col = min(col, 1.0);
     
-    vertexColor = minecraft_sample_lightmap(Sampler2, UV2) * col;
+    baseColor = col;
+    vertexColor = minecraft_sample_lightmap(Sampler2, UV2);
     texCoord0 = UV0;
     texCoord2 = UV2 / 255.0;
     texCoord2.x *= 1.0 - getSun(Sampler2);

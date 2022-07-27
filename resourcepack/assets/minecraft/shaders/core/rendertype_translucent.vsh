@@ -42,8 +42,8 @@ void main() {
         if (!(mod(Position.y + 0.001, 1.0) < 0.002)) {
             a1 = sin((Position.z * PI / 4.0 + animation * 700)) * 1.0 * (1.0 - smoothstep(0.0, 1.0, vertexDistance / far));
             a2 = cos((Position.z * PI / 8.0 + Position.x * PI / 4.0 + animation * 400) + PI / 13.0) * 1.2 * (1.0 - smoothstep(0.1, 1.0, vertexDistance / far));
-            a3 = sin((Position.z * PI / 8.0 - Position.x * PI / 2.0 - animation * 900) - PI / 7.0) * 0.75 * (1.0 - smoothstep(0.0, 0.3, vertexDistance / far));
-            a4 = cos((Position.z * PI * 7.0 + Position.x * PI / 2.0 - animation * 870) + PI / 5.0) * 0.75 * (1.0 - smoothstep(0.0, 0.9, vertexDistance / far));
+            a3 = sin(sin(animation * 216 + Position.z * PI / 8.0 - Position.x * PI / 4.0) * 6.0 - PI / 7.0) * 0.75 * (1.0 - smoothstep(0.0, 0.3, vertexDistance / far));
+            a4 = cos(sin(animation * 176 + Position.z * PI / 4.0 + Position.x * PI / 8.0) * 5.0 + PI / 5.0) * 0.75 * (1.0 - smoothstep(0.0, 0.9, vertexDistance / far));
         }
 
         //water color correction

@@ -21,6 +21,7 @@ out vec4 fragColor;
 
 #define TINT_WATER vec3(0.0 / 255.0, 248.0 / 255.0, 255.0 / 255.0)
 #define FOG_WATER vec3(0.0 / 255.0, 37.0 / 255.0, 38.0 / 255.0)
+#define FOG_WATER_END 80.0
 #define FOG_END vec3(21.0 / 255.0, 17.0 / 255.0, 21.0 / 255.0)
 #define FOG_LAVA vec3(153.0 / 255.0, 25.0 / 255.0, 0.0)
 #define FOG_LAVA_END 2.0
@@ -34,6 +35,9 @@ out vec4 fragColor;
 #define FOG_DARKNESS vec3(0.0)
 #define FOG_DARKNESS_START 11.25
 #define FOG_DARKNESS_END 15.0
+#define FOG_DEFAULT_END 128.0
+#define FOG_TARGET 0.2
+#define FOG_DIST_MULT 2.5
 
 #define FLAG_UNDERWATER 1<<0
 #define FLAG_RAINING    1<<1
@@ -101,8 +105,8 @@ Control Map:
 [23] ModelViewMat[2][1]
 [24] ModelViewMat[2][2]
 [25] FogColor
-[26] FogStart
-[27] FogEnd
+[26] FogStart -> Unused
+[27] FogEnd -> FogLambda
 [28] Dimension
 [29] MiscFlags bit0:underwater bit1:raining 
 [30]
@@ -152,17 +156,17 @@ void main() {
             outColor = temp;
         }
         else if (index == 26) {
-            outColor = vec4(encodeInt(-6), 0.0);
+            outColor = vec4(encodeInt(0), 0.0);
         }
         else if (index == 27) {
-            float range = 128.0;
+            float range = FOG_DEFAULT_END;
             float lava = 1.0 - smoothstep(0.0, 0.05, length(temp.rgb - FOG_LAVA));
             range = mix(range, FOG_LAVA_END, lava);
             float snow = 1.0 - smoothstep(0.0, 0.05, length(temp.rgb - FOG_SNOW));
             range = mix(range, FOG_SNOW_END, snow);
             float blind = 1.0 - smoothstep(0.0, 0.05, length(temp.rgb - FOG_DARKNESS));
             range = mix(range, FOG_DARKNESS_END, blind);
-            outColor = vec4(encodeInt(int(range)), 0.0);
+            outColor = vec4(encodeFloat(log(FOG_TARGET) / float(-range)), 0.0);
         }
         else if (index == 28) {
             outColor = vec4(0.0);
@@ -192,13 +196,15 @@ void main() {
             outColor = vec4(float(currflags) / 255.0, 0.0, 0.0, 1.0);
         }
         else if (index == 26) {
-            vec4 temp2 = texture(DiffuseSampler, start + float(26) * inc);
-            int fstart = decodeInt(temp2.rgb);
-            if (fstart == -8) {
-                outColor = vec4(encodeInt(int(-1.0 * float(decodeInt(texture(DiffuseSampler, start + float(27) * inc).rgb)))), 1.0);
-            } else {
-                outColor = temp2;
+            outColor = vec4(encodeInt(0), 1.0);
+        }
+        else if (index == 27) {
+            int fstart = decodeInt(texture(DiffuseSampler, start + float(26) * inc).rgb);
+            int fend = int(FOG_WATER_END);
+            if (fstart != -8) {
+                fend = int(float(decodeInt(texture(DiffuseSampler, start + float(27) * inc).rgb)) * FOG_DIST_MULT);
             }
+            outColor = vec4(encodeFloat(log(FOG_TARGET) / float(-fend)), 1.0);
         }
         else if (index <= 28) {
             outColor = texture(DiffuseSampler, start + float(index) * inc);

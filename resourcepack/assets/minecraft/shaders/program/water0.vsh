@@ -13,8 +13,7 @@ out vec3 sunDir;
 out float near;
 out float far;
 out vec4 fogColor;
-out float fogStart;
-out float fogEnd;
+out float fogLambda;
 out float underWater;
 out float raining;
 out float cosFOVsq;
@@ -95,8 +94,7 @@ void main(){
     ProjInv = inverse(Proj);
 
     fogColor = texture(DataSampler, start + 25.0 * inc);
-    fogStart = float(decodeInt(texture(DataSampler, start + 26.0 * inc).xyz));
-    fogEnd = float(decodeInt(texture(DataSampler, start + 27.0 * inc).xyz));
+    fogLambda = float(decodeFloat(texture(DataSampler, start + 27.0 * inc).xyz));
 
     int flags = int(texture(DataSampler, start + 29.0 * inc).r * 255.0);
     underWater = float((flags & FLAG_UNDERWATER) > 0);

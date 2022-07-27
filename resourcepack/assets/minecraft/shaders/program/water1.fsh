@@ -13,8 +13,8 @@ in float raining;
 
 out vec4 fragColor;
 
-#define WATER_COLOR_DEPTH 5.0
-#define WATER_COLOR_BASE 0.25
+#define WATER_COLOR_DEPTH 4.0
+#define WATER_COLOR_BASE 0.2
 
 float linearizeDepth(float depth) {
     return (2.0 * near * far) / (far + near - depth * (far - near));    

@@ -213,11 +213,11 @@ vec4 decodeYUV(sampler2D tex, vec4 inCol, vec2 coord) {
     vec2 pixCoord = coord * OutSize;
     vec4 outCol = vec4(1.0);
     // vec2 dir = vec2(pixCoord.x <= 0.5 ? 1.0 : -1.0, pixCoord.y <= 0.5 ? 1.0 : 0.0);
-    float sec1 = texture(tex, coord + vec2(1.0, 0.0) * oneTexel).y;
-    float sec2 = texture(tex, coord + vec2(-1.0, 0.0) * oneTexel).y;
-    float sec = sec1;
-    if (abs(sec2 - 0.5) < abs(sec1 - 0.5)) {
-        sec = sec2;
+    vec2 sec1 = texture(tex, coord + vec2(1.0, 0.0) * oneTexel).xy;
+    vec2 sec2 = texture(tex, coord + vec2(-1.0, 0.0) * oneTexel).xy;
+    float sec = sec1.y;
+    if (abs(inCol.x - sec2.x) < abs(inCol.x - sec1.x)) {
+        sec = sec2.y;
     }
 
     vec3 yuv = vec3(0.0);

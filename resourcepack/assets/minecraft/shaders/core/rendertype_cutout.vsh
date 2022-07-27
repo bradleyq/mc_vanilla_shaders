@@ -25,8 +25,6 @@ out vec2 texCoord2;
 out vec3 normal;
 out vec4 glpos;
 
-#define GREEN_FUZZ 0.04
-
 void main() {
     vec4 position = vec4(Position + ChunkOffset, 1.0);
 
@@ -59,8 +57,7 @@ void main() {
     else if (col.r == col.g && col.g == col.b){
         col = vec4(1.0);
     }
-    col.rgb = min(col.rgb, 1.0);
-    col.a = 1.0;
+    col = min(col, 1.0);
 
     baseColor = col;
     vertexColor = minecraft_sample_lightmap(Sampler2, UV2);

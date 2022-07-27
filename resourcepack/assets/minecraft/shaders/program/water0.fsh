@@ -11,8 +11,7 @@ in vec3 sunDir;
 in float near;
 in float far;
 in vec4 fogColor;
-in float fogStart;
-in float fogEnd;
+in float fogLambda;
 in float underWater;
 in float raining;
 in float cosFOVsq;
@@ -22,13 +21,9 @@ in mat4 ProjInv;
 
 out vec4 fragColor;
 
-vec4 linear_fog_real(vec4 inColor, float vertexDistance, float fogStart, float fogEnd, vec4 fogColor) {
-    if (vertexDistance <= fogStart) {
-        return inColor;
-    }
-
-    float fogValue = vertexDistance < fogEnd ? smoothstep(fogStart, fogEnd, vertexDistance) : 1.0;
-    return mix(inColor, fogColor, fogValue);
+vec4 exponential_fog(vec4 inColor, vec4 fogColor, float depth, float lambda) {
+    float fogValue = exp(-lambda * depth);
+    return mix(fogColor, inColor, fogValue);
 }
 
 vec4 backProject(vec4 vec) {
@@ -122,7 +117,7 @@ vec3 jodieReinhardTonemap(vec3 c){
 #define NORMRAD 5
 
 #define SSR_TAPS 2
-#define SSR_SAMPLES 45
+#define SSR_SAMPLES 40
 #define SSR_MAXREFINESAMPLES 5
 #define SSR_STEPSIZE 0.7
 #define SSR_STEPREFINE 0.2
@@ -213,9 +208,8 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec4 approxr
             }
         }
         colortmp /= count;
-        float fstart = underWater > 0.5 ? fogStart : 0.01 * fogEnd;
         candidate = vec4(colortmp, 1.0);
-        candidate = linear_fog_real(candidate, length(backProject(vec4(pos.xy, dtmp_nolin, 1.0)).xyz - fragpos), fstart, 2.25 * fogEnd, vec4(fogcol, 1.0));
+        candidate = exponential_fog(candidate, vec4(fogcol, 1.0), length(backProject(vec4(pos.xy, dtmp_nolin, 1.0)).xyz - fragpos), fogLambda);
     }
     
     candidate = mix(candidate, vec4(skycol, 1.0), clamp(pow(max(abs(pos.x), abs(pos.y)), 8.0), 0.0, 1.0));
@@ -375,18 +369,9 @@ void main() {
         reflection = r / SSR_TAPS;
         
         float fresnel = clamp(exp((underWater * 15 - 25) * pow(dot(normalize(fragpos), normal), 2.0)) * (0.8 + 7.2 * underWater), 0.0, 1.0);
-        float lum = luminance(reflection.rgb) * (1.5 + 7.0 * underWater);
-        outColor = vec4(reflection.rgb, min(min(fresnel * lum, 1.0), reflection.a));
+        float lumdiff = pow(max(luminance(reflection.rgb) * (1.5 + 7.0 * underWater) - luminance(color.rgb), 0.0), 0.25);
+        outColor = vec4(reflection.rgb, min(min(fresnel * lumdiff, 1.0), reflection.a));
     }
 
-    // fragColor = color;
     fragColor = vec4(outColor.rgb, outColor.a);
-    // if (int(color.a * 255.0) % 2 == 0) {
-    //     fragColor.r = 1.0;
-    //     fragColor.a = 1.0;
-    // }
-    // if (abs(Proj[3][0] + 0.000000) < 0.000001) {
-    //     fragColor.r = 1.0;
-    //     fragColor.a = 1.0;
-    // }
 }
