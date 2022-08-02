@@ -29,7 +29,7 @@ out vec4 fragColor;
 #define EMISS_MULT 1.5
 
 #define TINT_WATER vec3(0.0 / 255.0, 248.0 / 255.0, 255.0 / 255.0)
-#define WATER_COLOR_DEPTH 5.0
+#define TINT_WATER_DISTANCE 48.0
 
 #define FLAG_UNDERWATER 1<<0
 #define FLAG_RAINING    1<<1
@@ -429,7 +429,7 @@ void main() {
             outColor.rgb = mix(outColor.rgb * mix(lightColor, vec3(1.0), applyLight), lightColor, 0.0);//clamp(0.25 * (luma(lightColor) * (1.0 - applyLight) - 1.0), 0.0, 1.0));
 
             if (underWater > 0.5) {
-                outColor.rgb = mix(outColor.rgb, outColor.rgb * TINT_WATER, smoothstep(0, WATER_COLOR_DEPTH * 6.0, length(fragpos)));
+                outColor.rgb = mix(outColor.rgb, outColor.rgb * TINT_WATER, smoothstep(0, TINT_WATER_DISTANCE, length(fragpos)));
             }
 
             // desaturate bright pixels for more realistic feel
