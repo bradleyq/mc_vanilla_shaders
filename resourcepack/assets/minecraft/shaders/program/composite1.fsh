@@ -31,10 +31,7 @@ float decodeDepth(vec4 depth) {
 
 void main() {
     vec4 c0 = texture(DiffuseSampler, texCoord);
-    if (c0.r < 0.0) {
-        fragColor.r = c0.r;
-    }
-    float d0 = texture(DiffuseDepthSampler, texCoord).r;
+    float d0 = c0.a > 0.0 ? texture(DiffuseDepthSampler, texCoord).r : 1.0;
     float d1 = texture(WeatherDepthSampler, texCoord).r;
 
     if (d1 < d0) {

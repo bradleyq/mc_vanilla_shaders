@@ -99,15 +99,25 @@ float decodeDepth(vec4 depth) {
 
 
 // tweak lighting color here
-#define NOON vec3(1.2, 1.15, 1.1)
-#define NOONA vec3(0.5, 0.55, 0.75)
-#define NOONM vec3(0.45, 0.5, 0.7)
-#define EVENING vec3(1.35, 1.0, 0.5)
-#define EVENINGA vec3(0.45, 0.5, 0.7)
-#define EVENINGM vec3(0.35, 0.4, 0.65)
-#define NIGHT vec3(0.7, 0.7, 0.7)
-#define NIGHTA vec3(0.75, 0.8, 0.9)
-#define NIGHTM vec3(1.1, 1.3, 1.4)
+#define NOON_CLEAR vec3(1.2, 1.15, 1.1)
+#define NOONA_CLEAR vec3(0.5, 0.55, 0.75)
+#define NOONM_CLEAR vec3(0.45, 0.5, 0.7)
+#define EVENING_CLEAR vec3(1.35, 1.0, 0.5)
+#define EVENINGA_CLEAR vec3(0.45, 0.5, 0.7)
+#define EVENINGM_CLEAR vec3(0.35, 0.4, 0.65)
+#define NIGHT_CLEAR vec3(0.7, 0.7, 0.7)
+#define NIGHTA_CLEAR vec3(0.75, 0.8, 0.9)
+#define NIGHTM_CLEAR vec3(1.1, 1.3, 1.4)
+
+#define NOON_OVERCAST vec3(1.0, 1.05, 1.1)
+#define NOONA_OVERCAST vec3(0.8, 0.82, 0.85)
+#define NOONM_OVERCAST vec3(0.75, 0.75, 0.75)
+#define EVENING_OVERCAST vec3(1.0, 0.95, 0.9)
+#define EVENINGA_OVERCAST vec3(0.7, 0.72, 0.75)
+#define EVENINGM_OVERCAST vec3(0.6, 0.6, 0.6)
+#define NIGHT_OVERCAST vec3(0.7, 0.7, 0.7)
+#define NIGHTA_OVERCAST vec3(0.8, 0.8, 0.8)
+#define NIGHTM_OVERCAST vec3(1.0, 1.0, 1.0)
 #define SNAPRANGE 100.0
 
 float linearizeDepth(float depth) {
@@ -135,12 +145,15 @@ vec4 backProject(vec4 vec) {
 #define invPi 1.0 / pi
 
 #define zenithOffset -0.04
-#define multiScatterPhase 0.05
+#define multiScatterPhaseClear 0.05
+#define multiScatterPhaseOvercast 0.1
 #define atmDensity 0.4
 
-#define anisotropicIntensity 0.0 //Higher numbers result in more anisotropic scattering
+#define anisotropicIntensityClear 0.0 //Higher numbers result in more anisotropic scattering
+#define anisotropicIntensityOvercast 0.2 //Higher numbers result in more anisotropic scattering
 
-#define skyColor vec3(0.3, 0.53, 1.0) * (1.0 + anisotropicIntensity) //Make sure one of the conponents is never 0.0
+#define skyColorClear vec3(0.3, 0.53, 1.0) * (1.0 + anisotropicIntensityClear) //Make sure one of the conponents is never 0.0
+#define skyColorOvercast vec3(0.8, 0.9, 1.0) * (1.0 + anisotropicIntensityOvercast) //Make sure one of the conponents is never 0.0
 
 #define smooth(x) x*x*(3.0-2.0*x)
 
@@ -174,18 +187,19 @@ float getMie(vec3 p, vec3 lp){
 	return disk*disk*(3.0 - 2.0 * disk) * 2.0 * pi;
 }
 
-vec3 getAtmosphericScattering(vec3 p, vec3 lp, bool fog){
+vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog){
 	float zenith = zenithDensity(p.y);
     float ly = lp.y < 0.0 ? lp.y * 0.3 : lp.y;
+    float multiScatterPhase = mix(multiScatterPhaseClear, multiScatterPhaseOvercast, rain);
 	float sunPointDistMult =  clamp(length(max(ly + multiScatterPhase - zenithOffset, 0.0)), 0.0, 1.0);
 	
 	float rayleighMult = getRayleigMultiplier(p, lp);
-	
-	vec3 absorption = getSkyAbsorption(skyColor, zenith, lp.y);
-    vec3 sunAbsorption = getSkyAbsorption(skyColor, zenithDensity(ly + multiScatterPhase), lp.y);
-	vec3 sky = skyColor * zenith * rayleighMult;
+	vec3 sky = mix(skyColorClear, skyColorOvercast, rain);
+	vec3 absorption = getSkyAbsorption(sky, zenith, lp.y);
+    vec3 sunAbsorption = getSkyAbsorption(sky, zenithDensity(ly + multiScatterPhase), lp.y);
 	vec3 mie = getMie(p, lp) * sunAbsorption;
-	if (!fog) mie += getSunPoint(p, lp) * absorption;
+	sky = sky * zenith * rayleighMult;
+	if (!fog) mie += getSunPoint(p, lp) * absorption * clamp(1.01 - rain, 0.0, 1.0);
 	
 	vec3 totalSky = mix(sky * absorption, sky / (sky * 0.5 + 0.5), sunPointDistMult);
          totalSky += mie;
@@ -412,14 +426,23 @@ void main() {
             vec3 direct;
             vec3 ambient;
             vec3 backside;
+            vec3 evening = mix(EVENING_CLEAR, EVENING_OVERCAST, rain);
+            vec3 evening_a = mix(EVENINGA_CLEAR, EVENINGA_OVERCAST, rain);
+            vec3 evening_m = mix(EVENINGM_CLEAR, EVENINGM_OVERCAST, rain);
             if (sdu > 0.0) {
-                direct = mix(EVENING, NOON, sdu);
-                ambient = mix(EVENINGA, NOONA, sdu);
-                backside = mix(EVENINGM, NOONM, sdu);
+                vec3 noon = mix(NOON_CLEAR, NOON_OVERCAST, rain);
+                vec3 noon_a = mix(NOONA_CLEAR, NOONA_OVERCAST, rain);
+                vec3 noon_m = mix(NOONM_CLEAR, NOONM_OVERCAST, rain);
+                direct = mix(evening, noon, sdu);
+                ambient = mix(evening_a, noon_a, sdu);
+                backside = mix(evening_m, noon_m, sdu);
             } else {
-                direct = mix(EVENING, NIGHT, pow(-sdu * 2.0, 0.5));
-                ambient = mix(EVENINGA, NIGHTA, pow(-sdu, 0.5));
-                backside = mix(EVENINGM, NIGHTM, pow(-sdu, 0.5));
+                vec3 night = mix(NIGHT_CLEAR, NIGHT_OVERCAST, rain);
+                vec3 night_a = mix(NIGHTA_CLEAR, NIGHTA_OVERCAST, rain);
+                vec3 night_m = mix(NIGHTM_CLEAR, NIGHTM_OVERCAST, rain);
+                direct = mix(evening, night, pow(-sdu * 2.0, 0.5));
+                ambient = mix(evening_a, night_a, pow(-sdu, 0.5));
+                backside = mix(evening_m, night_m, pow(-sdu, 0.5));
             }
 
             // apply ambient occlusion.
@@ -495,7 +518,7 @@ void main() {
 
             vec2 scaledCoord = 2.0 * (texCoord - vec2(0.5));
             vec3 fragpos = normalize(backProject(vec4(scaledCoord, depth, 1.0)).xyz);
-            vec3 color = getAtmosphericScattering(fragpos, sunDir, false) * pi;
+            vec3 color = getAtmosphericScattering(fragpos, sunDir, rain, false) * pi;
             color = jodieReinhardTonemap(color);
             color = pow(color, vec3(2.2)); //Back to linear
             color += vec3(PRNG(int(gl_FragCoord.x) + int(gl_FragCoord.y) * int(OutSize.x))) / 255.0;

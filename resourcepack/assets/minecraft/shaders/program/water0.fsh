@@ -43,12 +43,15 @@ vec4 backProject(vec4 vec) {
 #define invPi 1.0 / pi
 
 #define zenithOffset -0.04
-#define multiScatterPhase 0.05
+#define multiScatterPhaseClear 0.05
+#define multiScatterPhaseOvercast 0.1
 #define atmDensity 0.4
 
-#define anisotropicIntensity 0.0 //Higher numbers result in more anisotropic scattering
+#define anisotropicIntensityClear 0.0 //Higher numbers result in more anisotropic scattering
+#define anisotropicIntensityOvercast 0.2 //Higher numbers result in more anisotropic scattering
 
-#define skyColor vec3(0.3, 0.53, 1.0) * (1.0 + anisotropicIntensity) //Make sure one of the conponents is never 0.0
+#define skyColorClear vec3(0.3, 0.53, 1.0) * (1.0 + anisotropicIntensityClear) //Make sure one of the conponents is never 0.0
+#define skyColorOvercast vec3(0.8, 0.9, 1.0) * (1.0 + anisotropicIntensityOvercast) //Make sure one of the conponents is never 0.0
 
 #define smooth(x) x*x*(3.0-2.0*x)
 
@@ -81,18 +84,19 @@ float getMie(vec3 p, vec3 lp){
 	return disk*disk*(3.0 - 2.0 * disk) * 2.0 * pi;
 }
 
-vec3 getAtmosphericScattering(vec3 p, vec3 lp, bool fog){
+vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog){
 	float zenith = zenithDensity(p.y);
     float ly = lp.y < 0.0 ? lp.y * 0.3 : lp.y;
+    float multiScatterPhase = mix(multiScatterPhaseClear, multiScatterPhaseOvercast, rain);
 	float sunPointDistMult =  clamp(length(max(ly + multiScatterPhase - zenithOffset, 0.0)), 0.0, 1.0);
 	
 	float rayleighMult = getRayleigMultiplier(p, lp);
-	
-	vec3 absorption = getSkyAbsorption(skyColor, zenith, lp.y);
-    vec3 sunAbsorption = getSkyAbsorption(skyColor, zenithDensity(ly + multiScatterPhase), lp.y);
-	vec3 sky = skyColor * zenith * rayleighMult;
+	vec3 sky = mix(skyColorClear, skyColorOvercast, rain);
+	vec3 absorption = getSkyAbsorption(sky, zenith, lp.y);
+    vec3 sunAbsorption = getSkyAbsorption(sky, zenithDensity(ly + multiScatterPhase), lp.y);
 	vec3 mie = getMie(p, lp) * sunAbsorption;
-	if (!fog) mie += getSunPoint(p, lp) * absorption;
+	sky = sky * zenith * rayleighMult;
+	if (!fog) mie += getSunPoint(p, lp) * absorption * clamp(1.01 - rain, 0.0, 1.0);
 	
 	vec3 totalSky = mix(sky * absorption, sky / (sky * 0.5 + 0.5), sunPointDistMult);
          totalSky += mie;
@@ -179,7 +183,7 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec4 approxr
 
     vec3 skycol = fogColor.rgb;
     if (underWater < 0.5) {
-        skycol = getAtmosphericScattering(rayDir, sunDir, false) * pi;
+        skycol = getAtmosphericScattering(rayDir, sunDir, rain, false) * pi;
         skycol = jodieReinhardTonemap(skycol);
         skycol = pow(skycol, vec3(2.2)); //Back to linear
     }
@@ -191,7 +195,7 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec4 approxr
         rayDir = normalize(rayDir);
         vec3 fogcol = fogColor.rgb;
         if (underWater < 0.5) {
-            fogcol = getAtmosphericScattering(rayDir, sunDir, true) * pi;
+            fogcol = getAtmosphericScattering(rayDir, sunDir, rain, true) * pi;
             fogcol = jodieReinhardTonemap(fogcol);
             fogcol = pow(fogcol, vec3(2.2)); //Back to linear
         }
