@@ -20,8 +20,7 @@ Known issues:
 - moon, stars, not reflected
 - emissive clipping
 - no bloom
-- YUV artifacts in thick fog
-- sky reflected incorrectly in end and nether
+- sky reflected incorrectly in end, nether, and blinded
 - water fog not working in end and nether
 - some translucents visible over fog
 - poor fps near water
