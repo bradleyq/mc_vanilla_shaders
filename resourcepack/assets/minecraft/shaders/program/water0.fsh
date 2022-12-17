@@ -13,7 +13,7 @@ in float far;
 in vec4 fogColor;
 in float fogLambda;
 in float underWater;
-in float raining;
+in float rain;
 in float cosFOVsq;
 in float aspectRatio;
 in mat4 Proj;

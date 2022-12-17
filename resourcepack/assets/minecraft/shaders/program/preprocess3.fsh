@@ -12,7 +12,7 @@ in vec2 oneTexel;
 out vec4 fragColor;
 
 // moj_import doesn't work in post-process shaders ;_; Felix pls fix
-#define NUMCONTROLS 30
+#define NUMCONTROLS 31
 #define FPRECISION 4000000.0
 #define PROJNEAR 0.05
 #define PROJFAR 1024.0
@@ -88,8 +88,8 @@ vec2 encodeYUV(vec2 coord, vec3 color) {
     return outCol;
 }
 
-vec4 sampleTexture(sampler2D sampler, vec2 texCoord, float depth) {
-    vec4 outColor = texture(DiffuseSampler, texCoord);
+vec4 sampleTexture(sampler2D SourceSampler, vec2 texCoord, float depth) {
+    vec4 outColor = texture(SourceSampler, texCoord);
     if (depth >= PROJFAR - FUDGE && outColor.a == 0.0) {
         outColor.rg = encodeYUV(texCoord * InSize, outColor.rgb);
         outColor.ba = vec2(1.0);

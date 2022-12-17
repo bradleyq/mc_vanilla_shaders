@@ -42,6 +42,10 @@ void main() {
                 vec3 p3 = c3 / cscale.z;
                 vec4 sunDir = ModelViewMat * vec4(normalize(p1 + p3 + OFFSET * normalize(p2 - p1)), 0.0);
                 color = vec4(encodeFloat(sunDir[index]), 1.0);
+            }
+            // store sun alpha (RainStrength)
+            else if (index == 29) {
+                color = vec4(1.0 - color.a, 0.0, 0.0, 1.0);
             } 
             else {
                 discard;
@@ -77,7 +81,7 @@ void main() {
         }
     }
     
-    if (color.a == 0.0) {
+    if (color.a < 1.0 / 255.0) {
         discard;
     }
     fragColor = color;

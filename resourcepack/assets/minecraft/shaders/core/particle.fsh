@@ -18,11 +18,13 @@ out vec4 fragColor;
 
 void main() {
     vec4 color = texture(Sampler0, texCoord0) * baseColor * vertexColor * ColorModulator;
+
     if (color.a < ALPHACUTOFF) {
         discard;
     }
     if (isBlock > 0.0001) {
         color.a = BLOCK_ALPHA;
     }
+    
     fragColor = color;
 }

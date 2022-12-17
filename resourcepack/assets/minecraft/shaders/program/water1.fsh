@@ -9,7 +9,7 @@ in vec2 oneTexel;
 in float near;
 in float far;
 in float underWater;
-in float raining;
+in float rain;
 
 out vec4 fragColor;
 

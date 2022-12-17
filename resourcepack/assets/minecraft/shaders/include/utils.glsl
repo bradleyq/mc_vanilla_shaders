@@ -1,6 +1,6 @@
 #version 330
 
-#define NUMCONTROLS 30
+#define NUMCONTROLS 31
 #define THRESH 0.5
 #define FPRECISION 4000000.0
 #define PROJNEAR 0.05
@@ -55,6 +55,8 @@
 #define FOG_DARKNESS_START 11.25
 #define FOG_DARKNESS_END 15.0
 
+#define FLAG_UNDERWATER 1<<0
+
 /*
 Control Map:
 
@@ -87,7 +89,8 @@ Control Map:
 [26] FogStart
 [27] FogEnd
 [28] Dimension
-[29] MiscFlags bit0:underwater bit1:raining 
+[29] RainStrength
+[30] MiscFlags bit0:underwater
 */
 
 /*

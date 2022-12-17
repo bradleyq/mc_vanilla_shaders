@@ -12,14 +12,13 @@ out vec2 oneTexel;
 out float near;
 out float far;
 out float underWater;
-out float raining;
+out float rain;
 
 // moj_import doesn't work in post-process shaders ;_; Felix pls fix
 #define FPRECISION 4000000.0
 #define PROJNEAR 0.05
 
 #define FLAG_UNDERWATER 1<<0
-#define FLAG_RAINING    1<<1
 
 vec2 getControl(int index, vec2 screenSize) {
     return vec2(float(index) + 0.5, 0.5) / screenSize;
@@ -71,8 +70,8 @@ void main(){
     near = PROJNEAR;
     far = ProjMat[3][2] * PROJNEAR / (ProjMat[3][2] + 2.0 * PROJNEAR);
     
+    rain = texture(DataSampler, start + 29.0 * inc).r;
 
-    int flags = int(texture(DataSampler, start + 29.0 * inc).r * 255.0);
+    int flags = int(texture(DataSampler, start + 30.0 * inc).r * 255.0);
     underWater = float((flags & FLAG_UNDERWATER) > 0);
-    raining = float((flags & FLAG_RAINING) > 0);
 }

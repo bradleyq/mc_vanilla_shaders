@@ -23,7 +23,7 @@ in float near;
 in float far;
 in float fogLambda;
 in float underWater;
-in float raining;
+in float rain;
 
 #define NUM_LAYERS 5
 
@@ -87,7 +87,7 @@ float cylindricalDistance(vec4 coord) {
 }
 
 void try_insert( vec4 color, float depth, uint op ) {
-    if ( color.a == 0.0 ) {
+    if (color.a == 0.0) {
         return;
     }
 
@@ -97,7 +97,7 @@ void try_insert( vec4 color, float depth, uint op ) {
 
     int jj = active_layers++;
     int ii = jj - 1;
-    while ( jj > 0 && depth > depth_layers[index_layers[ii]] ) {
+    while (jj > 0 && depth > depth_layers[index_layers[ii]]) {
         int indexTemp = index_layers[ii];
         index_layers[ii] = index_layers[jj];
         index_layers[jj] = indexTemp;
@@ -106,14 +106,14 @@ void try_insert( vec4 color, float depth, uint op ) {
     }
 }
 
-vec3 blend( vec3 dst, vec4 src ) {
+vec3 blend(vec3 dst, vec4 src) {
     return mix(dst.rgb, src.rgb, src.a);
     // return ( dst * ( 1.0 - src.a ) ) + src.rgb;
 }
 
 #define BLENDMULT_FACTOR 0.5
 
-vec3 blendmult( vec3 dst, vec4 src) {
+vec3 blendmult(vec3 dst, vec4 src) {
     return BLENDMULT_FACTOR * dst * mix(vec3(1.0), src.rgb, src.a) + (1.0 - BLENDMULT_FACTOR) * mix(dst.rgb, src.rgb, src.a);
 }
 

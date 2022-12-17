@@ -11,11 +11,13 @@ uniform float Time;
 in vec2 texCoord;
 in vec2 oneTexel;
 in vec3 sunDir;
+in vec4 fogColor;
 in mat4 Proj;
 in mat4 ProjInv;
 in float near;
 in float far;
-in float raining;
+in float dim;
+in float rain;
 in float underWater;
 
 out vec4 fragColor;
@@ -32,7 +34,6 @@ out vec4 fragColor;
 #define TINT_WATER_DISTANCE 48.0
 
 #define FLAG_UNDERWATER 1<<0
-#define FLAG_RAINING    1<<1
 
 #define PBRTYPE_STANDARD 0
 #define PBRTYPE_EMISSIVE 1
@@ -45,6 +46,10 @@ out vec4 fragColor;
 #define FACETYPE_Z 2
 #define FACETYPE_S 3
 
+#define DIM_UNKNOWN 0
+#define DIM_OVER 1
+#define DIM_END 2
+#define DIM_NETHER 3
 
 vec3 encodeInt(int i) {
     int s = int(i < 0) * 128;
@@ -209,19 +214,22 @@ float PRNG(int seed) {
     return abs(fract(float(seed) / 3141.592653));
 }
 
-vec4 decodeYUV(sampler2D tex, vec4 inCol, vec2 coord) {
-    vec2 pixCoord = coord * OutSize;
-    vec4 outCol = vec4(1.0);
-    // vec2 dir = vec2(pixCoord.x <= 0.5 ? 1.0 : -1.0, pixCoord.y <= 0.5 ? 1.0 : 0.0);
-    vec2 sec1 = texture(tex, coord + vec2(1.0, 0.0) * oneTexel).xy;
-    vec2 sec2 = texture(tex, coord + vec2(-1.0, 0.0) * oneTexel).xy;
-    float sec = sec1.y;
-    if (abs(inCol.x - sec2.x) < abs(inCol.x - sec1.x)) {
-        sec = sec2.y;
+vec2 encodeYUV(vec2 coord, vec3 color) {
+    vec2 outCol = vec2(0.0);
+    outCol.x = color.r * 0.299 + color.g * 0.587 + color.b * 0.114;
+    if (int(coord.x) % 2 == 0) {
+        outCol.y = color.r * -0.169 + color.g * -0.331 + color.b * 0.5 + 0.5;
     }
+    else {
+        outCol.y = color.r * 0.5 + color.g * -0.419 + color.b * -0.081 + 0.5;
+    }
+    return outCol;
+}
 
+vec4 decodeYUV(vec4 inCol, float sec) {
+    vec4 outCol = vec4(1.0);
     vec3 yuv = vec3(0.0);
-    if (int(pixCoord.x) % 2 == 0) {
+    if (int(gl_FragCoord.x) % 2 == 0) {
         yuv = vec3(inCol.xy, sec);
     }
     else {
@@ -318,7 +326,21 @@ void main() {
     float depth = decodeDepth(texture(DiffuseDepthSampler, texCoord));
     vec2 data = outColor.ba;
     bool isSky = linearizeDepth(depth) >= far - FUDGE;
-    outColor = decodeYUV(DiffuseSampler, outColor, texCoord);
+    float sec;
+
+    if (isSky && fogColor.a == 0.0) {
+        sec = encodeYUV(gl_FragCoord.xy + vec2(1.0, 0.0), fogColor.rgb).y;
+    }
+    else {
+        vec2 sec1 = texture(DiffuseSampler, texCoord + vec2(1.0, 0.0) * oneTexel).xy;
+        vec2 sec2 = texture(DiffuseSampler, texCoord + vec2(-1.0, 0.0) * oneTexel).xy;
+        
+        sec = sec1.y;
+        if (abs(outColor.x - sec2.x) < abs(outColor.x - sec1.x)) {
+            sec = sec2.y;
+        }
+    }
+    outColor = decodeYUV(outColor, sec);
 
     // sunDir exists
     if (length(sunDir) > 0.99) {
@@ -465,6 +487,7 @@ void main() {
             //     outColor.g = yuva.x * 1.0 + yuva.y * -0.343 + yuva.z * -0.711;
             //     outColor.b = yuva.x * 1.0 + yuva.y * 1.765 + yuva.z * 0.0;
             // }
+            // outColor.b += rain;
         } 
         // if sky do atmosphere
         else {

@@ -21,7 +21,7 @@ void main() {
     discardControlGLPos(gl_FragCoord.xy, glpos);
     vec4 outColor = texture(Sampler0, texCoord0);
 
-    if (outColor.a < 0.1) {
+    if (outColor.a < ALPHACUTOFF) {
         discard;
     }
     

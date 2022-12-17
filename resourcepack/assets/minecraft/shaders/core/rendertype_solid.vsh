@@ -30,8 +30,8 @@ void main() {
 
     int alpha255 = int(textureLod(Sampler0, UV0, -4).a * 255.0);
     if (alpha255 == WAVINGS || alpha255 == WAVINGT) {
-        position.x += 0.05 * sin(sin(GameTime * 100 * PI) * 8.0 + mod(Position.x, 16.0) + Position.y);
-        position.z += 0.05 * sin(sin(GameTime * 60 * PI) * 6.0 + 978.0 + mod(Position.z, 16.0) + Position.y);
+        position.x += 0.05 * sin(sin(GameTime * 100 * PI) * 8.0 + (Position.x + Position.y) / 4.0 * PI);
+        position.z += 0.05 * sin(sin(GameTime * 60 * PI) * 6.0 + 978.0 + (Position.z + Position.y) / 4.0 * PI);
     } 
     gl_Position = ProjMat * ModelViewMat * position;
 

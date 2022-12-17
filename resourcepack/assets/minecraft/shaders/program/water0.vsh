@@ -15,7 +15,7 @@ out float far;
 out vec4 fogColor;
 out float fogLambda;
 out float underWater;
-out float raining;
+out float rain;
 out float cosFOVsq;
 out float aspectRatio;
 out mat4 Proj;
@@ -26,7 +26,6 @@ out mat4 ProjInv;
 #define PROJNEAR 0.05
 
 #define FLAG_UNDERWATER 1<<0
-#define FLAG_RAINING    1<<1
 
 vec2 getControl(int index, vec2 screenSize) {
     return vec2(float(index) + 0.5, 0.5) / screenSize;
@@ -96,7 +95,8 @@ void main(){
     fogColor = texture(DataSampler, start + 25.0 * inc);
     fogLambda = float(decodeFloat(texture(DataSampler, start + 27.0 * inc).xyz));
 
-    int flags = int(texture(DataSampler, start + 29.0 * inc).r * 255.0);
+    rain = texture(DataSampler, start + 29.0 * inc).r;
+
+    int flags = int(texture(DataSampler, start + 30.0 * inc).r * 255.0);
     underWater = float((flags & FLAG_UNDERWATER) > 0);
-    raining = float((flags & FLAG_RAINING) > 0);
 }

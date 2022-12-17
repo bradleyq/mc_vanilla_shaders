@@ -10,11 +10,13 @@ uniform sampler2D DataSampler;
 out vec2 texCoord;
 out vec2 oneTexel;
 out vec3 sunDir;
+out vec4 fogColor;
 out mat4 Proj;
 out mat4 ProjInv;
 out float near;
 out float far;
-out float raining;
+out float dim;
+out float rain;
 out float underWater;
 
 // moj_import doesn't work in post-process shaders ;_; Felix pls fix
@@ -22,7 +24,11 @@ out float underWater;
 #define PROJNEAR 0.05
 
 #define FLAG_UNDERWATER 1<<0
-#define FLAG_RAINING    1<<1
+
+#define DIM_UNKNOWN 0
+#define DIM_OVER 1
+#define DIM_END 2
+#define DIM_NETHER 3
 
 vec2 getControl(int index, vec2 screenSize) {
     return vec2(float(index) + 0.5, 0.5) / screenSize;
@@ -92,7 +98,18 @@ void main() {
     Proj = ProjMat * ModelViewMat;
     ProjInv = inverse(Proj);
 
-    int flags = int(texture(DataSampler, start + 29.0 * inc).r * 255.0);
+    fogColor = texture(DataSampler, start + 25.0 * inc);
+
+    vec4 dimvec = texture(DataSampler, start + 28.0 * inc);
+    if (dimvec.a >= 0.99) {
+        dim = dimvec.r * 255.0;
+    }
+    else {
+        dim = float(DIM_UNKNOWN);
+    }
+
+    rain = texture(DataSampler, start + 29.0 * inc).r;
+
+    int flags = int(texture(DataSampler, start + 30.0 * inc).r * 255.0);
     underWater = float((flags & FLAG_UNDERWATER) > 0);
-    raining = float((flags & FLAG_RAINING) > 0);
 }
