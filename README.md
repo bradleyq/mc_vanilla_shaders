@@ -20,7 +20,6 @@ Known issues:
 - emissive clipping
 - no bloom
 - sky reflected incorrectly in end, nether, and blinded
-- water fog not working in end and nether
 - some translucents visible over fog
 - poor fps near water
 
