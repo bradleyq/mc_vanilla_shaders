@@ -249,7 +249,8 @@ void main() {
         int index = index_layers[ii];
         uint flags = op_layers[index];
         float dist = euclidianDistance(vec4(scaledCoord, depth_layers[index], 1.0));
-        if (!sky || underWater > 0.5) texelAccum = exponential_fog(texelAccum, calculatedFog, currdist - dist, fogLambda);
+        // if (!sky || underWater > 0.5) texelAccum = exponential_fog(texelAccum, calculatedFog, currdist - dist, fogLambda); // sky will be shaded by water fog
+        if (!sky) texelAccum = exponential_fog(texelAccum, calculatedFog, currdist - dist, fogLambda);
         if ((flags & FOGFADE) == 0u) {
             sky = false;
             currdist = dist;

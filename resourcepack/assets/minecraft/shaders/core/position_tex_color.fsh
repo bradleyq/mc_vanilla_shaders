@@ -54,6 +54,11 @@ void main() {
                 outColor = vec4(encodeFloat(atan(ProjMat[index - 3][index - 3])), 1.0);
             } 
 
+            else if (index >= 0 && index <= 2) {
+                vec4 sunDir = modelMat * normalize(vec4(0.0, -1.0, 0.0, 0.0));
+                outColor = vec4(encodeFloat(sunDir[index]), 1.0);
+            }
+
             // store FogColor in control pixels
             else if (index == 25) {
                 outColor = vec4(FogColor.rgb, 1.0);

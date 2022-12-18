@@ -88,7 +88,7 @@ void main() {
 
     fogColor = texture(DataSampler, start + 25.0 * inc);
     fogLambda = float(decodeFloat(texture(DataSampler, start + 27.0 * inc).xyz));
-    
+
     rain = texture(DataSampler, start + 29.0 * inc).r;
 
     int flags = int(texture(DataSampler, start + 30.0 * inc).r * 255.0);

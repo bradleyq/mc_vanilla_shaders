@@ -4,6 +4,7 @@ uniform sampler2D DiffuseSampler;
 uniform sampler2D PrevDataSampler;
 
 uniform vec2 InSize;
+uniform vec2 AuxSize0;
 uniform float FOVGuess;
 
 out vec4 fragColor;
@@ -18,11 +19,13 @@ out vec4 fragColor;
 #define DIM_OVER 1
 #define DIM_END 2
 #define DIM_NETHER 3
+#define DIM_MAX 3
 
+#define FOG_DEFAULT_WATER vec3(25.0 / 255.0, 25.0 / 255.0, 255.0 / 255.0)
 #define TINT_WATER vec3(0.0 / 255.0, 248.0 / 255.0, 255.0 / 255.0)
 #define FOG_WATER vec3(0.0 / 255.0, 37.0 / 255.0, 38.0 / 255.0)
 #define FOG_WATER_FAR 72.0
-#define FOG_END vec3(21.0 / 255.0, 17.0 / 255.0, 21.0 / 255.0)
+#define FOG_END vec3(19.0 / 255.0, 16.0 / 255.0, 19.0 / 255.0)
 #define FOG_LAVA vec3(153.0 / 255.0, 25.0 / 255.0, 0.0)
 #define FOG_LAVA_FAR 2.0
 #define FOG_SNOW vec3(159.0 / 255.0, 187.0 / 255.0, 200.0 / 255.0)
@@ -34,6 +37,7 @@ out vec4 fragColor;
 #define FOG_DEFAULT_FAR 150.0
 #define FOG_TARGET 0.2
 #define FOG_DIST_MULT 2.75
+#define FOG_DIST_OVERCAST_REDUCE 1.5
 
 #define FLAG_UNDERWATER 1<<0
 
@@ -113,7 +117,9 @@ void main() {
     //simply decoding all the control data and constructing the sunDir, ProjMat, ModelViewMat
     vec4 outColor = vec4(0.0);
     vec2 start = getControl(0, InSize);
+    vec2 startData = 0.5 / AuxSize0;
     vec2 inc = vec2(2.0 / InSize.x, 0.0);
+    vec2 incData = vec2(1.0 / AuxSize0.x, 0.0);
     vec4 temp = texture(DiffuseSampler, start + 25.0 * inc);
     int index = int(gl_FragCoord.x);
 
@@ -148,6 +154,9 @@ void main() {
         }
         // fog color
         else if (index == 25) {
+            if (temp.b > 0.2) {
+                temp.rgb = mix(FOG_WATER, temp.rgb, smoothstep(0.0, 0.05, length(temp.rgb / temp.b - FOG_DEFAULT_WATER)));
+            }
             outColor = temp;
         }
         else if (index == 26) {
@@ -164,10 +173,29 @@ void main() {
             outColor = vec4(encodeFloat(log(FOG_TARGET) / float(-range)), 0.0);
         }
         else if (index == 28) {
-            outColor = vec4(0.0);
-            if(length(temp.rgb - FOG_END) < 0.005) {
-                outColor = vec4(vec3(DIM_END), 1.0);
+            outColor = texture(PrevDataSampler, startData + float(28) * incData);
+            if(outColor.a != 1.0 || int(outColor.r * 255.0) > DIM_MAX || outColor.r == 0.0) {
+                vec4 dimtmp = texture(DiffuseSampler, start + float(28) * inc);
+                if (dimtmp.a == 1.0) {
+                    outColor = dimtmp;
+                }
+                else if(length(temp.rgb - FOG_END) < 0.005) {
+                    outColor = vec4(vec3(float(DIM_END) / 255.0), 1.0);
+                }
+                else {
+                    outColor = vec4(0.0, 0.0, 0.0, 1.0);
+                }
             }
+        }
+        else if (index == 30) {
+            int currflags = 0;
+            if (temp.b > 0.2) {
+                vec4 dimtmp = texture(PrevDataSampler, startData + float(28) * incData);
+                if (dimtmp.a == 1.0 && (int(dimtmp * 255.0) == DIM_END || int(dimtmp * 255.0) == DIM_NETHER) && smoothstep(0.0, 0.05, length(temp.rgb / temp.b - FOG_DEFAULT_WATER)) < 1.0) {
+                    currflags |= FLAG_UNDERWATER;
+                }
+            }
+            outColor = vec4(float(currflags) / 255.0, 0.0, 0.0, 1.0);
         }
         // base case zero
         else {
@@ -188,11 +216,18 @@ void main() {
         }
         else if (index == 27) {
             int fstart = decodeInt(texture(DiffuseSampler, start + float(26) * inc).rgb);
+            float rain = texture(DiffuseSampler, start + float(29) * inc).r;
             int fend = int(FOG_WATER_FAR);
             if (fstart != -8) {
-                fend = int(float(decodeInt(texture(DiffuseSampler, start + float(27) * inc).rgb)) * FOG_DIST_MULT);
+                fend = int(float(decodeInt(texture(DiffuseSampler, start + float(27) * inc).rgb)) * (FOG_DIST_MULT - FOG_DIST_OVERCAST_REDUCE * rain));
             }
             outColor = vec4(encodeFloat(log(FOG_TARGET) / float(-fend)), 1.0);
+        }
+        else if (index == 28) {
+            outColor = texture(PrevDataSampler, startData + float(28) * incData);
+            if (outColor.a != 1.0 || int(outColor.r * 255.0) > DIM_MAX || outColor.r == 0.0) {
+                outColor = texture(DiffuseSampler, start + float(28) * inc);
+            }
         }
         else if (index == 30) {
             int currflags = int(texture(DiffuseSampler, start + float(30) * inc).r * 255.0);

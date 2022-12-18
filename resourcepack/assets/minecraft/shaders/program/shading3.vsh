@@ -100,13 +100,7 @@ void main() {
 
     fogColor = texture(DataSampler, start + 25.0 * inc);
 
-    vec4 dimvec = texture(DataSampler, start + 28.0 * inc);
-    if (dimvec.a >= 0.99) {
-        dim = dimvec.r * 255.0;
-    }
-    else {
-        dim = float(DIM_UNKNOWN);
-    }
+    dim = texture(DataSampler, start + 28.0 * inc).r * 255.0;
 
     rain = texture(DataSampler, start + 29.0 * inc).r;
 
