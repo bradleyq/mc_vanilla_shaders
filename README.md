@@ -13,7 +13,6 @@ CL:
 - multiplicative water blending
 
 Known issues:
-- rain sky during day
 - optifine #moj_import bug
 - shadows are ... ok
 - Alpha-PBR specular, metalness
