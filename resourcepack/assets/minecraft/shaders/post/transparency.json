@@ -13,8 +13,9 @@
         "particles",
         "clouds",
         "weather",
-        { "name": "temporals1", "width": 32, "height": 1, "bilinear": false },
-        { "name": "temporals2", "width": 32, "height": 1, "bilinear": false }
+        "temporalFrame",
+        { "name": "temporals1", "width": 48, "height": 1, "bilinear": false },
+        { "name": "temporals2", "width": 48, "height": 1, "bilinear": false }
     ],
     "passes": [
         {
@@ -25,6 +26,10 @@
                 {
                     "name": "PrevDataSampler",
                     "id": "temporals1"
+                },
+                {
+                    "name": "PrevMainSampler",
+                    "id": "temporalFrame"
                 }
             ],
             "uniforms": [
@@ -303,8 +308,19 @@
             ]
         },
         {
-            "name": "copy",
+            "name": "exposure",
             "intarget": "swap7",
+            "outtarget": "temporalFrame",
+            "auxtargets": [
+                {
+                    "name": "DataSampler",
+                    "id": "temporals1"
+                }
+            ]
+        },
+        {
+            "name": "final",
+            "intarget": "temporalFrame",
             "outtarget": "minecraft:main"
         }
     ]

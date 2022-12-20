@@ -20,7 +20,7 @@ out vec4 fragColor;
 #define PROJNEAR 0.05
 #define FUDGE 32.0
 
-#define EMISS_MULT 1.5
+#define EMISS_MULT 3.0
 
 vec3 encodeInt(int i) {
     int s = int(i < 0) * 128;

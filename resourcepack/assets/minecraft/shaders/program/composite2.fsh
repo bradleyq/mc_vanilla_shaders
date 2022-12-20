@@ -43,6 +43,39 @@ out vec4 fragColor;
 
 vec2 scaledCoord = 2.0 * (texCoord - vec2(0.5));
 
+vec4 decodeHDR_0(vec4 color) {
+    int alpha = int(color.a * 255.0);
+    return vec4(color.r + float((alpha >> 4) % 4), color.g + float((alpha >> 2) % 4), color.b + float(alpha % 4), 1.0);
+}
+
+vec4 encodeHDR_0(vec4 color) {
+    int alpha = 3;
+    color = clamp(color, 0.0, 4.0);
+    vec3 colorFloor = clamp(floor(color.rgb), 0.0, 3.0);
+
+    alpha = alpha << 2;
+    alpha += int(colorFloor.r);
+    alpha = alpha << 2;
+    alpha += int(colorFloor.g);
+    alpha = alpha << 2;
+    alpha += int(colorFloor.b);
+
+    return vec4(color.rgb - colorFloor, alpha / 255.0);
+}
+
+vec4 decodeHDR_1(vec4 color) {
+    return vec4(color.rgb * (color.a + 1.0), 1.0);
+}
+
+vec4 encodeHDR_1(vec4 color) {
+    float maxval = max(color.r, max(color.g, color.b));
+    float mult = (maxval - 1.0) * 255.0 / 3.0;
+    mult = clamp(ceil(mult), 0.0, 255.0);
+    color.rgb = color.rgb * 255 / (mult / 255 * 3 + 1);
+    color.rgb = round(color.rgb);
+    return vec4(color.rgb, mult) / 255.0;
+}
+
 vec4 encodeUInt(uint i) {
     uint r = (i) % 256u;
     uint g = (i >> 8u) % 256u;
@@ -131,7 +164,7 @@ vec3 blendmult(vec3 dst, vec4 src) {
 #define zenithOffset -0.04
 #define multiScatterPhaseClear 0.05
 #define multiScatterPhaseOvercast 0.1
-#define atmDensity 0.4
+#define atmDensity 0.5
 
 #define anisotropicIntensityClear 0.0 //Higher numbers result in more anisotropic scattering
 #define anisotropicIntensityOvercast 0.2 //Higher numbers result in more anisotropic scattering
@@ -142,7 +175,7 @@ vec3 blendmult(vec3 dst, vec4 src) {
 #define smooth(x) x*x*(3.0-2.0*x)
 
 // #define zenithDensity(x) atmDensity / pow(max((x - zenithOffset) / (1.0 - zenithOffset), 0.008), 0.75)
-#define zenithDensity(x) atmDensity / pow(smoothClamp(((x - zenithOffset < 0.0 ? -(x - zenithOffset) * 0.4 : x - zenithOffset)) / (1.0 - zenithOffset), 0.03, 1.0), 0.75)
+#define zenithDensity(x) atmDensity / pow(smoothClamp(((x - zenithOffset < 0.0 ? -(x - zenithOffset) * 0.2 : (x - zenithOffset) * 0.5)) / (1.0 - zenithOffset), 0.03, 1.0), 0.75)
 
 float smoothClamp(float x, float a, float b)
 {
@@ -158,17 +191,17 @@ vec3 getSkyAbsorption(vec3 col, float density, float lpy) {
 }
 
 float getSunPoint(vec3 p, vec3 lp){
-	return smoothstep(0.04, 0.0, distance(p, lp)) * 30.0;
+	return smoothstep(0.03, 0.01, distance(p, lp)) * 4.0;
 }
 
 float getRayleigMultiplier(vec3 p, vec3 lp){
-	return 1.0 + pow(1.0 - clamp(distance(p, lp), 0.0, 1.0), 2.0) * pi * 0.5;
+	return 1.0 + pow(1.0 - clamp(distance(p, lp), 0.0, 1.0), 1.5) * pi * 0.5;
 }
 
 float getMie(vec3 p, vec3 lp){
-	float disk = clamp(1.0 - pow(distance(p, lp), mix(0.3, 0.13, exp(max(lp.y, 0.0)) - 1.0) / 1.718281828), 0.0, 1.0);
+	float disk = clamp(1.0 - pow(max(distance(p, lp), 0.02), mix(0.3, 0.1, clamp(2.0 * (exp(max(lp.y, 0.0)) - 1.0), 0.0, 1.0)) / 1.718281828), 0.0, 1.0);
 	
-	return disk*disk*(3.0 - 2.0 * disk) * 2.0 * pi;
+	return disk*disk*(3.0 - 2.0 * disk) * pi * 1.5;
 }
 
 vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog){
@@ -181,22 +214,26 @@ vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog){
 	vec3 sky = mix(skyColorClear, skyColorOvercast, rain);
 	vec3 absorption = getSkyAbsorption(sky, zenith, lp.y);
     vec3 sunAbsorption = getSkyAbsorption(sky, zenithDensity(ly + multiScatterPhase), lp.y);
-	vec3 mie = getMie(p, lp) * sunAbsorption;
-	sky = sky * zenith * rayleighMult;
-	if (!fog) mie += getSunPoint(p, lp) * absorption * clamp(1.01 - rain, 0.0, 1.0);
-	
+
+	sky = sky * zenith * rayleighMult * (1.0 - (0.75 * ly));
+
 	vec3 totalSky = mix(sky * absorption, sky / (sky * 0.5 + 0.5), sunPointDistMult);
-         totalSky += mie;
-	     totalSky *= sunAbsorption * 0.5 + 0.5 * length(sunAbsorption);
+	if (!fog) {
+	    vec3 mie = getMie(p, lp) * sunAbsorption * sunAbsorption;
+        mie += getSunPoint(p, lp) * absorption * clamp(1.01 - rain, 0.0, 1.0);
+        totalSky += mie;
+    }
+	
+    totalSky *= sunAbsorption * 0.5 + 0.5 * length(sunAbsorption);
 	
 	return totalSky;
 }
 
-vec3 jodieReinhardTonemap(vec3 c){
+vec3 jodieReinhardTonemap(vec3 c, float upper) {
     float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
-    vec3 tc = c / (c + 1.0);
+    vec3 tc = c / (upper * c + 1.0);
 
-    return mix(c / (l + 1.0), tc, tc);
+    return mix(c / (upper * l + 1.0), tc, tc);
 }
 
 void main() {
@@ -207,9 +244,9 @@ void main() {
 
     vec4 calculatedFog = vec4(1.0);
 
-    vec3 color = getAtmosphericScattering(fragpos, sunDir, rain, true) * pi;
-    color = jodieReinhardTonemap(color);
-    color = pow(color, vec3(2.2)); //Back to linear
+    vec3 color = getAtmosphericScattering(fragpos, sunDir, rain, true);
+    // color = jodieReinhardTonemap(color, 1.0);
+    // color = pow(color, vec3(2.2)); //Back to linear
 
     float sdu = dot(vec3(0.0, 1.0, 0.0), sunDir);
     if (underWater > 0.5) {
@@ -223,14 +260,15 @@ void main() {
 
     op_layers[0] = DEFAULT;
     // crumbling, beacon_beam, leash, entity_translucent_emissive(warden glow), chunk border lines
-    depth_layers[0] = decodeDepth(texture( DiffuseDepthSampler, texCoord));
-    vec4 diffusecolor = vec4( texture( DiffuseSampler, texCoord).rgb, 1.0 );
+    depth_layers[0] = decodeDepth(texture(DiffuseDepthSampler, texCoord));
+    vec4 diffusecolor = vec4(decodeHDR_0(texture(DiffuseSampler, texCoord)).rgb, 1.0 );
     float currdist = euclidianDistance(vec4(scaledCoord, depth_layers[0], 1.0));
     bool sky = depth_layers[0] == 1.0;
 
     color_layers[0] = diffusecolor;
     active_layers = 1;
     vec4 reflection = texture(ReflectionSampler, texCoord);
+    reflection.rgb *= 3.0; // TODO: solve reflection HDR compression.
 
     float clouddepth = texture(CloudsDepthSampler, texCoord).r;
     vec4 cloudcolor = texture(CloudsSampler, texCoord);
@@ -269,5 +307,5 @@ void main() {
         texelAccum = exponential_fog(texelAccum, calculatedFog, currdist, fogLambda);
     }
 
-    fragColor = texelAccum;
+    fragColor = encodeHDR_0(texelAccum);
 }

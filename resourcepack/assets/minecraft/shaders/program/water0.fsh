@@ -21,6 +21,50 @@ in mat4 ProjInv;
 
 out vec4 fragColor;
 
+const vec2 poissonDisk[64] = vec2[64](
+    vec2(-0.613392, 0.617481), vec2(0.170019, -0.040254), vec2(-0.299417, 0.791925), vec2(0.645680, 0.493210), vec2(-0.651784, 0.717887), vec2(0.421003, 0.027070), vec2(-0.817194, -0.271096), vec2(-0.705374, -0.668203), 
+    vec2(0.977050, -0.108615), vec2(0.063326, 0.142369), vec2(0.203528, 0.214331), vec2(-0.667531, 0.326090), vec2(-0.098422, -0.295755), vec2(-0.885922, 0.215369), vec2(0.566637, 0.605213), vec2(0.039766, -0.396100),
+    vec2(0.751946, 0.453352), vec2(0.078707, -0.715323), vec2(-0.075838, -0.529344), vec2(0.724479, -0.580798), vec2(0.222999, -0.215125), vec2(-0.467574, -0.405438), vec2(-0.248268, -0.814753), vec2(0.354411, -0.887570),
+    vec2(0.175817, 0.382366), vec2(0.487472, -0.063082), vec2(-0.084078, 0.898312), vec2(0.488876, -0.783441), vec2(0.470016, 0.217933), vec2(-0.696890, -0.549791), vec2(-0.149693, 0.605762), vec2(0.034211, 0.979980),
+    vec2(0.503098, -0.308878), vec2(-0.016205, -0.872921), vec2(0.385784, -0.393902), vec2(-0.146886, -0.859249), vec2(0.643361, 0.164098), vec2(0.634388, -0.049471), vec2(-0.688894, 0.007843), vec2(0.464034, -0.188818),
+    vec2(-0.440840, 0.137486), vec2(0.364483, 0.511704), vec2(0.034028, 0.325968), vec2(0.099094, -0.308023), vec2(0.693960, -0.366253), vec2(0.678884, -0.204688), vec2(0.001801, 0.780328), vec2(0.145177, -0.898984),
+    vec2(0.062655, -0.611866), vec2(0.315226, -0.604297), vec2(-0.780145, 0.486251), vec2(-0.371868, 0.882138), vec2(0.200476, 0.494430), vec2(-0.494552, -0.711051), vec2(0.612476, 0.705252), vec2(-0.578845, -0.768792),
+    vec2(-0.772454, -0.090976), vec2(0.504440, 0.372295), vec2(0.155736, 0.065157), vec2(0.391522, 0.849605), vec2(-0.620106, -0.328104), vec2(0.789239, -0.419965), vec2(-0.545396, 0.538133), vec2(-0.178564, -0.596057));
+
+vec4 decodeHDR_0(vec4 color) {
+    int alpha = int(color.a * 255.0);
+    return vec4(color.r + float((alpha >> 4) % 4), color.g + float((alpha >> 2) % 4), color.b + float(alpha % 4), 1.0);
+}
+
+vec4 encodeHDR_0(vec4 color) {
+    int alpha = 3;
+    color = clamp(color, 0.0, 4.0);
+    vec3 colorFloor = clamp(floor(color.rgb), 0.0, 3.0);
+
+    alpha = alpha << 2;
+    alpha += int(colorFloor.r);
+    alpha = alpha << 2;
+    alpha += int(colorFloor.g);
+    alpha = alpha << 2;
+    alpha += int(colorFloor.b);
+
+    return vec4(color.rgb - colorFloor, alpha / 255.0);
+}
+
+vec4 decodeHDR_1(vec4 color) {
+    return vec4(color.rgb * (color.a + 1.0), 1.0);
+}
+
+vec4 encodeHDR_1(vec4 color) {
+    float maxval = max(color.r, max(color.g, color.b));
+    float mult = (maxval - 1.0) * 255.0 / 3.0;
+    mult = clamp(ceil(mult), 0.0, 255.0);
+    color.rgb = color.rgb * 255 / (mult / 255 * 3 + 1);
+    color.rgb = round(color.rgb);
+    return vec4(color.rgb, mult) / 255.0;
+}
+
+
 vec4 exponential_fog(vec4 inColor, vec4 fogColor, float depth, float lambda) {
     float fogValue = exp(-lambda * depth);
     return mix(fogColor, inColor, fogValue);
@@ -45,7 +89,7 @@ vec4 backProject(vec4 vec) {
 #define zenithOffset -0.04
 #define multiScatterPhaseClear 0.05
 #define multiScatterPhaseOvercast 0.1
-#define atmDensity 0.4
+#define atmDensity 0.5
 
 #define anisotropicIntensityClear 0.0 //Higher numbers result in more anisotropic scattering
 #define anisotropicIntensityOvercast 0.2 //Higher numbers result in more anisotropic scattering
@@ -55,7 +99,8 @@ vec4 backProject(vec4 vec) {
 
 #define smooth(x) x*x*(3.0-2.0*x)
 
-#define zenithDensity(x) atmDensity / pow(smoothClamp(((x - zenithOffset < 0.0 ? -(x - zenithOffset) * 0.4 : x - zenithOffset)) / (1.0 - zenithOffset), 0.03, 1.0), 0.75)
+// #define zenithDensity(x) atmDensity / pow(max((x - zenithOffset) / (1.0 - zenithOffset), 0.008), 0.75)
+#define zenithDensity(x) atmDensity / pow(smoothClamp(((x - zenithOffset < 0.0 ? -(x - zenithOffset) * 0.2 : (x - zenithOffset) * 0.5)) / (1.0 - zenithOffset), 0.03, 1.0), 0.75)
 
 float smoothClamp(float x, float a, float b)
 {
@@ -71,17 +116,17 @@ vec3 getSkyAbsorption(vec3 col, float density, float lpy) {
 }
 
 float getSunPoint(vec3 p, vec3 lp){
-	return smoothstep(0.04, 0.0, distance(p, lp)) * 30.0;
+	return smoothstep(0.03, 0.01, distance(p, lp)) * 4.0;
 }
 
 float getRayleigMultiplier(vec3 p, vec3 lp){
-	return 1.0 + pow(1.0 - clamp(distance(p, lp), 0.0, 1.0), 2.0) * pi * 0.5;
+	return 1.0 + pow(1.0 - clamp(distance(p, lp), 0.0, 1.0), 1.5) * pi * 0.5;
 }
 
 float getMie(vec3 p, vec3 lp){
-	float disk = clamp(1.0 - pow(distance(p, lp), mix(0.3, 0.13, exp(max(lp.y, 0.0)) - 1.0) / 1.718281828), 0.0, 1.0);
+	float disk = clamp(1.0 - pow(max(distance(p, lp), 0.02), mix(0.3, 0.1, clamp(2.0 * (exp(max(lp.y, 0.0)) - 1.0), 0.0, 1.0)) / 1.718281828), 0.0, 1.0);
 	
-	return disk*disk*(3.0 - 2.0 * disk) * 2.0 * pi;
+	return disk*disk*(3.0 - 2.0 * disk) * pi * 1.5;
 }
 
 vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog){
@@ -94,22 +139,26 @@ vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog){
 	vec3 sky = mix(skyColorClear, skyColorOvercast, rain);
 	vec3 absorption = getSkyAbsorption(sky, zenith, lp.y);
     vec3 sunAbsorption = getSkyAbsorption(sky, zenithDensity(ly + multiScatterPhase), lp.y);
-	vec3 mie = getMie(p, lp) * sunAbsorption;
-	sky = sky * zenith * rayleighMult;
-	if (!fog) mie += getSunPoint(p, lp) * absorption * clamp(1.01 - rain, 0.0, 1.0);
-	
+
+	sky = sky * zenith * rayleighMult * (1.0 - (0.75 * ly));
+
 	vec3 totalSky = mix(sky * absorption, sky / (sky * 0.5 + 0.5), sunPointDistMult);
-         totalSky += mie;
-	     totalSky *= sunAbsorption * 0.5 + 0.5 * length(sunAbsorption);
+	if (!fog) {
+	    vec3 mie = getMie(p, lp) * sunAbsorption * sunAbsorption;
+        mie += getSunPoint(p, lp) * absorption * clamp(1.01 - rain, 0.0, 1.0);
+        totalSky += mie;
+    }
+	
+    totalSky *= sunAbsorption * 0.5 + 0.5 * length(sunAbsorption);
 	
 	return totalSky;
 }
 
-vec3 jodieReinhardTonemap(vec3 c){
+vec3 jodieReinhardTonemap(vec3 c, float upper) {
     float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
-    vec3 tc = c / (c + 1.0);
+    vec3 tc = c / (upper * c + 1.0);
 
-    return mix(c / (l + 1.0), tc, tc);
+    return mix(c / (upper * l + 1.0), tc, tc);
 }
 
 #define APPROX_TAPS 6
@@ -183,21 +232,21 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec4 approxr
 
     vec3 skycol = fogColor.rgb;
     if (underWater < 0.5) {
-        skycol = getAtmosphericScattering(rayDir, sunDir, rain, false) * pi;
-        skycol = jodieReinhardTonemap(skycol);
-        skycol = pow(skycol, vec3(2.2)); //Back to linear
+        skycol = getAtmosphericScattering(rayDir, sunDir, rain, false);
+        // skycol = jodieReinhardTonemap(skycol, 1.0);
+        // skycol = pow(skycol, vec3(2.2)); //Back to linear
     }
     
     vec4 candidate = vec4(skycol, 1.0);
     if (dtmp + SSR_IGNORETHRESH > fragdepth && linearizeDepth(pos.z) < dtmp + SSR_INVALIDTHRESH && pos.y <= 1.0 && dtmp < far * 0.5) {
-        vec3 colortmp = texture(DiffuseSampler, 0.5 * pos.xy + vec2(0.5)).rgb;
+        vec3 colortmp = decodeHDR_0(texture(DiffuseSampler, 0.5 * pos.xy + vec2(0.5))).rgb;
         rayDir.y = abs(rayDir.y * 0.2);
         rayDir = normalize(rayDir);
         vec3 fogcol = fogColor.rgb;
         if (underWater < 0.5) {
-            fogcol = getAtmosphericScattering(rayDir, sunDir, rain, true) * pi;
-            fogcol = jodieReinhardTonemap(fogcol);
-            fogcol = pow(fogcol, vec3(2.2)); //Back to linear
+            fogcol = getAtmosphericScattering(rayDir, sunDir, rain, true);
+            // fogcol = jodieReinhardTonemap(fogcol, 1.0);
+            // fogcol = pow(fogcol, vec3(2.2)); //Back to linear
         }
         float count = 1.0;
         float dtmptmp = 0.0;
@@ -206,7 +255,7 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec4 approxr
             postmp = pos.xy + randsamples[i + SSR_BLURSAMPLEOFFSET] * SSR_BLURR * vec2(1.0 / aspectRatio, 1.0);
             dtmptmp = linearizeDepth(texture(DiffuseDepthSampler, 0.5 * postmp + vec2(0.5)).r);
             if (abs(dtmp - dtmptmp) < SSR_IGNORETHRESH) {
-                vec3 tmpcolortmp = texture(DiffuseSampler, 0.5 * postmp + vec2(0.5)).rgb;
+                vec3 tmpcolortmp = decodeHDR_0(texture(DiffuseSampler, 0.5 * postmp + vec2(0.5))).rgb;
                 colortmp += tmpcolortmp;
                 count += 1.0;
             }
@@ -221,73 +270,6 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec4 approxr
 }
 
 void main() {
-
-    vec2 poissonDisk[64];
-    poissonDisk[0] = vec2(-0.613392, 0.617481);
-    poissonDisk[1] = vec2(0.170019, -0.040254);
-    poissonDisk[2] = vec2(-0.299417, 0.791925);
-    poissonDisk[3] = vec2(0.645680, 0.493210);
-    poissonDisk[4] = vec2(-0.651784, 0.717887);
-    poissonDisk[5] = vec2(0.421003, 0.027070);
-    poissonDisk[6] = vec2(-0.817194, -0.271096);
-    poissonDisk[7] = vec2(-0.705374, -0.668203);
-    poissonDisk[8] = vec2(0.977050, -0.108615);
-    poissonDisk[9] = vec2(0.063326, 0.142369);
-    poissonDisk[10] = vec2(0.203528, 0.214331);
-    poissonDisk[11] = vec2(-0.667531, 0.326090);
-    poissonDisk[12] = vec2(-0.098422, -0.295755);
-    poissonDisk[13] = vec2(-0.885922, 0.215369);
-    poissonDisk[14] = vec2(0.566637, 0.605213);
-    poissonDisk[15] = vec2(0.039766, -0.396100);
-    poissonDisk[16] = vec2(0.751946, 0.453352);
-    poissonDisk[17] = vec2(0.078707, -0.715323);
-    poissonDisk[18] = vec2(-0.075838, -0.529344);
-    poissonDisk[19] = vec2(0.724479, -0.580798);
-    poissonDisk[20] = vec2(0.222999, -0.215125);
-    poissonDisk[21] = vec2(-0.467574, -0.405438);
-    poissonDisk[22] = vec2(-0.248268, -0.814753);
-    poissonDisk[23] = vec2(0.354411, -0.887570);
-    poissonDisk[24] = vec2(0.175817, 0.382366);
-    poissonDisk[25] = vec2(0.487472, -0.063082);
-    poissonDisk[26] = vec2(-0.084078, 0.898312);
-    poissonDisk[27] = vec2(0.488876, -0.783441);
-    poissonDisk[28] = vec2(0.470016, 0.217933);
-    poissonDisk[29] = vec2(-0.696890, -0.549791);
-    poissonDisk[30] = vec2(-0.149693, 0.605762);
-    poissonDisk[31] = vec2(0.034211, 0.979980);
-    poissonDisk[32] = vec2(0.503098, -0.308878);
-    poissonDisk[33] = vec2(-0.016205, -0.872921);
-    poissonDisk[34] = vec2(0.385784, -0.393902);
-    poissonDisk[35] = vec2(-0.146886, -0.859249);
-    poissonDisk[36] = vec2(0.643361, 0.164098);
-    poissonDisk[37] = vec2(0.634388, -0.049471);
-    poissonDisk[38] = vec2(-0.688894, 0.007843);
-    poissonDisk[39] = vec2(0.464034, -0.188818);
-    poissonDisk[40] = vec2(-0.440840, 0.137486);
-    poissonDisk[41] = vec2(0.364483, 0.511704);
-    poissonDisk[42] = vec2(0.034028, 0.325968);
-    poissonDisk[43] = vec2(0.099094, -0.308023);
-    poissonDisk[44] = vec2(0.693960, -0.366253);
-    poissonDisk[45] = vec2(0.678884, -0.204688);
-    poissonDisk[46] = vec2(0.001801, 0.780328);
-    poissonDisk[47] = vec2(0.145177, -0.898984);
-    poissonDisk[48] = vec2(0.062655, -0.611866);
-    poissonDisk[49] = vec2(0.315226, -0.604297);
-    poissonDisk[50] = vec2(-0.780145, 0.486251);
-    poissonDisk[51] = vec2(-0.371868, 0.882138);
-    poissonDisk[52] = vec2(0.200476, 0.494430);
-    poissonDisk[53] = vec2(-0.494552, -0.711051);
-    poissonDisk[54] = vec2(0.612476, 0.705252);
-    poissonDisk[55] = vec2(-0.578845, -0.768792);
-    poissonDisk[56] = vec2(-0.772454, -0.090976);
-    poissonDisk[57] = vec2(0.504440, 0.372295);
-    poissonDisk[58] = vec2(0.155736, 0.065157);
-    poissonDisk[59] = vec2(0.391522, 0.849605);
-    poissonDisk[60] = vec2(-0.620106, -0.328104);
-    poissonDisk[61] = vec2(0.789239, -0.419965);
-    poissonDisk[62] = vec2(-0.545396, 0.538133);
-    poissonDisk[63] = vec2(-0.178564, -0.596057);
-
     vec4 outColor = vec4(0.0);
     vec4 color = texture(TranslucentSampler, texCoord);
 
@@ -372,9 +354,11 @@ void main() {
         }
         reflection = r / SSR_TAPS;
         
-        float fresnel = clamp(exp((underWater * 15 - 25) * pow(dot(normalize(fragpos), normal), 2.0)) * (0.8 + 7.2 * underWater), 0.0, 1.0);
+        float fresnel = clamp(exp((underWater * 15 - 25) * pow(dot(normalize(fragpos), normal), 2.0)) * (0.8 + 7.2 * underWater), 0.0, 1.0) * max(1.0, luminance(reflection.rgb));
         float lumdiff = pow(max(luminance(reflection.rgb) * (1.5 + 7.0 * underWater) - luminance(color.rgb), 0.0), 0.25);
         outColor = vec4(reflection.rgb, min(min(fresnel * lumdiff, 1.0), reflection.a));
+
+        outColor.rgb /= 3.0; // TODO: solve reflection HDR compression.
     }
 
     fragColor = vec4(outColor.rgb, outColor.a);

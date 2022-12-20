@@ -9,7 +9,8 @@
     "attributes": [ "Position" ],
     "samplers": [
         { "name": "DiffuseSampler" },
-        { "name": "PrevDataSampler" }
+        { "name": "PrevDataSampler" },
+        { "name": "PrevMainSampler" }
     ],
     "uniforms": [
         { "name": "InSize",     "type": "float",     "count": 2,  "values": [ 1.0, 1.0 ] },

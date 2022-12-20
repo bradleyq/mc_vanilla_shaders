@@ -2,6 +2,7 @@
 
 uniform sampler2D DiffuseSampler;
 uniform sampler2D PrevDataSampler;
+uniform sampler2D PrevMainSampler;
 
 uniform vec2 InSize;
 uniform vec2 AuxSize0;
@@ -41,6 +42,21 @@ out vec4 fragColor;
 
 #define FLAG_UNDERWATER 1<<0
 
+#define EXPOSURE_SAMPLES 8
+#define EXPOSURE_RADIUS 0.25
+#define EXPOSURE_BIG_PRIME 7507
+
+const vec2 offsets[5] = vec2[5](vec2(0.0, 0.0), vec2(1.0, 0.0), vec2(0.0, 1.0), vec2(-1.0, 0.0), vec2(0.0, -1.0));
+
+const vec2 poissonDisk[64] = vec2[64](
+    vec2(-0.613392, 0.617481), vec2(0.170019, -0.040254), vec2(-0.299417, 0.791925), vec2(0.645680, 0.493210), vec2(-0.651784, 0.717887), vec2(0.421003, 0.027070), vec2(-0.817194, -0.271096), vec2(-0.705374, -0.668203), 
+    vec2(0.977050, -0.108615), vec2(0.063326, 0.142369), vec2(0.203528, 0.214331), vec2(-0.667531, 0.326090), vec2(-0.098422, -0.295755), vec2(-0.885922, 0.215369), vec2(0.566637, 0.605213), vec2(0.039766, -0.396100),
+    vec2(0.751946, 0.453352), vec2(0.078707, -0.715323), vec2(-0.075838, -0.529344), vec2(0.724479, -0.580798), vec2(0.222999, -0.215125), vec2(-0.467574, -0.405438), vec2(-0.248268, -0.814753), vec2(0.354411, -0.887570),
+    vec2(0.175817, 0.382366), vec2(0.487472, -0.063082), vec2(-0.084078, 0.898312), vec2(0.488876, -0.783441), vec2(0.470016, 0.217933), vec2(-0.696890, -0.549791), vec2(-0.149693, 0.605762), vec2(0.034211, 0.979980),
+    vec2(0.503098, -0.308878), vec2(-0.016205, -0.872921), vec2(0.385784, -0.393902), vec2(-0.146886, -0.859249), vec2(0.643361, 0.164098), vec2(0.634388, -0.049471), vec2(-0.688894, 0.007843), vec2(0.464034, -0.188818),
+    vec2(-0.440840, 0.137486), vec2(0.364483, 0.511704), vec2(0.034028, 0.325968), vec2(0.099094, -0.308023), vec2(0.693960, -0.366253), vec2(0.678884, -0.204688), vec2(0.001801, 0.780328), vec2(0.145177, -0.898984),
+    vec2(0.062655, -0.611866), vec2(0.315226, -0.604297), vec2(-0.780145, 0.486251), vec2(-0.371868, 0.882138), vec2(0.200476, 0.494430), vec2(-0.494552, -0.711051), vec2(0.612476, 0.705252), vec2(-0.578845, -0.768792),
+    vec2(-0.772454, -0.090976), vec2(0.504440, 0.372295), vec2(0.155736, 0.065157), vec2(0.391522, 0.849605), vec2(-0.620106, -0.328104), vec2(0.789239, -0.419965), vec2(-0.545396, 0.538133), vec2(-0.178564, -0.596057));
 
 vec2 getControl(int index, vec2 screenSize) {
     return vec2(floor(screenSize.x / 4.0) * 2.0 + float(index) * 2.0 + 0.5, 0.5) / screenSize;
@@ -71,8 +87,45 @@ float decodeFloat(vec3 vec) {
     return decodeInt(vec) / FPRECISION;
 }
 
-float luminance(vec3 rgb) {
-    return max(max(rgb.r, rgb.g), rgb.b);
+vec4 decodeHDR_0(vec4 color) {
+    int alpha = int(color.a * 255.0);
+    return vec4(color.r + float((alpha >> 4) % 4), color.g + float((alpha >> 2) % 4), color.b + float(alpha % 4), 1.0);
+}
+
+vec4 encodeHDR_0(vec4 color) {
+    int alpha = 3;
+    color = clamp(color, 0.0, 4.0);
+    vec3 colorFloor = clamp(floor(color.rgb), 0.0, 3.0);
+
+    alpha = alpha << 2;
+    alpha += int(colorFloor.r);
+    alpha = alpha << 2;
+    alpha += int(colorFloor.g);
+    alpha = alpha << 2;
+    alpha += int(colorFloor.b);
+
+    return vec4(color.rgb - colorFloor, alpha / 255.0);
+}
+
+vec4 decodeHDR_1(vec4 color) {
+    return vec4(color.rgb * (color.a + 1.0), 1.0);
+}
+
+vec4 encodeHDR_1(vec4 color) {
+    float maxval = max(color.r, max(color.g, color.b));
+    float mult = (maxval - 1.0) * 255.0 / 3.0;
+    mult = clamp(ceil(mult), 0.0, 255.0);
+    color.rgb = color.rgb * 255 / (mult / 255 * 3 + 1);
+    color.rgb = round(color.rgb);
+    return vec4(color.rgb, mult) / 255.0;
+}
+
+float luma(vec3 color){
+	return dot(color,vec3(0.299, 0.587, 0.114));
+}
+
+float luma2(vec3 rgb) {
+    return length(rgb);
 }
 
 /*
@@ -112,6 +165,27 @@ Control Map:
 [31]
 */
 
+/*
+Post Temporals:
+[32] Exposure Sample 0
+[33] Exposure Sample 1
+[34] Exposure Sample 2
+[35] Exposure Sample 3
+[36] Exposure Sample 4
+[37] Exposure Average
+[38]
+[39]
+[40]
+[41]
+[42]
+[43]
+[44]
+[45]
+[46]
+[47]
+[48]
+*/
+
 void main() {
 
     //simply decoding all the control data and constructing the sunDir, ProjMat, ModelViewMat
@@ -123,7 +197,31 @@ void main() {
     vec4 temp = texture(DiffuseSampler, start + 25.0 * inc);
     int index = int(gl_FragCoord.x);
 
-    if (temp.a < 1.0) {
+    if (index >= 32) {
+        if (index >= 32 && index <= 36) {
+            vec2 offset = offsets[index - 32];
+            float lum = 0.0;
+            for (int i = 0; i < EXPOSURE_SAMPLES; i += 1) {
+                lum += luma(decodeHDR_0(texture(PrevMainSampler, EXPOSURE_RADIUS * (offset + poissonDisk[i + (index - 32) * EXPOSURE_SAMPLES]) * vec2(AuxSize0.y / AuxSize0.x, 1.0) + vec2(0.5))).rgb);
+            }
+            lum = lum / EXPOSURE_SAMPLES - 2.0; // Fixed point only supports so subtract 2 [-2, 2]
+            outColor = vec4(encodeFloat(clamp(lum, -2.0, 2.0)), 1.0); 
+        }
+        else if (index == 37) {
+            float lum = decodeFloat(texture(PrevDataSampler, startData + float(32) * incData).rgb);
+            lum = max(lum, decodeFloat(texture(PrevDataSampler, startData + float(33) * incData).rgb));
+            lum = max(lum, decodeFloat(texture(PrevDataSampler, startData + float(34) * incData).rgb));
+            lum = max(lum, decodeFloat(texture(PrevDataSampler, startData + float(35) * incData).rgb));
+            lum = max(lum, decodeFloat(texture(PrevDataSampler, startData + float(36) * incData).rgb));
+
+            vec4 last = texture(PrevDataSampler, startData + float(37) * incData);
+            if (last.a == 1.0) {
+                lum = mix(lum, decodeFloat(last.rgb), 0.99);
+            }
+            outColor = vec4(encodeFloat(clamp(lum, -2.0, 2.0)), 1.0);
+        }
+    }
+    else if (temp.a < 1.0) {
 
         /* Basic Matricies as follows
         tanVFOV = tan(FOVGuess * PI / 180.0 / 2.0);
@@ -242,5 +340,6 @@ void main() {
             outColor = texture(DiffuseSampler, start + float(index) * inc);
         }
     }
+    
     fragColor = outColor;
 }

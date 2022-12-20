@@ -32,7 +32,7 @@
 #define FACETYPE_Z 2
 #define FACETYPE_S 3
 
-#define EMISS_MULT 1.5
+#define EMISS_MULT 3.0
 
 #define DIM_UNKNOWN 0
 #define DIM_OVER 1
@@ -374,4 +374,37 @@ mat3 getWorldMat(vec3 light0, vec3 light1) {
 
 mat3 getInvWorldMat(vec3 light0, vec3 light1) {
     return transpose(getWorldMat(light0, light1));
+}
+
+vec4 decodeHDR_0(vec4 color) {
+    int alpha = int(color.a * 255.0);
+    return vec4(color.r + float((alpha >> 4) % 4), color.g + float((alpha >> 2) % 4), color.b + float(alpha % 4), 1.0);
+}
+
+vec4 encodeHDR_0(vec4 color) {
+    int alpha = 3;
+    color = clamp(color, 0.0, 4.0);
+    vec3 colorFloor = clamp(floor(color.rgb), 0.0, 3.0);
+
+    alpha = alpha << 2;
+    alpha += int(colorFloor.r);
+    alpha = alpha << 2;
+    alpha += int(colorFloor.g);
+    alpha = alpha << 2;
+    alpha += int(colorFloor.b);
+
+    return vec4(color.rgb - colorFloor, alpha / 255.0);
+}
+
+vec4 decodeHDR_1(vec4 color) {
+    return vec4(color.rgb * (color.a + 1.0), 1.0);
+}
+
+vec4 encodeHDR_1(vec4 color) {
+    float maxval = max(color.r, max(color.g, color.b));
+    float mult = (maxval - 1.0) * 255.0 / 3.0;
+    mult = clamp(ceil(mult), 0.0, 255.0);
+    color.rgb = color.rgb * 255 / (mult / 255 * 3 + 1);
+    color.rgb = round(color.rgb);
+    return vec4(color.rgb, mult) / 255.0;
 }
