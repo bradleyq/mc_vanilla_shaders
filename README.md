@@ -64,3 +64,4 @@ See License.md for licensing. This pack requires Fabulous graphics on. Supports 
 
 ## Credits
 - **BSL shaders - capttatsu** for reference code for some of the features (SSR, Tonemapping).
+- **Auroras - nimitz (twitter: @stormoid)** for base implementation of End Auroroa.
