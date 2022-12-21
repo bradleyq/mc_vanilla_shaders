@@ -17,6 +17,7 @@ out float far;
 out float fogLambda;
 out float underWater;
 out float rain;
+out float cave;
 
 // moj_import doesn't work in post-process shaders ;_; Felix pls fix
 #define FPRECISION 4000000.0
@@ -71,7 +72,7 @@ void main() {
                             decodeFloat(texture(DataSampler, start + 9.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 10.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 11.0 * inc).xyz),  decodeFloat(texture(DataSampler, start + 12.0 * inc).xyz),
                             decodeFloat(texture(DataSampler, start + 13.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 14.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 15.0 * inc).xyz), 0.0);
 
-    mat4 ModeViewMat = mat4(decodeFloat(texture(DataSampler, start + 16.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 17.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 18.0 * inc).xyz), 0.0,
+    mat4 ModelViewMat = mat4(decodeFloat(texture(DataSampler, start + 16.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 17.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 18.0 * inc).xyz), 0.0,
                             decodeFloat(texture(DataSampler, start + 19.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 20.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 21.0 * inc).xyz), 0.0,
                             decodeFloat(texture(DataSampler, start + 22.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 23.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 24.0 * inc).xyz), 0.0,
                             0.0, 0.0, 0.0, 1.0);
@@ -79,12 +80,13 @@ void main() {
     near = PROJNEAR;
     far = ProjMat[3][2] * PROJNEAR / (ProjMat[3][2] + 2.0 * PROJNEAR);
 
-    sunDir = normalize((inverse(ModeViewMat) * vec4(decodeFloat(texture(DataSampler, start).xyz), 
-                                                    decodeFloat(texture(DataSampler, start + inc).xyz), 
-                                                    decodeFloat(texture(DataSampler, start + 2.0 * inc).xyz),
-                                                    1.0)).xyz);
+    sunDir = (inverse(ModelViewMat) * vec4(decodeFloat(texture(DataSampler, start).xyz), 
+                                         decodeFloat(texture(DataSampler, start + inc).xyz), 
+                                         decodeFloat(texture(DataSampler, start + 2.0 * inc).xyz),
+                                         1.0)).xyz;
+    sunDir = normalize(sunDir);
     
-    ProjInv = inverse(ProjMat * ModeViewMat);
+    ProjInv = inverse(ProjMat * ModelViewMat);
 
     fogColor = texture(DataSampler, start + 25.0 * inc);
     fogLambda = float(decodeFloat(texture(DataSampler, start + 27.0 * inc).xyz));
@@ -93,4 +95,6 @@ void main() {
 
     int flags = int(texture(DataSampler, start + 30.0 * inc).r * 255.0);
     underWater = float((flags & FLAG_UNDERWATER) > 0);
+
+    cave = smoothstep(2.0, 1.0, decodeFloat(texture(DataSampler, start + 37.0 * inc).rgb) + 2.0) * smoothstep(0.8, 1.0, decodeFloat(texture(DataSampler, start + 43.0 * inc).rgb));
 }

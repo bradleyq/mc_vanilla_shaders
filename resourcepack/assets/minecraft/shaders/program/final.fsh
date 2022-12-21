@@ -71,7 +71,7 @@ vec4 encodeHDR_1(vec4 color) {
 }
 
 float luma(vec3 color){
-	return dot(color,vec3(0.299, 0.587, 0.114));
+	return dot(color, vec3(0.299, 0.587, 0.114));
 }
 
 vec3 jodieReinhardTonemap(vec3 c, float upper) {
@@ -88,7 +88,7 @@ void main() {
     // outColor.rgb = mix(outColor.rgb, vec3(luma(outColor.rgb)), clamp(pow(luma(outColor.rgb), 6.0) * 0.8, 0.0, 1.0));
 
     // outColor.rgb = pow(clamp(outColor.rgb, 0.0, 1.0), vec3(0.45));
-    outColor = vec4(jodieReinhardTonemap(outColor.rgb, 0.2), 1.0);
+    outColor = vec4(jodieReinhardTonemap(outColor.rgb, 0.4), 1.0);
 
     fragColor = outColor;
 }

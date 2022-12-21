@@ -10,7 +10,9 @@
     "samplers": [
         { "name": "DiffuseSampler" },
         { "name": "PrevDataSampler" },
-        { "name": "PrevMainSampler" }
+        { "name": "PrevMainSampler" },
+        { "name": "CurrCodedMainSampler" },
+        { "name": "CurrCodedMainSamplerDepth" }
     ],
     "uniforms": [
         { "name": "InSize",     "type": "float",     "count": 2,  "values": [ 1.0, 1.0 ] },

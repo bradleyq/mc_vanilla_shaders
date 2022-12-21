@@ -158,8 +158,8 @@ int xorshift(int value) {
     return value;
 }
 
-float luminance(vec3 rgb) {
-    return  dot(rgb, vec3(0.2126, 0.7152, 0.0722));
+float luma(vec3 color) {
+	return dot(color, vec3(0.299, 0.587, 0.114));
 }
 
 vec2 Volumetric(vec3 fragpos, vec3 sundir, float fragdepth, float rand) {

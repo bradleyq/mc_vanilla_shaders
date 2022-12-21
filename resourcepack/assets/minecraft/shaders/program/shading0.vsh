@@ -76,15 +76,12 @@ void main() {
                                          decodeFloat(texture(DataSampler, start + inc).xyz), 
                                          decodeFloat(texture(DataSampler, start + 2.0 * inc).xyz),
                                          1.0)).xyz;
+    sunDir = normalize(sunDir);
+    
     near = PROJNEAR;
     far = ProjMat[3][2] * PROJNEAR / (ProjMat[3][2] + 2.0 * PROJNEAR);
     fov = atan(1.0, ProjMat[1][1]) * 114.591559;
 
-    if (length(sunDir) == 0.0) { // TODO: end and nether detect, ignore sunDir
-        sunDir = vec3(0.0, -1.0, 0.0);
-    }
-
-    sunDir = normalize(sunDir);
 
     Proj = ProjMat * ModelViewMat;
     ProjInv = inverse(Proj);

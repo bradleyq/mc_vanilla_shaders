@@ -41,7 +41,12 @@ void main() {
     
     texCoord0 = UV0;
     texCoord2 = UV2 / 255.0;
-    texCoord2.x *= 1.0 - getSun(Sampler2);
+    if (getDim(Sampler2) == DIM_OVER) {
+        texCoord2.x *= 1.0 - getSun(Sampler2);
+    }
+    else {
+        texCoord2.y = 1.0;
+    }
     overlayColor = texelFetch(Sampler1, UV1, 0);
     glpos = gl_Position;
 }

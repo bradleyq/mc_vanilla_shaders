@@ -63,10 +63,6 @@ float decodeFloat(vec3 vec) {
     return decodeInt(vec) / FPRECISION;
 }
 
-float luminance(vec3 rgb) {
-    return max(max(rgb.r, rgb.g), rgb.b);
-}
-
 int inControl(vec2 screenCoord, float screenWidth) {
     float start = floor(screenWidth / 4.0) * 2.0;
     int index = int(screenCoord.x - start) / 2;

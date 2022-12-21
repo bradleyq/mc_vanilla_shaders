@@ -14,6 +14,7 @@ in vec4 fogColor;
 in float fogLambda;
 in float underWater;
 in float rain;
+in float cave;
 in float cosFOVsq;
 in float aspectRatio;
 in mat4 Proj;
@@ -100,7 +101,7 @@ vec4 backProject(vec4 vec) {
 #define smooth(x) x*x*(3.0-2.0*x)
 
 // #define zenithDensity(x) atmDensity / pow(max((x - zenithOffset) / (1.0 - zenithOffset), 0.008), 0.75)
-#define zenithDensity(x) atmDensity / pow(smoothClamp(((x - zenithOffset < 0.0 ? -(x - zenithOffset) * 0.2 : (x - zenithOffset) * 0.5)) / (1.0 - zenithOffset), 0.03, 1.0), 0.75)
+#define zenithDensity(x) atmDensity / pow(smoothClamp(((x - zenithOffset < 0.0 ? -(x - zenithOffset) * 0.2 : (x - zenithOffset) * 0.4)) / (1.0 - zenithOffset), 0.03, 1.0), 0.75)
 
 float smoothClamp(float x, float a, float b)
 {
@@ -116,7 +117,7 @@ vec3 getSkyAbsorption(vec3 col, float density, float lpy) {
 }
 
 float getSunPoint(vec3 p, vec3 lp){
-	return smoothstep(0.03, 0.01, distance(p, lp)) * 4.0;
+	return smoothstep(0.03, 0.01, distance(p, lp)) * 40.0;
 }
 
 float getRayleigMultiplier(vec3 p, vec3 lp){
@@ -126,10 +127,10 @@ float getRayleigMultiplier(vec3 p, vec3 lp){
 float getMie(vec3 p, vec3 lp){
 	float disk = clamp(1.0 - pow(max(distance(p, lp), 0.02), mix(0.3, 0.1, clamp(2.0 * (exp(max(lp.y, 0.0)) - 1.0), 0.0, 1.0)) / 1.718281828), 0.0, 1.0);
 	
-	return disk*disk*(3.0 - 2.0 * disk) * pi * 1.5;
+	return disk*disk*(3.0 - 2.0 * disk) * pi * 2.0;
 }
 
-vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog){
+vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, float cave, bool fog){
 	float zenith = zenithDensity(p.y);
     float ly = lp.y < 0.0 ? lp.y * 0.3 : lp.y;
     float multiScatterPhase = mix(multiScatterPhaseClear, multiScatterPhaseOvercast, rain);
@@ -140,7 +141,7 @@ vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog){
 	vec3 absorption = getSkyAbsorption(sky, zenith, lp.y);
     vec3 sunAbsorption = getSkyAbsorption(sky, zenithDensity(ly + multiScatterPhase), lp.y);
 
-	sky = sky * zenith * rayleighMult * (1.0 - (0.75 * ly));
+	sky = sky * zenith * rayleighMult * (1.0 - (0.7 * ly));
 
 	vec3 totalSky = mix(sky * absorption, sky / (sky * 0.5 + 0.5), sunPointDistMult);
 	if (!fog) {
@@ -151,6 +152,8 @@ vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog){
 	
     totalSky *= sunAbsorption * 0.5 + 0.5 * length(sunAbsorption);
 	
+    totalSky = mix(totalSky, 0.15 * totalSky, cave);
+
 	return totalSky;
 }
 
@@ -189,11 +192,11 @@ float ditherGradNoise() {
   return fract(52.9829189 * fract(0.06711056 * gl_FragCoord.x + 0.00583715 * gl_FragCoord.y));
 }
 
-float luminance(vec3 rgb) {
-    return  dot(rgb, vec3(0.2126, 0.7152, 0.0722));
+float luma(vec3 color) {
+	return dot(color, vec3(0.299, 0.587, 0.114));
 }
 
-vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec4 approxreflection, vec2 randsamples[64]) {
+vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec2 randsamples[64]) {
     vec3 rayStart   = fragpos;
     vec3 rayDir     = reflect(normalize(dir), surfacenorm);
     vec3 rayStep    = (SSR_STEPSIZE + SSR_STEPSIZE * 0.05 * (ditherGradNoise()-0.5)) * rayDir;
@@ -207,11 +210,15 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec4 approxr
     float dtmp  = 0.0;
     float dtmp_nolin = 0.0;
     float dist  = 0.0;
+    bool oob = false;
 
     for (int i = 0; i < SSR_SAMPLES; i += 1) {
         pos = Proj * vec4(rayPos.xyz, 1.0);
         pos.xyz /= pos.w;
-        if (pos.x < -1.0 || pos.x > 1.0 || pos.y < -1.0 || pos.y > 1.0 || pos.z < 0.0 || pos.z > 1.0) break;
+        if (pos.x < -1.0 || pos.x > 1.0 || pos.y < -1.0 || pos.y > 1.0 || pos.z < 0.0 || pos.z > 1.0) {
+            oob = true;
+            break;
+        }
         dtmp_nolin = texture(DiffuseDepthSampler, 0.5 * pos.xy + vec2(0.5)).r;
         dtmp = linearizeDepth(dtmp_nolin);
         dist = abs(linearizeDepth(pos.z) - dtmp);
@@ -232,21 +239,17 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec4 approxr
 
     vec3 skycol = fogColor.rgb;
     if (underWater < 0.5) {
-        skycol = getAtmosphericScattering(rayDir, sunDir, rain, false);
-        // skycol = jodieReinhardTonemap(skycol, 1.0);
-        // skycol = pow(skycol, vec3(2.2)); //Back to linear
+        skycol = getAtmosphericScattering(rayDir, sunDir, rain, cave, false);
     }
     
     vec4 candidate = vec4(skycol, 1.0);
-    if (dtmp + SSR_IGNORETHRESH > fragdepth && linearizeDepth(pos.z) < dtmp + SSR_INVALIDTHRESH && pos.y <= 1.0 && dtmp < far * 0.5) {
+    if (!oob && dtmp + SSR_IGNORETHRESH > fragdepth && linearizeDepth(pos.z) < dtmp + SSR_INVALIDTHRESH && dtmp < far * 0.5) {
         vec3 colortmp = decodeHDR_0(texture(DiffuseSampler, 0.5 * pos.xy + vec2(0.5))).rgb;
         rayDir.y = abs(rayDir.y * 0.2);
         rayDir = normalize(rayDir);
         vec3 fogcol = fogColor.rgb;
         if (underWater < 0.5) {
-            fogcol = getAtmosphericScattering(rayDir, sunDir, rain, true);
-            // fogcol = jodieReinhardTonemap(fogcol, 1.0);
-            // fogcol = pow(fogcol, vec3(2.2)); //Back to linear
+            fogcol = getAtmosphericScattering(rayDir, sunDir, rain, cave, true);
         }
         float count = 1.0;
         float dtmptmp = 0.0;
@@ -267,6 +270,21 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec4 approxr
     
     candidate = mix(candidate, vec4(skycol, 1.0), clamp(pow(max(abs(pos.x), abs(pos.y)), 8.0), 0.0, 1.0));
     return candidate;
+}
+
+float getFresnel(float n0, float n1, float theta0) {
+    float snell = n0 / n1 * sin(theta0);
+    if (snell >= 1.0) {
+        return 1.0;
+    }
+
+    float theta1 = asin(snell);
+    float costheta0 = cos(theta0);
+    float costheta1 = cos(theta1);
+    float rs = (n0 * costheta0 - n1 * costheta1) / (n0 * costheta0 + n1 * costheta1);
+    float rp = (n0 * costheta1 - n1 * costheta0) / (n0 * costheta1 + n1 * costheta0);
+
+    return (rs * rs + rp * rp) / 2;
 }
 
 void main() {
@@ -350,15 +368,41 @@ void main() {
 
         vec4 r = vec4(0.0);
         for (int i = 0; i < SSR_TAPS; i += 1) {
-            r += SSR(fragpos, backProject(vec4(scaledCoord, 1.0, 1.0)).xyz, linearizeDepth(ldepth), normalize(normal + NORMAL_SCATTER * (normalize(p2) * poissonDisk[i].x + normalize(p3) * poissonDisk[i].y)), reflection, poissonDisk);
+            r += SSR(fragpos, backProject(vec4(scaledCoord, 1.0, 1.0)).xyz, linearizeDepth(ldepth), normalize(normal + NORMAL_SCATTER * (normalize(p2) * poissonDisk[i].x + normalize(p3) * poissonDisk[i].y)), poissonDisk);
         }
         reflection = r / SSR_TAPS;
-        
-        float fresnel = clamp(exp((underWater * 15 - 25) * pow(dot(normalize(fragpos), normal), 2.0)) * (0.8 + 7.2 * underWater), 0.0, 1.0) * max(1.0, luminance(reflection.rgb));
-        float lumdiff = pow(max(luminance(reflection.rgb) * (1.5 + 7.0 * underWater) - luminance(color.rgb), 0.0), 0.25);
-        outColor = vec4(reflection.rgb, min(min(fresnel * lumdiff, 1.0), reflection.a));
 
-        outColor.rgb /= 3.0; // TODO: solve reflection HDR compression.
+        float fresnel = 0.0;
+        float indexair = 1.0;
+        float indexwater = 1.333;
+        float theta = acos(dot(normalize(fragpos), -normal));
+        if (underWater > 0.5) {
+            fresnel = getFresnel(indexwater, indexair, theta);
+        }
+        else {
+            fresnel = getFresnel(indexair, indexwater, theta);
+        }
+        
+        #define HDR_LIMIT 4.0
+        float maxelem = max(reflection.r, max(reflection.g, reflection.b));
+        if (maxelem > HDR_LIMIT) {
+            float scale = min(maxelem / HDR_LIMIT, 1.0 / (fresnel + 0.001));
+            reflection.rgb /= scale;
+            fresnel *= scale;
+        }
+        fresnel = min(fresnel, reflection.a);
+
+        int alphaval = int(round(clamp(fresnel, 0.0, 1.0) * 127.0));
+
+        if (maxelem > 2.0) {
+            alphaval += 128;
+            reflection.rgb /= 4.0;
+        }
+        else {
+            reflection.rgb /= 2.0;
+        }
+
+        outColor = vec4(reflection.rgb, float(alphaval) / 255.0);
     }
 
     fragColor = vec4(outColor.rgb, outColor.a);

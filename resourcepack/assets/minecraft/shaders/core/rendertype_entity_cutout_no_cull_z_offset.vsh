@@ -43,7 +43,12 @@ void main() {
     overlayColor = texelFetch(Sampler1, UV1, 0);
     texCoord0 = UV0;
     texCoord2 = UV2 / 255.0;
-    texCoord2.x *= 1.0 - getSun(Sampler2);
+    if (getDim(Sampler2) == DIM_OVER) {
+        texCoord2.x *= 1.0 - getSun(Sampler2);
+    }
+    else {
+        texCoord2.y = 1.0;
+    }
     normal = getInvWorldMat(Light0_Direction, Light1_Direction) * Normal; // will fail in nether but lighting is softer there
     glpos = gl_Position;
 }

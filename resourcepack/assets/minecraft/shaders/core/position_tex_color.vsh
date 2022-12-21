@@ -12,6 +12,7 @@ uniform mat3 IViewRotMat;
 out vec2 texCoord0;
 out vec4 vertexColor;
 out mat4 modelMat;
+out vec4 glpos;
 
 void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
@@ -19,4 +20,5 @@ void main() {
     texCoord0 = UV0;
     vertexColor = Color;
     modelMat = mat4(inverse(IViewRotMat)) * ModelViewMat;
+    glpos = gl_Position;
 }

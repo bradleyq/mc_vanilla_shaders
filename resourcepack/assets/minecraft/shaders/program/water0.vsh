@@ -16,6 +16,7 @@ out vec4 fogColor;
 out float fogLambda;
 out float underWater;
 out float rain;
+out float cave;
 out float cosFOVsq;
 out float aspectRatio;
 out mat4 Proj;
@@ -99,4 +100,6 @@ void main(){
 
     int flags = int(texture(DataSampler, start + 30.0 * inc).r * 255.0);
     underWater = float((flags & FLAG_UNDERWATER) > 0);
+
+    cave = smoothstep(0.3, 0.1, decodeFloat(texture(DataSampler, start + 37.0 * inc).rgb) + 2.0) * smoothstep(0.8, 1.0, decodeFloat(texture(DataSampler, start + 43.0 * inc).rgb));
 }

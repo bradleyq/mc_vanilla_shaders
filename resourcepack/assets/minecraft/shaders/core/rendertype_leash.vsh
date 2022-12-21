@@ -23,6 +23,11 @@ void main() {
 
     vertexColor = Color * ColorModulator * texelFetch(Sampler2, UV2 / 16, 0);
     texCoord2 = UV2 / 255.0;
-    texCoord2.x *= 1.0 - getSun(Sampler2);
+    if (getDim(Sampler2) == DIM_OVER) {
+        texCoord2.x *= 1.0 - getSun(Sampler2);
+    }
+    else {
+        texCoord2.y = 1.0;
+    }
     glpos = gl_Position;
 }

@@ -63,7 +63,12 @@ void main() {
     vertexColor = minecraft_sample_lightmap(Sampler2, UV2);
     texCoord0 = UV0;
     texCoord2 = UV2 / 255.0;
-    texCoord2.x *= 1.0 - getSun(Sampler2);
+    if (getDim(Sampler2) == DIM_OVER) {
+        texCoord2.x *= 1.0 - getSun(Sampler2);
+    }
+    else {
+        texCoord2.y = 1.0;
+    }
     normal = Normal;
     glpos = gl_Position;
 }

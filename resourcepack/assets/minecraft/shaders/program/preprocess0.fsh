@@ -3,6 +3,8 @@
 uniform sampler2D DiffuseSampler;
 uniform sampler2D PrevDataSampler;
 uniform sampler2D PrevMainSampler;
+uniform sampler2D CurrCodedMainSampler;
+uniform sampler2D CurrCodedMainSamplerDepth;
 
 uniform vec2 InSize;
 uniform vec2 AuxSize0;
@@ -15,6 +17,7 @@ out vec4 fragColor;
 #define PROJNEAR 0.05
 #define PROJFAR 1024.0
 #define PI 3.14159265358979
+#define FUDGE 32.0
 
 #define DIM_UNKNOWN 0
 #define DIM_OVER 1
@@ -42,9 +45,24 @@ out vec4 fragColor;
 
 #define FLAG_UNDERWATER 1<<0
 
+#define PBRTYPE_STANDARD 0
+#define PBRTYPE_EMISSIVE 1
+#define PBRTYPE_SUBSURFACE 2
+#define PBRTYPE_TRANSLUCENT 3
+#define PBRTYPE_TEMISSIVE 4
+
+#define FACETYPE_Y 0
+#define FACETYPE_X 1
+#define FACETYPE_Z 2
+#define FACETYPE_S 3
+
 #define EXPOSURE_SAMPLES 8
 #define EXPOSURE_RADIUS 0.25
 #define EXPOSURE_BIG_PRIME 7507
+
+#define AL_SAMPLES 8
+#define AL_RADIUS 0.25
+#define AL_BIG_PRIME 7507
 
 const vec2 offsets[5] = vec2[5](vec2(0.0, 0.0), vec2(1.0, 0.0), vec2(0.0, 1.0), vec2(-1.0, 0.0), vec2(0.0, -1.0));
 
@@ -57,6 +75,10 @@ const vec2 poissonDisk[64] = vec2[64](
     vec2(-0.440840, 0.137486), vec2(0.364483, 0.511704), vec2(0.034028, 0.325968), vec2(0.099094, -0.308023), vec2(0.693960, -0.366253), vec2(0.678884, -0.204688), vec2(0.001801, 0.780328), vec2(0.145177, -0.898984),
     vec2(0.062655, -0.611866), vec2(0.315226, -0.604297), vec2(-0.780145, 0.486251), vec2(-0.371868, 0.882138), vec2(0.200476, 0.494430), vec2(-0.494552, -0.711051), vec2(0.612476, 0.705252), vec2(-0.578845, -0.768792),
     vec2(-0.772454, -0.090976), vec2(0.504440, 0.372295), vec2(0.155736, 0.065157), vec2(0.391522, 0.849605), vec2(-0.620106, -0.328104), vec2(0.789239, -0.419965), vec2(-0.545396, 0.538133), vec2(-0.178564, -0.596057));
+
+float linearizeDepth(float depth) {
+    return (2.0 * PROJNEAR * PROJFAR) / (PROJFAR + PROJNEAR - depth * (PROJFAR - PROJNEAR));    
+}
 
 vec2 getControl(int index, vec2 screenSize) {
     return vec2(floor(screenSize.x / 4.0) * 2.0 + float(index) * 2.0 + 0.5, 0.5) / screenSize;
@@ -121,11 +143,7 @@ vec4 encodeHDR_1(vec4 color) {
 }
 
 float luma(vec3 color){
-	return dot(color,vec3(0.299, 0.587, 0.114));
-}
-
-float luma2(vec3 rgb) {
-    return length(rgb);
+	return dot(color, vec3(0.299, 0.587, 0.114));
 }
 
 /*
@@ -172,13 +190,13 @@ Post Temporals:
 [34] Exposure Sample 2
 [35] Exposure Sample 3
 [36] Exposure Sample 4
-[37] Exposure Average
-[38]
-[39]
-[40]
-[41]
-[42]
-[43]
+[37] Exposure Max
+[38] ApplyLight Sample 0
+[39] ApplyLight Sample 1
+[40] ApplyLight Sample 2
+[41] ApplyLight Sample 3
+[42] ApplyLight Sample 4
+[43] ApplyLight Average
 [44]
 [45]
 [46]
@@ -208,17 +226,55 @@ void main() {
             outColor = vec4(encodeFloat(clamp(lum, -2.0, 2.0)), 1.0); 
         }
         else if (index == 37) {
-            float lum = decodeFloat(texture(PrevDataSampler, startData + float(32) * incData).rgb);
-            lum = max(lum, decodeFloat(texture(PrevDataSampler, startData + float(33) * incData).rgb));
-            lum = max(lum, decodeFloat(texture(PrevDataSampler, startData + float(34) * incData).rgb));
-            lum = max(lum, decodeFloat(texture(PrevDataSampler, startData + float(35) * incData).rgb));
-            lum = max(lum, decodeFloat(texture(PrevDataSampler, startData + float(36) * incData).rgb));
+            float lum = decodeFloat(texture(PrevDataSampler, startData + 32.0 * incData).rgb);
+            lum = max(lum, decodeFloat(texture(PrevDataSampler, startData + 33.0 * incData).rgb));
+            lum = max(lum, decodeFloat(texture(PrevDataSampler, startData + 34.0 * incData).rgb));
+            lum = max(lum, decodeFloat(texture(PrevDataSampler, startData + 35.0 * incData).rgb));
+            lum = max(lum, decodeFloat(texture(PrevDataSampler, startData + 36.0 * incData).rgb));
 
-            vec4 last = texture(PrevDataSampler, startData + float(37) * incData);
+            vec4 last = texture(PrevDataSampler, startData + 37.0 * incData);
             if (last.a == 1.0) {
                 lum = mix(lum, decodeFloat(last.rgb), 0.99);
             }
             outColor = vec4(encodeFloat(clamp(lum, -2.0, 2.0)), 1.0);
+        }
+        if (index >= 38 && index <= 42) {
+            vec2 offset = offsets[index - 38];
+            float lightAvg = 0.0;
+            for (int i = 0; i < AL_SAMPLES; i += 1) {
+                vec2 coords = AL_RADIUS * (offset + poissonDisk[i + (index - 38) * AL_SAMPLES]) + vec2(0.5);
+                float depth = texture(CurrCodedMainSamplerDepth, coords).r;
+                if (linearizeDepth(depth) < PROJFAR - FUDGE) {
+                    vec2 data = texture(CurrCodedMainSampler, coords).ba;
+                    int face = int(data.y * 255.0) % 4;
+                    int stype = int(data.x * 255.0) % 8;
+                    float applyLight = clamp(float(int(data.y * 255.0) / 4) / 63.0, 0.0, 1.0);
+                    if (face == FACETYPE_S && stype == PBRTYPE_STANDARD) {
+                        applyLight = clamp(float(int(data.x * 255.0) / 16) / 15.0, 0.0, 1.0);
+                    }
+                    lightAvg += applyLight;
+                }
+            }
+            lightAvg = lightAvg / AL_SAMPLES;
+            outColor = vec4(encodeFloat(clamp(lightAvg, 0.0, 1.0)), 1.0); 
+        }
+        else if (index == 43) {
+            float al = decodeFloat(texture(PrevDataSampler, startData + 38.0 * incData).rgb)
+                     + decodeFloat(texture(PrevDataSampler, startData + 39.0 * incData).rgb)
+                     + decodeFloat(texture(PrevDataSampler, startData + 40.0 * incData).rgb)
+                     + decodeFloat(texture(PrevDataSampler, startData + 41.0 * incData).rgb)
+                     + decodeFloat(texture(PrevDataSampler, startData + 42.0 * incData).rgb);
+            al /= 5.0;
+
+            vec4 last = texture(PrevDataSampler, startData + 43.0 * incData);
+            vec4 currflags = texture(PrevDataSampler, startData + 30.0 * incData);
+            if (currflags.a == 1.0 && (int(currflags.r * 255.0) & FLAG_UNDERWATER) > 0) {
+                al = decodeFloat(last.rgb);
+            }
+            else if (last.a == 1.0) {
+                al = mix(al, decodeFloat(last.rgb), 0.995);
+            }
+            outColor = vec4(encodeFloat(clamp(al, 0.0, 1.0)), 1.0);
         }
     }
     else if (temp.a < 1.0) {
@@ -232,7 +288,13 @@ void main() {
                        0.0,     0.0,    -2.0 * (PROJFAR * PROJNEAR) / (PROJFAR - PROJNEAR), 0.0);
         ModelViewMat = mat4(1.0);
         */
-        if (index == 3) {
+        if (index == 0 || index == 2) {
+            outColor = vec4(encodeFloat(0.0), 0.0);
+        }
+        else if (index == 1) {
+            outColor = vec4(encodeFloat(-1.0), 0.0);
+        }
+        else if (index == 3) {
             outColor = vec4(encodeFloat(FOVGuess * PI / 180.0 / 2.0), 0.0);
         }
         else if (index == 4) {
@@ -271,9 +333,9 @@ void main() {
             outColor = vec4(encodeFloat(log(FOG_TARGET) / float(-range)), 0.0);
         }
         else if (index == 28) {
-            outColor = texture(PrevDataSampler, startData + float(28) * incData);
+            outColor = texture(PrevDataSampler, startData + 28.0 * incData);
             if(outColor.a != 1.0 || int(outColor.r * 255.0) > DIM_MAX || outColor.r == 0.0) {
-                vec4 dimtmp = texture(DiffuseSampler, start + float(28) * inc);
+                vec4 dimtmp = texture(DiffuseSampler, start + 28.0 * inc);
                 if (dimtmp.a == 1.0) {
                     outColor = dimtmp;
                 }
@@ -288,7 +350,7 @@ void main() {
         else if (index == 30) {
             int currflags = 0;
             if (temp.b > 0.2) {
-                vec4 dimtmp = texture(PrevDataSampler, startData + float(28) * incData);
+                vec4 dimtmp = texture(PrevDataSampler, startData + 28.0 * incData);
                 if (dimtmp.a == 1.0 && (int(dimtmp * 255.0) == DIM_END || int(dimtmp * 255.0) == DIM_NETHER) && smoothstep(0.0, 0.05, length(temp.rgb / temp.b - FOG_DEFAULT_WATER)) < 1.0) {
                     currflags |= FLAG_UNDERWATER;
                 }
@@ -302,7 +364,7 @@ void main() {
     }
     else {
         if (index == 25) {
-            int fstart = decodeInt(texture(DiffuseSampler, start + float(26) * inc).rgb);
+            int fstart = decodeInt(texture(DiffuseSampler, start + 26.0 * inc).rgb);
             if (fstart == -8) {
                 outColor = vec4(FOG_WATER, 1.0);
             } else {
@@ -313,23 +375,23 @@ void main() {
             outColor = vec4(encodeInt(0), 1.0);
         }
         else if (index == 27) {
-            int fstart = decodeInt(texture(DiffuseSampler, start + float(26) * inc).rgb);
-            float rain = texture(DiffuseSampler, start + float(29) * inc).r;
+            int fstart = decodeInt(texture(DiffuseSampler, start + 26.0 * inc).rgb);
+            float rain = texture(DiffuseSampler, start + 29.0 * inc).r;
             int fend = int(FOG_WATER_FAR);
             if (fstart != -8) {
-                fend = int(float(decodeInt(texture(DiffuseSampler, start + float(27) * inc).rgb)) * (FOG_DIST_MULT - FOG_DIST_OVERCAST_REDUCE * rain));
+                fend = int(float(decodeInt(texture(DiffuseSampler, start + 27.0 * inc).rgb)) * (FOG_DIST_MULT - FOG_DIST_OVERCAST_REDUCE * rain));
             }
             outColor = vec4(encodeFloat(log(FOG_TARGET) / float(-fend)), 1.0);
         }
         else if (index == 28) {
-            outColor = texture(PrevDataSampler, startData + float(28) * incData);
+            outColor = texture(PrevDataSampler, startData + 28.0 * incData);
             if (outColor.a != 1.0 || int(outColor.r * 255.0) > DIM_MAX || outColor.r == 0.0) {
-                outColor = texture(DiffuseSampler, start + float(28) * inc);
+                outColor = texture(DiffuseSampler, start + 28.0 * inc);
             }
         }
         else if (index == 30) {
-            int currflags = int(texture(DiffuseSampler, start + float(30) * inc).r * 255.0);
-            int fstart = decodeInt(texture(DiffuseSampler, start + float(26) * inc).rgb);
+            int currflags = int(texture(DiffuseSampler, start + 30.0 * inc).r * 255.0);
+            int fstart = decodeInt(texture(DiffuseSampler, start + 26.0 * inc).rgb);
             if (fstart == -8) {
                 currflags |= FLAG_UNDERWATER;
             }

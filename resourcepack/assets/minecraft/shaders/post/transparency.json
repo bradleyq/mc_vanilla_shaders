@@ -30,6 +30,14 @@
                 {
                     "name": "PrevMainSampler",
                     "id": "temporalFrame"
+                },
+                {
+                    "name": "CurrCodedMainSampler",
+                    "id": "minecraft:main"
+                },
+                {
+                    "name": "CurrCodedMainSamplerDepth",
+                    "id": "minecraft:main:depth"
                 }
             ],
             "uniforms": [

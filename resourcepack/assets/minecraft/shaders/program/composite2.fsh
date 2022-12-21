@@ -24,6 +24,7 @@ in float far;
 in float fogLambda;
 in float underWater;
 in float rain;
+in float cave;
 
 #define NUM_LAYERS 5
 
@@ -175,7 +176,7 @@ vec3 blendmult(vec3 dst, vec4 src) {
 #define smooth(x) x*x*(3.0-2.0*x)
 
 // #define zenithDensity(x) atmDensity / pow(max((x - zenithOffset) / (1.0 - zenithOffset), 0.008), 0.75)
-#define zenithDensity(x) atmDensity / pow(smoothClamp(((x - zenithOffset < 0.0 ? -(x - zenithOffset) * 0.2 : (x - zenithOffset) * 0.5)) / (1.0 - zenithOffset), 0.03, 1.0), 0.75)
+#define zenithDensity(x) atmDensity / pow(smoothClamp(((x - zenithOffset < 0.0 ? -(x - zenithOffset) * 0.2 : (x - zenithOffset) * 0.4)) / (1.0 - zenithOffset), 0.03, 1.0), 0.75)
 
 float smoothClamp(float x, float a, float b)
 {
@@ -191,7 +192,7 @@ vec3 getSkyAbsorption(vec3 col, float density, float lpy) {
 }
 
 float getSunPoint(vec3 p, vec3 lp){
-	return smoothstep(0.03, 0.01, distance(p, lp)) * 4.0;
+	return smoothstep(0.03, 0.01, distance(p, lp)) * 40.0;
 }
 
 float getRayleigMultiplier(vec3 p, vec3 lp){
@@ -201,10 +202,10 @@ float getRayleigMultiplier(vec3 p, vec3 lp){
 float getMie(vec3 p, vec3 lp){
 	float disk = clamp(1.0 - pow(max(distance(p, lp), 0.02), mix(0.3, 0.1, clamp(2.0 * (exp(max(lp.y, 0.0)) - 1.0), 0.0, 1.0)) / 1.718281828), 0.0, 1.0);
 	
-	return disk*disk*(3.0 - 2.0 * disk) * pi * 1.5;
+	return disk*disk*(3.0 - 2.0 * disk) * pi * 2.0;
 }
 
-vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog){
+vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, float cave, bool fog){
 	float zenith = zenithDensity(p.y);
     float ly = lp.y < 0.0 ? lp.y * 0.3 : lp.y;
     float multiScatterPhase = mix(multiScatterPhaseClear, multiScatterPhaseOvercast, rain);
@@ -215,7 +216,7 @@ vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog){
 	vec3 absorption = getSkyAbsorption(sky, zenith, lp.y);
     vec3 sunAbsorption = getSkyAbsorption(sky, zenithDensity(ly + multiScatterPhase), lp.y);
 
-	sky = sky * zenith * rayleighMult * (1.0 - (0.75 * ly));
+	sky = sky * zenith * rayleighMult * (1.0 - (0.7 * ly));
 
 	vec3 totalSky = mix(sky * absorption, sky / (sky * 0.5 + 0.5), sunPointDistMult);
 	if (!fog) {
@@ -226,6 +227,8 @@ vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog){
 	
     totalSky *= sunAbsorption * 0.5 + 0.5 * length(sunAbsorption);
 	
+    totalSky = mix(totalSky, 0.15 * totalSky, cave);
+
 	return totalSky;
 }
 
@@ -244,9 +247,7 @@ void main() {
 
     vec4 calculatedFog = vec4(1.0);
 
-    vec3 color = getAtmosphericScattering(fragpos, sunDir, rain, true);
-    // color = jodieReinhardTonemap(color, 1.0);
-    // color = pow(color, vec3(2.2)); //Back to linear
+    vec3 color = getAtmosphericScattering(fragpos, sunDir, rain, cave, true);
 
     float sdu = dot(vec3(0.0, 1.0, 0.0), sunDir);
     if (underWater > 0.5) {
@@ -268,7 +269,13 @@ void main() {
     color_layers[0] = diffusecolor;
     active_layers = 1;
     vec4 reflection = texture(ReflectionSampler, texCoord);
-    reflection.rgb *= 3.0; // TODO: solve reflection HDR compression.
+    if (reflection.a >= 128.0 / 255.0) {
+        reflection.rgb *= 4.0;
+    }
+    else {
+        reflection.rgb *= 2.0;
+    }
+    reflection.a = float(int(reflection.a * 255.0) % 128) / 127.0;
 
     float clouddepth = texture(CloudsDepthSampler, texCoord).r;
     vec4 cloudcolor = texture(CloudsSampler, texCoord);
@@ -280,7 +287,6 @@ void main() {
     try_insert( texture(ParticlesWeatherSampler, texCoord), decodeDepth(texture(ParticlesWeatherDepthSampler, texCoord)), DEFAULT);
     // translucent_moving_block, lines, item_entity_translucent_cull
     try_insert( texture(ItemEntitySampler, texCoord), texture(ItemEntityDepthSampler, texCoord).r, DEFAULT);
-
 
     vec4 texelAccum = vec4(color_layers[index_layers[0]].rgb, 1.0);
     for ( int ii = 1; ii < active_layers; ++ii ) {
