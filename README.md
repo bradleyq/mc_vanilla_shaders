@@ -6,11 +6,13 @@ CL:
 - rebased from directional light shader
 - water waves
 - SSAO
-- fake atmosphereic scattering
+- fake atmosphereic scattering (Overworld)
 - directional light
 - Screen Space Shadows
 - Java Alpha-PBR support (Emissive, Subsurface, Waving)
 - multiplicative water blending
+- HDR buffers
+- Aurora (End)
 
 Known issues:
 - optifine #moj_import bug
