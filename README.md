@@ -16,15 +16,14 @@ Known issues:
 - optifine #moj_import bug
 - shadows are ... ok
 - Alpha-PBR specular, metalness
-- moon, stars, not reflected
-- emissive clipping
+- moon, stars, end skybox not reflected
 - no bloom
-- sky reflected incorrectly in end, nether, and blinded
-- some translucents visible over fog
+- some translucents visible over fog (slime entities)
 - poor fps near water
+- poor fps all the time lol
 
 ## Overview
-Basic shader that adds as much as possible from OptiFine shaders to the vanilla transparency shader available in "Fabulous" graphics setting. Due to limited material, light, time, and shadow information, most advanced features are not possible. A good number, however, are. I have ported them here. Most samples are from the BSL shader, however much of it is heavily modified to fit with the vanilla pipeline. Supports all FOV and render distances.
+Basic shader that adds as much as possible from OptiFine shaders to the vanilla transparency shader available in "Fabulous" graphics setting. Due to limited material, light, time, and shadow information, most advanced features are not possible. A good number, however, are. I have ported them here. Most samples in credits are heavily modified to fit with the vanilla pipeline. Supports all FOV and render distances.
 
 ### Features
 - TBD
