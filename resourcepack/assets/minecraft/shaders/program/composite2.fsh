@@ -205,7 +205,7 @@ float getMie(vec3 p, vec3 lp) {
     return disk*disk*(3.0 - 2.0 * disk) * pi * 2.0;
 }
 
-vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog){
+vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog) {
     float zenith = zenithDensity(p.y);
     float ly = lp.y < 0.0 ? lp.y * 0.3 : lp.y;
     float multiScatterPhase = mix(multiScatterPhaseClear, multiScatterPhaseOvercast, rain);

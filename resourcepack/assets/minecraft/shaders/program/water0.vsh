@@ -15,6 +15,7 @@ out float far;
 out vec4 fogColor;
 out float fogLambda;
 out float underWater;
+out float dim;
 out float rain;
 out float cave;
 out float cosFOVsq;
@@ -96,6 +97,8 @@ void main(){
 
     fogColor = texture(DataSampler, start + 25.0 * inc);
     fogLambda = float(decodeFloat(texture(DataSampler, start + 27.0 * inc).xyz));
+
+    dim = texture(DataSampler, start + 28.0 * inc).r * 255.0;
 
     rain = texture(DataSampler, start + 29.0 * inc).r;
 

@@ -13,6 +13,7 @@ in float far;
 in vec4 fogColor;
 in float fogLambda;
 in float underWater;
+in float dim;
 in float rain;
 in float cave;
 in float cosFOVsq;
@@ -21,6 +22,22 @@ in mat4 Proj;
 in mat4 ProjInv;
 
 out vec4 fragColor;
+
+// moj_import doesn't work in post-process shaders ;_; Felix pls fix
+#define THRESH 0.5
+#define FPRECISION 4000000.0
+#define PROJNEAR 0.05
+#define FUDGE 32.0
+
+#define EMISS_MULT 3.0
+
+#define TINT_WATER vec3(0.0 / 255.0, 248.0 / 255.0, 255.0 / 255.0)
+#define TINT_WATER_DISTANCE 48.0
+
+#define DIM_UNKNOWN 0
+#define DIM_OVER 1
+#define DIM_END 2
+#define DIM_NETHER 3
 
 const vec2 poissonDisk[64] = vec2[64](
     vec2(-0.613392, 0.617481), vec2(0.170019, -0.040254), vec2(-0.299417, 0.791925), vec2(0.645680, 0.493210), vec2(-0.651784, 0.717887), vec2(0.421003, 0.027070), vec2(-0.817194, -0.271096), vec2(-0.705374, -0.668203), 
@@ -120,6 +137,10 @@ float getSunPoint(vec3 p, vec3 lp) {
     return smoothstep(0.03, 0.01, distance(p, lp)) * 40.0;
 }
 
+float getMoonPoint(vec3 p, vec3 lp) {
+    return smoothstep(0.05, 0.01, distance(p, lp)) * 1.0;
+}
+
 float getRayleigMultiplier(vec3 p, vec3 lp) {
     return 1.0 + pow(1.0 - clamp(distance(p, lp), 0.0, 1.0), 1.5) * pi * 0.5;
 }
@@ -130,7 +151,7 @@ float getMie(vec3 p, vec3 lp) {
     return disk*disk*(3.0 - 2.0 * disk) * pi * 2.0;
 }
 
-vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog){
+vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog) {
     float zenith = zenithDensity(p.y);
     float ly = lp.y < 0.0 ? lp.y * 0.3 : lp.y;
     float multiScatterPhase = mix(multiScatterPhaseClear, multiScatterPhaseOvercast, rain);
@@ -228,45 +249,54 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec2 randsam
 
     }
 
+    float sdu = dot(vec3(0.0, 1.0, 0.0), sunDir);
+    float day = (sdu < 0.0) ? clamp(5.0 * (0.2 - pow(abs(sdu), 1.5)), 0.0, 1.0) : 1.0;
     vec3 skycol = fogColor.rgb;
-    if (underWater < 0.5) {
+    if (underWater < 0.5 && dim == DIM_OVER) {
         skycol = getAtmosphericScattering(rayDir, sunDir, rain, false);
+
+        vec3 moonDir = normalize(vec3(-sunDir.xy, 0.0));
+        skycol += vec3(getMoonPoint(rayDir, moonDir)) * (1.0 - day);
+        
         skycol = mix(skycol, fogColor.rgb, cave);
     }
     
     vec4 candidate = vec4(skycol, 1.0);
-    if (!oob && dtmp + SSR_IGNORETHRESH > fragdepth && linearizeDepth(pos.z) < dtmp + SSR_INVALIDTHRESH && dtmp < far * 0.5) {
+    if (!oob && dtmp + SSR_IGNORETHRESH > fragdepth && linearizeDepth(pos.z) < dtmp + SSR_INVALIDTHRESH) {
         vec3 colortmp = decodeHDR_0(texture(DiffuseSampler, 0.5 * pos.xy + vec2(0.5))).rgb;
-        rayDir.y = abs(rayDir.y * 0.2);
-        rayDir = normalize(rayDir);
-        vec3 fogcol = fogColor.rgb;
-        if (underWater < 0.5) {
-            fogcol = getAtmosphericScattering(rayDir, sunDir, rain, true);
 
-            float sdu = dot(vec3(0.0, 1.0, 0.0), sunDir);
-            float condition = (1.0 - cave);
-            if (sdu < 0.0) {
-                condition *= clamp(5.0 * (0.2 - pow(abs(sdu), 1.5)), 0.0, 1.0);
+        if (dtmp < far - FUDGE) {
+            float count = 1.0;
+            float dtmptmp = 0.0;
+            vec2 postmp = vec2(0.0);
+
+            for (int i = 0; i < SSR_BLURTAPS; i += 1) {
+                postmp = pos.xy + randsamples[i + SSR_BLURSAMPLEOFFSET] * SSR_BLURR * vec2(1.0 / aspectRatio, 1.0);
+                dtmptmp = linearizeDepth(texture(DiffuseDepthSampler, 0.5 * postmp + vec2(0.5)).r);
+                if (abs(dtmp - dtmptmp) < SSR_IGNORETHRESH) {
+                    vec3 tmpcolortmp = decodeHDR_0(texture(DiffuseSampler, 0.5 * postmp + vec2(0.5))).rgb;
+                    colortmp += tmpcolortmp;
+                    count += 1.0;
+                }
             }
-            fogcol = mix(fogColor.rgb, fogcol, condition);
-        }
-        float count = 1.0;
-        float dtmptmp = 0.0;
-        vec2 postmp = vec2(0.0);
-        for (int i = 0; i < SSR_BLURTAPS; i += 1) {
-            postmp = pos.xy + randsamples[i + SSR_BLURSAMPLEOFFSET] * SSR_BLURR * vec2(1.0 / aspectRatio, 1.0);
-            dtmptmp = linearizeDepth(texture(DiffuseDepthSampler, 0.5 * postmp + vec2(0.5)).r);
-            if (abs(dtmp - dtmptmp) < SSR_IGNORETHRESH) {
-                vec3 tmpcolortmp = decodeHDR_0(texture(DiffuseSampler, 0.5 * postmp + vec2(0.5))).rgb;
-                colortmp += tmpcolortmp;
-                count += 1.0;
+            
+            colortmp /= count;
+            candidate = vec4(colortmp, 1.0);
+
+            vec3 fogcol = fogColor.rgb;
+            if (underWater < 0.5 && dim == DIM_OVER) {
+                rayDir.y = abs(rayDir.y * 0.5);
+                rayDir = normalize(rayDir);
+                fogcol = getAtmosphericScattering(rayDir, sunDir, rain, true);
+                fogcol = mix(fogColor.rgb, fogcol, (1.0 - cave) * day);
             }
+            candidate = exponential_fog(candidate, vec4(fogcol, 1.0), length(backProject(vec4(pos.xy, dtmp_nolin, 1.0)).xyz - fragpos), fogLambda);
         }
-        colortmp /= count;
-        candidate = vec4(colortmp, 1.0);
-        candidate = exponential_fog(candidate, vec4(fogcol, 1.0), length(backProject(vec4(pos.xy, dtmp_nolin, 1.0)).xyz - fragpos), fogLambda);
+        else if (sdu < 0.0 && underWater < 0.5) {
+            candidate = mix(vec4(colortmp, 1.0), candidate, day);
+        }
     }
-    
+
     candidate = mix(candidate, vec4(skycol, 1.0), clamp(pow(max(abs(pos.x), abs(pos.y)), 8.0), 0.0, 1.0));
     return candidate;
 }
@@ -390,6 +420,8 @@ void main() {
             fresnel *= scale;
         }
         fresnel = min(fresnel, reflection.a);
+
+        // fresnel = 1.0;
 
         int alphaval = int(round(clamp(fresnel, 0.0, 1.0) * 127.0));
 

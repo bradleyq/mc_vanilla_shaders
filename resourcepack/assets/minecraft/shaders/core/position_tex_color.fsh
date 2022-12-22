@@ -23,7 +23,7 @@ in vec4 glpos;
 out vec4 fragColor;
 
 // Auroras by nimitz 2017 (twitter: @stormoid) https://www.shadertoy.com/view/XtGGRt
-#define AURORA_COLOR_BASE vec3(1.0, 0.0, 1.0)
+#define AURORA_COLOR_BASE vec3(1.0, 0.3, 1.0)
 #define AURORA_COLOR_TIP vec3(0.0, 1.0, 1.0)
 #define AURORA_COLOR_BASE2 vec3(0.2, 0.0, 0.2)
 #define AURORA_COLOR_TIP2 vec3(0.0, 0.2, 0.24)

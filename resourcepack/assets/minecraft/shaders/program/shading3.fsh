@@ -242,7 +242,7 @@ float getMie(vec3 p, vec3 lp) {
     return disk*disk*(3.0 - 2.0 * disk) * pi * 2.0;
 }
 
-vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog){
+vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog) {
     float zenith = zenithDensity(p.y);
     float ly = lp.y < 0.0 ? lp.y * 0.3 : lp.y;
     float multiScatterPhase = mix(multiScatterPhaseClear, multiScatterPhaseOvercast, rain);
@@ -325,12 +325,12 @@ void main() {
     float depth = decodeDepth(texture(DiffuseDepthSampler, texCoord));
     vec2 data = outColor.ba;
     bool isSky = linearizeDepth(depth) >= far - FUDGE;
-    float sec;
 
     if (isSky && fogColor.a == 0.0) {
-        sec = encodeYUV(gl_FragCoord.xy + vec2(1.0, 0.0), fogColor.rgb).y;
+        outColor = vec4(fogColor.rgb, 1.0);
     }
     else {
+        float sec;
         vec2 sec1 = texture(DiffuseSampler, texCoord + vec2(1.0, 0.0) * oneTexel).xy;
         vec2 sec2 = texture(DiffuseSampler, texCoord + vec2(-1.0, 0.0) * oneTexel).xy;
         
@@ -338,9 +338,8 @@ void main() {
         if (abs(outColor.x - sec2.x) < abs(outColor.x - sec1.x)) {
             sec = sec2.y;
         }
+        outColor = decodeYUV(outColor, sec);
     }
-    outColor = decodeYUV(outColor, sec);
-    // outColor.rgb = pow(clamp(outColor.rgb, 0.0, 1.0), vec3(0.45));
 
     // sunDir exists
     if (length(sunDir) > 0.99) {
@@ -480,9 +479,6 @@ void main() {
             if (underWater > 0.5) {
                 outColor.rgb = mix(outColor.rgb, outColor.rgb * TINT_WATER, smoothstep(0, TINT_WATER_DISTANCE, length(fragpos)));
             }
-
-            // desaturate bright pixels for more realistic feel
-            // outColor.rgb = mix(outColor.rgb, vec3(luma(outColor.rgb)), pow(luma(outColor.rgb), 2.0) * 0.5);
 
             // outColor.r = applyLight;
 
