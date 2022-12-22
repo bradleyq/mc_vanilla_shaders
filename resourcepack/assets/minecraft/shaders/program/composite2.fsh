@@ -230,13 +230,6 @@ vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog){
     return totalSky;
 }
 
-vec3 jodieReinhardTonemap(vec3 c, float upper) {
-    float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
-    vec3 tc = c / (upper * c + 1.0);
-
-    return mix(c / (upper * l + 1.0), tc, tc);
-}
-
 void main() {
     vec3 fragpos = backProject(vec4(scaledCoord, 1.0, 1.0)).xyz;
     fragpos = normalize(fragpos);

@@ -16,6 +16,7 @@ uniform sampler2D Sampler2;
 
 uniform mat4 ModelViewMat;
 uniform mat4 ProjMat;
+uniform mat3 IViewRotMat;
 
 uniform vec3 Light0_Direction;
 uniform vec3 Light1_Direction;
@@ -49,6 +50,6 @@ void main() {
     else {
         texCoord2.y = 1.0;
     }
-    normal = getInvWorldMat(Light0_Direction, Light1_Direction) * Normal; // will fail in nether but lighting is softer there
+    normal = IViewRotMat * Normal;
     glpos = gl_Position;
 }

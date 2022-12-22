@@ -24,7 +24,8 @@ void main() {
     }
     else {
         discardControlGLPos(gl_FragCoord.xy, glpos);
-        vec4 outColor = texture(Sampler0, texCoord0) * ColorModulator * baseColor;
+        vec4 outColor = texture(Sampler0, texCoord0);
+        outColor.rgb *= (baseColor * ColorModulator).rgb;
         outColor = getOutColor(outColor, vertexColor, texCoord2, gl_FragCoord.xy, getDirB(normal));
         fragColor = outColor;
     }

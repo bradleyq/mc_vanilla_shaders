@@ -25,7 +25,7 @@ void main() {
         discard;
     }
     
-    outColor *= baseColor * ColorModulator;
+    outColor.rgb *= (baseColor * ColorModulator).rgb;
     outColor = getOutColor(outColor, vertexColor, texCoord2, gl_FragCoord.xy, getDirB(normal));
     fragColor = outColor;
 }

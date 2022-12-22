@@ -83,6 +83,13 @@ vec3 acesTonemap(vec3 x) {
   return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 }
 
+vec3 jodieReinhardTonemap(vec3 c, float upper) {
+    float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+    vec3 tc = c / (upper * c + 1.0);
+
+    return mix(c / (upper * l + 1.0), tc, tc);
+}
+
 void main() {
     vec4 outColor = decodeHDR_0(texture(DiffuseSampler, texCoord));
 

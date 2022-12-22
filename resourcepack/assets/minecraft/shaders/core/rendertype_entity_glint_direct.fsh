@@ -4,6 +4,7 @@
 #moj_import <fog.glsl>
 #moj_import <utils.glsl>
 
+uniform mat4 ModelViewMat;
 uniform mat4 ProjMat;
 uniform sampler2D Sampler0;
 
@@ -11,35 +12,29 @@ uniform vec4 ColorModulator;
 uniform float FogStart;
 uniform float FogEnd;
 
-in vec4 vertexColor;
-in vec4 baseColor;
 in vec2 texCoord0;
-in vec2 texCoord2;
-in vec3 normal;
-in vec4 glpos;
 
 out vec4 fragColor;
 
 void main() {
     bool gui = isGUI(ProjMat);
-
-    if (!gui) {
-        discardControlGLPos(gl_FragCoord.xy, glpos);
-    }
+    bool hand = isHand(FogStart, FogEnd);
+    bool notpickup = notPickup(ModelViewMat);
 
     vec4 outColor = texture(Sampler0, texCoord0);
-    
+
     if (outColor.a < 0.1) {
         discard;
     }
 
-    outColor.rgb *= (baseColor * ColorModulator).rgb;
-    
-    if (!gui) {
-        outColor = getOutColor(outColor, vertexColor, texCoord2, gl_FragCoord.xy, getDirE(normal));
-    }
-    else {
-        outColor *= vertexColor;
+    outColor *= ColorModulator;
+    outColor.rgb *= 0.5;
+    outColor.a = 1.0;
+
+    if (!gui && !hand && notpickup) {
+        outColor.rgb *= 0.75;
+        outColor = getOutColorSTDALock(outColor, vec4(1.0), vec2(0.0), gl_FragCoord.xy);
+        outColor.gb = vec2(clamp(outColor.g - 0.5, 0.0, 0.5), 0.0);
     }
 
     fragColor = outColor;

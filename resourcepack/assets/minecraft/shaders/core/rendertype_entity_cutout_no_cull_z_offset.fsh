@@ -36,7 +36,7 @@ void main() {
         discard;
     }
 
-    outColor *= baseColor * ColorModulator;
+    outColor.rgb *= (baseColor * ColorModulator).rgb;
     outColor.rgb = mix(overlayColor.rgb, outColor.rgb, overlayColor.a);
 
     if (!gui && !hand && notpickup) {
