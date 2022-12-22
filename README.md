@@ -64,5 +64,6 @@ Basic shader that adds as much as possible from OptiFine shaders to the vanilla 
 See License.md for licensing. This pack requires Fabulous graphics on. Supports FOV 30-140, distance 12-32. For best experience, use FOV 70 with render distance 16!
 
 ## Credits
-- **BSL shaders - capttatsu** for reference code for some of the features (SSR, Tonemapping).
+- **BSL shaders - capttatsu** for reference code for some of the features (SSR).
 - **Auroras - nimitz (twitter: @stormoid)** for base implementation of End Auroroa.
+- **Non physical based atmospheric scattering - robobo1221** Site: http://www.robobo1221.net/shaders.
