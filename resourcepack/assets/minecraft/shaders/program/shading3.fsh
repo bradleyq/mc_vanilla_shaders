@@ -448,8 +448,11 @@ void main() {
                 backside = UNKNOWNM_CLEAR;
             }
 
+
             // apply ambient occlusion.
-            outColor.rgb *= vec3(texture(ShadingSampler, texCoord).b);
+            vec3 ao = vec3(texture(ShadingSampler, texCoord).b);
+            ao.rgb += vec3(PRNG(int(gl_FragCoord.x) + int(gl_FragCoord.y) * int(OutSize.x))) / 255.0;
+            outColor.rgb *= ao;
 
             // apply lighting color. not quite standard diffuse light equation since the blocks are already "pre-lit"
             vec3 shade = vec3(texture(ShadingSampler, texCoord).r);

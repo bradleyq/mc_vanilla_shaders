@@ -90,6 +90,19 @@ uint decodeUInt(vec4 ivec) {
     return uint(ivec.r) + (uint(ivec.g) << 8u) + (uint(ivec.b) << 16u) + (uint(ivec.a) << 24u);
 }
 
+int xorshift(int value) {
+    // Xorshift*32
+    value ^= value << 13;
+    value ^= value >> 17;
+    value ^= value << 5;
+    return value;
+}
+
+float PRNG(int seed) {
+    seed = xorshift(seed);
+    return abs(fract(float(seed) / 3141.592653));
+}
+
 vec4 encodeDepth(float depth) {
     return encodeUInt(floatBitsToUint(depth)); 
 }
@@ -103,7 +116,7 @@ float linearizeDepth(float depth) {
 }
 
 vec4 exponential_fog(vec4 inColor, vec4 fogColor, float depth, float lambda) {
-    float fogValue = exp(-lambda * depth);
+    float fogValue = exp(-lambda * depth * (1.0 + 0.05 * PRNG(int(gl_FragCoord.x * 1.983) + int(gl_FragCoord.y * 890.261) * int(OutSize.x))));
     return mix(fogColor, inColor, fogValue);
 }
 

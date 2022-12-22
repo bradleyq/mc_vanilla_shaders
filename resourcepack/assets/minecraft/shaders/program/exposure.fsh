@@ -78,7 +78,7 @@ float luma(vec3 color){
 void main() {
     vec4 outColor = decodeHDR_0(texture(DiffuseSampler, texCoord));
 
-    outColor.rgb /= clamp(exposure * 2.5, 0.75, 3.0);
+    outColor.rgb /= clamp(exposure * 2.5, 0.85, 3.0);
 
     fragColor = encodeHDR_0(outColor);
 }
