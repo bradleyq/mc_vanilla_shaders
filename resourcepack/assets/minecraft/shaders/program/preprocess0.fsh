@@ -25,6 +25,7 @@ out vec4 fragColor;
 #define DIM_NETHER 3
 #define DIM_MAX 3
 
+#define FOG_CAVE vec3(38.0 / 255.0, 38.0 / 255.0, 51.0 / 255.0)
 #define FOG_DEFAULT_WATER vec3(25.0 / 255.0, 25.0 / 255.0, 255.0 / 255.0)
 #define TINT_WATER vec3(0.0 / 255.0, 248.0 / 255.0, 255.0 / 255.0)
 #define FOG_WATER vec3(0.0 / 255.0, 37.0 / 255.0, 38.0 / 255.0)
@@ -40,7 +41,7 @@ out vec4 fragColor;
 #define FOG_DARKNESS_FAR 15.0
 #define FOG_DEFAULT_FAR 150.0
 #define FOG_TARGET 0.2
-#define FOG_DIST_MULT 2.75
+#define FOG_DIST_MULT 3.0
 #define FOG_DIST_OVERCAST_REDUCE 1.5
 
 #define FLAG_UNDERWATER 1<<0
@@ -143,7 +144,7 @@ vec4 encodeHDR_1(vec4 color) {
 }
 
 float luma(vec3 color){
-	return dot(color, vec3(0.299, 0.587, 0.114));
+    return dot(color, vec3(0.299, 0.587, 0.114));
 }
 
 /*
@@ -197,7 +198,7 @@ Post Temporals:
 [41] ApplyLight Sample 3
 [42] ApplyLight Sample 4
 [43] ApplyLight Average
-[44]
+[44] Cave
 [45]
 [46]
 [47]
@@ -220,9 +221,9 @@ void main() {
             vec2 offset = offsets[index - 32];
             float lum = 0.0;
             for (int i = 0; i < EXPOSURE_SAMPLES; i += 1) {
-                lum += luma(decodeHDR_0(texture(PrevMainSampler, EXPOSURE_RADIUS * (offset + poissonDisk[i + (index - 32) * EXPOSURE_SAMPLES]) * vec2(AuxSize0.y / AuxSize0.x, 1.0) + vec2(0.5))).rgb);
+                lum += log(luma(decodeHDR_0(texture(PrevMainSampler, EXPOSURE_RADIUS * (offset + poissonDisk[i + (index - 32) * EXPOSURE_SAMPLES]) * vec2(AuxSize0.y / AuxSize0.x, 1.0) + vec2(0.5))).rgb));
             }
-            lum = lum / EXPOSURE_SAMPLES - 2.0; // Fixed point only supports so subtract 2 [-2, 2]
+            lum = exp(lum / EXPOSURE_SAMPLES) - 2.0; // Fixed point only supports so subtract 2 [-2, 2]
             outColor = vec4(encodeFloat(clamp(lum, -2.0, 2.0)), 1.0); 
         }
         else if (index == 37) {
@@ -234,7 +235,7 @@ void main() {
 
             vec4 last = texture(PrevDataSampler, startData + 37.0 * incData);
             if (last.a == 1.0) {
-                lum = mix(lum, decodeFloat(last.rgb), 0.99);
+                lum = mix(lum, decodeFloat(last.rgb), 0.98);
             }
             outColor = vec4(encodeFloat(clamp(lum, -2.0, 2.0)), 1.0);
         }
@@ -256,7 +257,7 @@ void main() {
                 }
             }
             lightAvg = lightAvg / AL_SAMPLES;
-            outColor = vec4(encodeFloat(clamp(lightAvg, 0.0, 1.0)), 1.0); 
+            outColor = vec4(encodeFloat(clamp(lightAvg, 0.0, 1.0)), 1.0);
         }
         else if (index == 43) {
             float al = decodeFloat(texture(PrevDataSampler, startData + 38.0 * incData).rgb)
@@ -274,7 +275,12 @@ void main() {
             else if (last.a == 1.0) {
                 al = mix(al, decodeFloat(last.rgb), 0.995);
             }
-            outColor = vec4(encodeFloat(clamp(al, 0.0, 1.0)), 1.0);
+            outColor = vec4(encodeFloat(clamp(al, 0.5, 1.0)), 1.0); // [0.5, 1.0] to reduce inertia for cave checks
+        }
+        else if (index == 44) {
+            outColor = vec4(encodeFloat(smoothstep(2.0, 1.0, decodeFloat(texture(PrevDataSampler, startData + 37.0 * incData).rgb) + 2.0) 
+                                      * smoothstep(0.8, 1.0, decodeFloat(texture(PrevDataSampler, startData + 43.0 * incData).rgb))), 
+                            1.0);
         }
     }
     else if (temp.a < 1.0) {
@@ -317,6 +323,13 @@ void main() {
             if (temp.b > 0.2) {
                 temp.rgb = mix(FOG_WATER, temp.rgb, smoothstep(0.0, 0.05, length(temp.rgb / temp.b - FOG_DEFAULT_WATER)));
             }
+            else {
+                float lava = smoothstep(0.0, 0.05, length(temp.rgb - FOG_LAVA));
+                float snow = smoothstep(0.0, 0.05, length(temp.rgb - FOG_SNOW));
+                float blind = smoothstep(0.0, 0.05, length(temp.rgb - FOG_DARKNESS));
+                float cave = decodeFloat(texture(PrevDataSampler, startData + 44.0 * incData).rgb);
+                temp.rgb = mix(temp.rgb, FOG_CAVE, cave * (1.0 - lava) * (1.0 - snow) * (1.0 - blind));
+            }
             outColor = temp;
         }
         else if (index == 26) {
@@ -324,11 +337,11 @@ void main() {
         }
         else if (index == 27) {
             float range = FOG_DEFAULT_FAR;
-            float lava = 1.0 - smoothstep(0.0, 0.05, length(temp.rgb - FOG_LAVA));
+            float lava = smoothstep(0.05, 0.0, length(temp.rgb - FOG_LAVA));
             range = mix(range, FOG_LAVA_FAR, lava);
-            float snow = 1.0 - smoothstep(0.0, 0.05, length(temp.rgb - FOG_SNOW));
+            float snow = smoothstep(0.05, 0.0, length(temp.rgb - FOG_SNOW));
             range = mix(range, FOG_SNOW_FAR, snow);
-            float blind = 1.0 - smoothstep(0.0, 0.05, length(temp.rgb - FOG_DARKNESS));
+            float blind = smoothstep(0.05, 0.0, length(temp.rgb - FOG_DARKNESS));
             range = mix(range, FOG_DARKNESS_FAR, blind);
             outColor = vec4(encodeFloat(log(FOG_TARGET) / float(-range)), 0.0);
         }
@@ -367,8 +380,9 @@ void main() {
             int fstart = decodeInt(texture(DiffuseSampler, start + 26.0 * inc).rgb);
             if (fstart == -8) {
                 outColor = vec4(FOG_WATER, 1.0);
-            } else {
-                outColor = temp;
+            }             
+            else {
+                outColor = vec4(mix(temp.rgb, FOG_CAVE, decodeFloat(texture(PrevDataSampler, startData + 44.0 * incData).rgb)), 1.0);
             }
         }
         else if (index == 26) {

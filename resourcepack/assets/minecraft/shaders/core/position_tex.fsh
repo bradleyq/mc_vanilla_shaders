@@ -8,6 +8,7 @@ uniform vec4 ColorModulator;
 uniform vec2 ScreenSize;
 uniform mat4 ModelViewMat;
 uniform mat4 ProjMat;
+uniform mat3 IViewRotMat;
 
 in mat4 ProjInv;
 in vec3 cscale;
@@ -40,7 +41,7 @@ void main() {
                 vec3 p1 = c1 / cscale.x;
                 vec3 p2 = c2 / cscale.y;
                 vec3 p3 = c3 / cscale.z;
-                vec4 sunDir = ModelViewMat * vec4(normalize(p1 + p3 + OFFSET * normalize(p2 - p1)), 0.0);
+                vec4 sunDir = mat4(IViewRotMat) * vec4(normalize(p1 + p3 + OFFSET * normalize(p2 - p1)), 0.0);
                 color = vec4(encodeFloat(sunDir[index]), 1.0);
             }
             // store sun alpha (RainStrength)

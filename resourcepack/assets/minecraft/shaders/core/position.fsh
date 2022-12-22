@@ -106,9 +106,9 @@ void main() {
             // ndusq = ndusq * ndusq;
             vec4 skycol = ColorModulator;
             vec3 noise = vec3(PRNG(int(gl_FragCoord.x) + int(gl_FragCoord.y) * int(ScreenSize.x))) * 0.01;
-            skycol.rgb += (1.0 - length(skycol.rgb)) * (vec3(0.02, 0.04, 0.06));
+            skycol.rgb += (1.0 - clamp(length(skycol.rgb), 0.0, 1.0)) * (vec3(6.0 / 255.0, 6.0 / 255.0, 8.0 / 255.0));
             vec4 fc = FogColor;
-            fc.rgb += (1.0 - length(skycol.rgb)) * (vec3(0.01, 0.04, 0.03));
+            fc.rgb += (1.0 - clamp(length(skycol.rgb), 0.0, 1.0)) * (vec3(0.0 / 255.0, -2.0 / 255.0, -8.0 / 255.0));
             fc.rgb += noise;
             skycol = linear_fog_real(skycol, pow(1.0 - ndusq, 4.0), 0.0, 1.0, fc);
             skycol.a = 1.0;

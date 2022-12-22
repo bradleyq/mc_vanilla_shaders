@@ -80,10 +80,9 @@ void main() {
     near = PROJNEAR;
     far = ProjMat[3][2] * PROJNEAR / (ProjMat[3][2] + 2.0 * PROJNEAR);
 
-    sunDir = (inverse(ModelViewMat) * vec4(decodeFloat(texture(DataSampler, start).xyz), 
-                                         decodeFloat(texture(DataSampler, start + inc).xyz), 
-                                         decodeFloat(texture(DataSampler, start + 2.0 * inc).xyz),
-                                         1.0)).xyz;
+    sunDir = vec3(decodeFloat(texture(DataSampler, start).xyz), 
+                  decodeFloat(texture(DataSampler, start + inc).xyz), 
+                  decodeFloat(texture(DataSampler, start + 2.0 * inc).xyz));
     sunDir = normalize(sunDir);
     
     ProjInv = inverse(ProjMat * ModelViewMat);
@@ -96,5 +95,5 @@ void main() {
     int flags = int(texture(DataSampler, start + 30.0 * inc).r * 255.0);
     underWater = float((flags & FLAG_UNDERWATER) > 0);
 
-    cave = smoothstep(2.0, 1.0, decodeFloat(texture(DataSampler, start + 37.0 * inc).rgb) + 2.0) * smoothstep(0.8, 1.0, decodeFloat(texture(DataSampler, start + 43.0 * inc).rgb));
+    cave = decodeFloat(texture(DataSampler, start + 44.0 * inc).rgb);
 }

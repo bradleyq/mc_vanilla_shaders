@@ -82,10 +82,9 @@ void main() {
                         decodeFloat(texture(DataSampler, start + 22.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 23.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 24.0 * inc).xyz), 0.0,
                         0.0, 0.0, 0.0, 1.0);
 
-    sunDir = (inverse(ModelViewMat) * vec4(decodeFloat(texture(DataSampler, start).xyz), 
-                                         decodeFloat(texture(DataSampler, start + inc).xyz), 
-                                         decodeFloat(texture(DataSampler, start + 2.0 * inc).xyz),
-                                         1.0)).xyz;
+    sunDir = vec3(decodeFloat(texture(DataSampler, start).xyz), 
+                  decodeFloat(texture(DataSampler, start + inc).xyz), 
+                  decodeFloat(texture(DataSampler, start + 2.0 * inc).xyz));
     sunDir = normalize(sunDir);
 
     near = PROJNEAR;

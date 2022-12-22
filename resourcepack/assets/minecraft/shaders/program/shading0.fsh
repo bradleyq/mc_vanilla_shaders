@@ -101,7 +101,7 @@ vec4 backProject(vec4 vec) {
 
 float hash12(vec2 p)
 {
-	vec3 p3  = fract(vec3(p.xyx) * MOD3);
+    vec3 p3  = fract(vec3(p.xyx) * MOD3);
     p3 += dot(p3, p3.yzx + 19.19);
     return fract((p3.x + p3.y) * p3.z);
 }
@@ -159,7 +159,7 @@ int xorshift(int value) {
 }
 
 float luma(vec3 color) {
-	return dot(color, vec3(0.299, 0.587, 0.114));
+    return dot(color, vec3(0.299, 0.587, 0.114));
 }
 
 vec2 Volumetric(vec3 fragpos, vec3 sundir, float fragdepth, float rand) {

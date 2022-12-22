@@ -71,24 +71,22 @@ vec4 encodeHDR_1(vec4 color) {
 }
 
 float luma(vec3 color){
-	return dot(color, vec3(0.299, 0.587, 0.114));
+    return dot(color, vec3(0.299, 0.587, 0.114));
 }
 
-vec3 jodieReinhardTonemap(vec3 c, float upper) {
-    float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
-    vec3 tc = c / (upper * c + 1.0);
-
-    return mix(c / (upper * l + 1.0), tc, tc);
+vec3 acesTonemap(vec3 x) {
+  const float a = 2.51;
+  const float b = 0.03;
+  const float c = 2.1;
+  const float d = 0.59;
+  const float e = 0.14;
+  return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 }
 
 void main() {
     vec4 outColor = decodeHDR_0(texture(DiffuseSampler, texCoord));
 
-    // desaturate bright pixels for more realistic feel
-    // outColor.rgb = mix(outColor.rgb, vec3(luma(outColor.rgb)), clamp(pow(luma(outColor.rgb), 6.0) * 0.8, 0.0, 1.0));
-
-    // outColor.rgb = pow(clamp(outColor.rgb, 0.0, 1.0), vec3(0.45));
-    outColor = vec4(jodieReinhardTonemap(outColor.rgb, 0.4), 1.0);
+    outColor = vec4(acesTonemap(outColor.rgb), 1.0);
 
     fragColor = outColor;
 }

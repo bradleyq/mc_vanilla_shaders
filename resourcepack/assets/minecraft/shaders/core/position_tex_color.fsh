@@ -30,7 +30,7 @@ out vec4 fragColor;
 #define AURORA_SPEED 40.0
 #define AURORA_SPEED2 80.0
 #define AURORA_SAMPLES 25
-#define AURORA_INTENSITY 1.8
+#define AURORA_INTENSITY 1.2
 
 mat2 mm2(in float a) {
     float c = cos(a), s = sin(a);return mat2(c,s,-s,c);
@@ -49,10 +49,10 @@ vec2 tri2(in vec2 p) {
 float triNoise2d(in vec2 p, float spd) {
     float z = 1.8;
     float z2 = 2.5;
-	float rz = 0.0;
+    float rz = 0.0;
     p *= mm2(p.x * 0.06);
     vec2 bp = p;
-	for (float i = 0.0; i < 5.0; i++ ) {
+    for (float i = 0.0; i < 5.0; i++ ) {
         vec2 dg = tri2(bp * 1.85) * 0.75;
         dg *= mm2(GameTime * PI * spd);
         p -= dg / z2;
@@ -60,11 +60,11 @@ float triNoise2d(in vec2 p, float spd) {
         bp *= 1.3;
         z2 *= 0.45;
         z *= 0.42;
-		p *= 1.21 + (rz - 1.0) * 0.02;
+        p *= 1.21 + (rz - 1.0) * 0.02;
         
         rz += tri(p.x + tri(p.y)) * z;
         p *= -m2;
-	}
+    }
     return clamp(1.0 / pow(rz * 29.0, 1.3),0.0, 0.55);
 }
 
@@ -131,7 +131,7 @@ void main() {
             } 
 
             else if (index >= 0 && index <= 2) {
-                vec4 sunDir = modelMat * normalize(vec4(0.0, -1.0, 0.0, 0.0));
+                vec4 sunDir = vec4(0.0, -1.0, 0.0, 0.0);
                 outColor = vec4(encodeFloat(sunDir[index]), 1.0);
             }
 

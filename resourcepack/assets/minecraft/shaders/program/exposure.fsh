@@ -72,13 +72,13 @@ vec4 encodeHDR_1(vec4 color) {
 }
 
 float luma(vec3 color){
-	return dot(color, vec3(0.299, 0.587, 0.114));
+    return dot(color, vec3(0.299, 0.587, 0.114));
 }
 
 void main() {
     vec4 outColor = decodeHDR_0(texture(DiffuseSampler, texCoord));
 
-    outColor.rgb /= clamp(exposure, 0.8, 3.0);
+    outColor.rgb /= clamp(exposure * 2.5, 0.75, 3.0);
 
     fragColor = encodeHDR_0(outColor);
 }

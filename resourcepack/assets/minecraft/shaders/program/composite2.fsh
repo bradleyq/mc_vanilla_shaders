@@ -153,9 +153,9 @@ vec3 blendmult(vec3 dst, vec4 src) {
 
 /*
 
-	Non physical based atmospheric scattering made by robobo1221
-	Site: http://www.robobo1221.net/shaders
-	Shadertoy: http://www.shadertoy.com/user/robobo1221
+    Non physical based atmospheric scattering made by robobo1221
+    Site: http://www.robobo1221.net/shaders
+    Shadertoy: http://www.shadertoy.com/user/robobo1221
 
 */
 
@@ -176,7 +176,7 @@ vec3 blendmult(vec3 dst, vec4 src) {
 #define smooth(x) x*x*(3.0-2.0*x)
 
 // #define zenithDensity(x) atmDensity / pow(max((x - zenithOffset) / (1.0 - zenithOffset), 0.008), 0.75)
-#define zenithDensity(x) atmDensity / pow(smoothClamp(((x - zenithOffset < 0.0 ? -(x - zenithOffset) * 0.2 : (x - zenithOffset) * 0.4)) / (1.0 - zenithOffset), 0.03, 1.0), 0.75)
+#define zenithDensity(x) atmDensity / pow(smoothClamp(((x - zenithOffset < 0.0 ? -(x - zenithOffset) * 0.2 : (x - zenithOffset) * 0.6)) / (1.0 - zenithOffset), 0.03, 1.0), 0.75)
 
 float smoothClamp(float x, float a, float b)
 {
@@ -184,52 +184,50 @@ float smoothClamp(float x, float a, float b)
 }
 
 vec3 getSkyAbsorption(vec3 col, float density, float lpy) {
-	
-	vec3 absorption = col * -density * (1.0 + pow(clamp(-lpy, 0.0, 1.0), 2.0) * 8.0);
-	     absorption = exp2(absorption) * 2.0;
-	
-	return absorption;
+    
+    vec3 absorption = col * -density * (1.0 + pow(clamp(-lpy, 0.0, 1.0), 2.0) * 8.0);
+         absorption = exp2(absorption) * 2.0;
+    
+    return absorption;
 }
 
-float getSunPoint(vec3 p, vec3 lp){
-	return smoothstep(0.03, 0.01, distance(p, lp)) * 40.0;
+float getSunPoint(vec3 p, vec3 lp) {
+    return smoothstep(0.03, 0.01, distance(p, lp)) * 40.0;
 }
 
-float getRayleigMultiplier(vec3 p, vec3 lp){
-	return 1.0 + pow(1.0 - clamp(distance(p, lp), 0.0, 1.0), 1.5) * pi * 0.5;
+float getRayleigMultiplier(vec3 p, vec3 lp) {
+    return 1.0 + pow(1.0 - clamp(distance(p, lp), 0.0, 1.0), 1.5) * pi * 0.5;
 }
 
-float getMie(vec3 p, vec3 lp){
-	float disk = clamp(1.0 - pow(max(distance(p, lp), 0.02), mix(0.3, 0.1, clamp(2.0 * (exp(max(lp.y, 0.0)) - 1.0), 0.0, 1.0)) / 1.718281828), 0.0, 1.0);
-	
-	return disk*disk*(3.0 - 2.0 * disk) * pi * 2.0;
+float getMie(vec3 p, vec3 lp) {
+    float disk = clamp(1.0 - pow(max(distance(p, lp), 0.02), mix(0.3, 0.08, clamp(2.0 * (exp(max(lp.y, 0.0)) - 1.0), 0.0, 1.0)) / 1.718281828), 0.0, 1.0);
+    
+    return disk*disk*(3.0 - 2.0 * disk) * pi * 2.0;
 }
 
-vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, float cave, bool fog){
-	float zenith = zenithDensity(p.y);
+vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog){
+    float zenith = zenithDensity(p.y);
     float ly = lp.y < 0.0 ? lp.y * 0.3 : lp.y;
     float multiScatterPhase = mix(multiScatterPhaseClear, multiScatterPhaseOvercast, rain);
-	float sunPointDistMult =  clamp(length(max(ly + multiScatterPhase - zenithOffset, 0.0)), 0.0, 1.0);
-	
-	float rayleighMult = getRayleigMultiplier(p, lp);
-	vec3 sky = mix(skyColorClear, skyColorOvercast, rain);
-	vec3 absorption = getSkyAbsorption(sky, zenith, lp.y);
+    float sunPointDistMult =  clamp(length(max(ly + multiScatterPhase - zenithOffset, 0.0)), 0.0, 1.0);
+    
+    float rayleighMult = getRayleigMultiplier(p, lp);
+    vec3 sky = mix(skyColorClear, skyColorOvercast, rain);
+    vec3 absorption = getSkyAbsorption(sky, zenith, lp.y);
     vec3 sunAbsorption = getSkyAbsorption(sky, zenithDensity(ly + multiScatterPhase), lp.y);
 
-	sky = sky * zenith * rayleighMult * (1.0 - (0.7 * ly));
+    sky = sky * zenith * rayleighMult * (1.0 - (0.75 * ly));
 
-	vec3 totalSky = mix(sky * absorption, sky / (sky * 0.5 + 0.5), sunPointDistMult);
-	if (!fog) {
-	    vec3 mie = getMie(p, lp) * sunAbsorption * sunAbsorption;
+    vec3 totalSky = mix(sky * absorption, sky / (sky * 0.5 + 0.5), sunPointDistMult);
+    if (!fog) {
+        vec3 mie = getMie(p, lp) * sunAbsorption * sunAbsorption;
         mie += getSunPoint(p, lp) * absorption * clamp(1.01 - rain, 0.0, 1.0);
         totalSky += mie;
     }
-	
+    
     totalSky *= sunAbsorption * 0.5 + 0.5 * length(sunAbsorption);
-	
-    totalSky = mix(totalSky, 0.15 * totalSky, cave);
 
-	return totalSky;
+    return totalSky;
 }
 
 vec3 jodieReinhardTonemap(vec3 c, float upper) {
@@ -247,16 +245,18 @@ void main() {
 
     vec4 calculatedFog = vec4(1.0);
 
-    vec3 color = getAtmosphericScattering(fragpos, sunDir, rain, cave, true);
+    vec3 color = getAtmosphericScattering(fragpos, sunDir, rain, true);
 
     float sdu = dot(vec3(0.0, 1.0, 0.0), sunDir);
     if (underWater > 0.5) {
         calculatedFog.rgb = fogColor.rgb;
     }
-    else if (sdu > 0.0) {
-        calculatedFog = vec4(color, 1.0);
-    } else {
-        calculatedFog.rgb = mix(fogColor.rgb, color, clamp(5.0 * (0.2 - pow(abs(sdu), 1.5)), 0.0, 1.0));
+    else {
+        float condition = (1.0 - cave);
+        if (sdu < 0.0) {
+            condition *= clamp(5.0 * (0.2 - pow(abs(sdu), 1.5)), 0.0, 1.0);
+        }
+        calculatedFog.rgb = mix(fogColor.rgb, color, condition);
     }
 
     op_layers[0] = DEFAULT;
