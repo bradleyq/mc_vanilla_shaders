@@ -23,6 +23,7 @@ Known issues:
 - some translucents visible over fog (slime entities)
 - poor fps near water
 - poor fps all the time lol
+- blindness fog underwater in some biomes (swamp, warm ocean)
 
 ## Overview
 Basic shader that adds as much as possible from OptiFine shaders to the vanilla transparency shader available in "Fabulous" graphics setting. Due to limited material, light, time, and shadow information, most advanced features are not possible. A good number, however, are. I have ported them here. Most samples in credits are heavily modified to fit with the vanilla pipeline. Supports all FOV and render distances.
