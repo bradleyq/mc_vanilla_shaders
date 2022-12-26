@@ -21,7 +21,7 @@ void main() {
     bool hand = isHand(FogStart, FogEnd);
     bool notpickup = notPickup(ModelViewMat);
 
-    vec4 outColor = texture(Sampler0, texCoord0);
+    vec4 outColor = textureLod(Sampler0, texCoord0, -4);
 
     if (outColor.a < 0.1) {
         discard;

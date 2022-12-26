@@ -30,7 +30,7 @@ out vec4 fragColor;
 #define AURORA_SPEED 40.0
 #define AURORA_SPEED2 80.0
 #define AURORA_SAMPLES 25
-#define AURORA_INTENSITY 1.2
+#define AURORA_INTENSITY 1.8
 
 mat2 mm2(in float a) {
     float c = cos(a), s = sin(a);return mat2(c,s,-s,c);
@@ -96,7 +96,7 @@ vec4 aurora(vec3 dir) {
 }
 
 void main() {
-    vec4 outColor = texture(Sampler0, texCoord0);
+    vec4 outColor = textureLod(Sampler0, texCoord0, -4);
     int index = inControl(gl_FragCoord.xy, ScreenSize.x);
     bool gui = isGUI(ProjMat);
     bool hand = isHand(FogStart, FogEnd);

@@ -32,7 +32,7 @@
 #define FACETYPE_Z 2
 #define FACETYPE_S 3
 
-#define EMISS_MULT 3.0
+#define EMISS_MULT 4.0
 
 #define DIM_UNKNOWN 0
 #define DIM_OVER 1

@@ -29,7 +29,7 @@ out vec4 fragColor;
 #define PROJNEAR 0.05
 #define FUDGE 32.0
 
-#define EMISS_MULT 3.0
+#define EMISS_MULT 4.0
 
 #define TINT_WATER vec3(0.0 / 255.0, 248.0 / 255.0, 255.0 / 255.0)
 #define TINT_WATER_DISTANCE 48.0
@@ -107,18 +107,18 @@ vec4 backProject(vec4 vec) {
 #define zenithOffset -0.04
 #define multiScatterPhaseClear 0.05
 #define multiScatterPhaseOvercast 0.1
-#define atmDensity 0.5
+#define atmDensity 0.55
 
-#define anisotropicIntensityClear 0.0 //Higher numbers result in more anisotropic scattering
-#define anisotropicIntensityOvercast 0.2 //Higher numbers result in more anisotropic scattering
+#define anisotropicIntensityClear 0.1 //Higher numbers result in more anisotropic scattering
+#define anisotropicIntensityOvercast 0.3 //Higher numbers result in more anisotropic scattering
 
-#define skyColorClear vec3(0.3, 0.53, 1.0) * (1.0 + anisotropicIntensityClear) //Make sure one of the conponents is never 0.0
-#define skyColorOvercast vec3(0.8, 0.9, 1.0) * (1.0 + anisotropicIntensityOvercast) //Make sure one of the conponents is never 0.0
+#define skyColorClear vec3(0.2, 0.43, 1.0) * (1.0 + anisotropicIntensityClear) //Make sure one of the conponents is never 0.0
+#define skyColorOvercast vec3(0.5, 0.55, 0.6) * (1.0 + anisotropicIntensityOvercast) //Make sure one of the conponents is never 0.0
 
 #define smooth(x) x*x*(3.0-2.0*x)
 
 // #define zenithDensity(x) atmDensity / pow(max((x - zenithOffset) / (1.0 - zenithOffset), 0.008), 0.75)
-#define zenithDensity(x) atmDensity / pow(smoothClamp(((x - zenithOffset < 0.0 ? -(x - zenithOffset) * 0.2 : (x - zenithOffset) * 0.6)) / (1.0 - zenithOffset), 0.03, 1.0), 0.75)
+#define zenithDensity(x) atmDensity / pow(smoothClamp(((x - zenithOffset < 0.0 ? -(x - zenithOffset) * 0.2 : (x - zenithOffset) * 0.8)) / (1.0 - zenithOffset), 0.03, 1.0), 0.75)
 
 float smoothClamp(float x, float a, float b)
 {
@@ -146,7 +146,7 @@ float getRayleigMultiplier(vec3 p, vec3 lp) {
 }
 
 float getMie(vec3 p, vec3 lp) {
-    float disk = clamp(1.0 - pow(max(distance(p, lp), 0.02), mix(0.3, 0.08, clamp(2.0 * (exp(max(lp.y, 0.0)) - 1.0), 0.0, 1.0)) / 1.718281828), 0.0, 1.0);
+    float disk = clamp(1.0 - pow(max(distance(p, lp), 0.02), mix(0.16, 0.08, clamp(2.0 * (exp(max(lp.y, 0.0)) - 1.0), 0.0, 1.0)) / 1.718281828), 0.0, 1.0);
     
     return disk*disk*(3.0 - 2.0 * disk) * pi * 2.0;
 }
@@ -162,12 +162,12 @@ vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog) {
     vec3 absorption = getSkyAbsorption(sky, zenith, lp.y);
     vec3 sunAbsorption = getSkyAbsorption(sky, zenithDensity(ly + multiScatterPhase), lp.y);
 
-    sky = sky * zenith * rayleighMult * (1.0 - (0.75 * ly));
+    sky = sky * zenith * rayleighMult;
 
     vec3 totalSky = mix(sky * absorption, sky / (sky * 0.5 + 0.5), sunPointDistMult);
     if (!fog) {
         vec3 mie = getMie(p, lp) * sunAbsorption * sunAbsorption;
-        mie += getSunPoint(p, lp) * absorption * clamp(1.01 - rain, 0.0, 1.0);
+        mie += getSunPoint(p, lp) * absorption * clamp(1.02 - rain, 0.0, 1.0);
         totalSky += mie;
     }
     
@@ -205,7 +205,7 @@ float ditherGradNoise() {
 }
 
 float luma(vec3 color) {
-    return dot(color, vec3(0.299, 0.587, 0.114));
+    return dot(color, vec3(0.2126, 0.7152, 0.0722));
 }
 
 vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec2 randsamples[64]) {
@@ -256,7 +256,7 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec2 randsam
         skycol = getAtmosphericScattering(rayDir, sunDir, rain, false);
 
         vec3 moonDir = normalize(vec3(-sunDir.xy, 0.0));
-        skycol += vec3(getMoonPoint(rayDir, moonDir)) * (1.0 - day);
+        skycol += vec3(getMoonPoint(rayDir, moonDir)) * (1.0 - day) * (1.0 - rain);
         
         skycol = mix(skycol, fogColor.rgb, cave);
     }

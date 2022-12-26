@@ -14,8 +14,8 @@
         "clouds",
         "weather",
         "temporalFrame",
-        { "name": "temporals1", "width": 48, "height": 1, "bilinear": false },
-        { "name": "temporals2", "width": 48, "height": 1, "bilinear": false }
+        { "name": "temporals1", "width": 64, "height": 1, "bilinear": false },
+        { "name": "temporals2", "width": 64, "height": 1, "bilinear": false }
     ],
     "passes": [
         {
@@ -132,12 +132,6 @@
                     "name": "DiffuseDepthSampler",
                     "id": "swap1"
                 }
-            ],
-            "uniforms": [
-                {
-                    "name":"DirX",
-                    "values": [ 1.0 ]
-                }
             ]
         },
         {
@@ -152,12 +146,6 @@
                 {
                     "name": "DiffuseDepthSampler",
                     "id": "swap1"
-                }
-            ],
-            "uniforms": [
-                {
-                    "name":"DirX",
-                    "values": [ 0.0 ]
                 }
             ]
         },
@@ -267,7 +255,7 @@
         {
             "name": "composite2",
             "intarget": "swap2",
-            "outtarget": "swap7",
+            "outtarget": "temporalFrame",
             "auxtargets": [
                 {
                     "name": "DataSampler",
@@ -316,20 +304,136 @@
             ]
         },
         {
-            "name": "exposure",
-            "intarget": "swap7",
-            "outtarget": "temporalFrame",
+            "name": "postprocess0",
+            "intarget": "swap6",
+            "outtarget": "swap5",
             "auxtargets": [
                 {
                     "name": "DataSampler",
                     "id": "temporals1"
+                },
+                {
+                    "name": "FullResSampler",
+                    "id": "temporalFrame"
+                }
+            ],
+            "uniforms": [
+                {
+                    "name":"Level",
+                    "values": [ 0.0 ]
                 }
             ]
         },
         {
-            "name": "final",
+            "name": "postprocess0",
+            "intarget": "swap5",
+            "outtarget": "swap6",
+            "auxtargets": [
+                {
+                    "name": "DataSampler",
+                    "id": "temporals1"
+                },
+                {
+                    "name": "FullResSampler",
+                    "id": "temporalFrame"
+                }
+            ],
+            "uniforms": [
+                {
+                    "name":"Level",
+                    "values": [ 1.0 ]
+                }
+            ]
+        },
+        {
+            "name": "postprocess0",
+            "intarget": "swap6",
+            "outtarget": "swap5",
+            "auxtargets": [
+                {
+                    "name": "DataSampler",
+                    "id": "temporals1"
+                },
+                {
+                    "name": "FullResSampler",
+                    "id": "temporalFrame"
+                }
+            ],
+            "uniforms": [
+                {
+                    "name":"Level",
+                    "values": [ 2.0 ]
+                }
+            ]
+        },
+        {
+            "name": "postprocess0",
+            "intarget": "swap5",
+            "outtarget": "swap6",
+            "auxtargets": [
+                {
+                    "name": "DataSampler",
+                    "id": "temporals1"
+                },
+                {
+                    "name": "FullResSampler",
+                    "id": "temporalFrame"
+                }
+            ],
+            "uniforms": [
+                {
+                    "name":"Level",
+                    "values": [ 3.0 ]
+                }
+            ]
+        },
+        {
+            "name": "postprocess1",
+            "intarget": "swap6",
+            "outtarget": "swap5",
+            "uniforms": [
+                {
+                    "name":"Level",
+                    "values": [ 3.0 ]
+                }
+            ]
+        },
+        {
+            "name": "postprocess1",
+            "intarget": "swap5",
+            "outtarget": "swap6",
+            "uniforms": [
+                {
+                    "name":"Level",
+                    "values": [ 2.0 ]
+                }
+            ]
+        },
+        {
+            "name": "postprocess1",
+            "intarget": "swap6",
+            "outtarget": "swap5",
+            "uniforms": [
+                {
+                    "name":"Level",
+                    "values": [ 1.0 ]
+                }
+            ]
+        },
+        {
+            "name": "postprocess2",
             "intarget": "temporalFrame",
-            "outtarget": "minecraft:main"
+            "outtarget": "minecraft:main",
+            "auxtargets": [
+                {
+                    "name": "DataSampler",
+                    "id": "temporals1"
+                },
+                {
+                    "name": "BloomSampler",
+                    "id": "swap5"
+                }
+            ]
         }
     ]
 }

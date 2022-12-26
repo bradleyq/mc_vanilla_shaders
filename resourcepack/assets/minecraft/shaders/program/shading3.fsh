@@ -28,7 +28,7 @@ out vec4 fragColor;
 #define PROJNEAR 0.05
 #define FUDGE 32.0
 
-#define EMISS_MULT 3.0
+#define EMISS_MULT 4.0
 
 #define TINT_WATER vec3(0.0 / 255.0, 248.0 / 255.0, 255.0 / 255.0)
 #define TINT_WATER_DISTANCE 48.0
@@ -141,29 +141,29 @@ vec4 encodeHDR_1(vec4 color) {
 }
 
 // tweak lighting color here
-#define NOON_CLEAR vec3(1.2, 1.15, 1.1) * 2.5
-#define NOONA_CLEAR vec3(0.5, 0.55, 0.75) * 1.25
-#define NOONM_CLEAR vec3(0.45, 0.5, 0.7) * 1.25
-#define EVENING_CLEAR vec3(1.35, 0.8, 0.4) * 1.75
-#define EVENINGA_CLEAR vec3(0.4, 0.45, 0.75) * 1.25
-#define EVENINGM_CLEAR vec3(0.3, 0.35, 0.7) * 1.25
+#define NOON_CLEAR vec3(1.2, 1.15, 1.1) * 3.0
+#define NOONA_CLEAR vec3(0.5, 0.55, 0.75) * 2.25
+#define NOONM_CLEAR vec3(0.45, 0.5, 0.7) * 2.25
+#define EVENING_CLEAR vec3(1.35, 0.8, 0.4) * 2.25
+#define EVENINGA_CLEAR vec3(0.45, 0.5, 0.75) * 2.0
+#define EVENINGM_CLEAR vec3(0.3, 0.35, 0.7) * 2.0
 #define NIGHT_CLEAR vec3(0.65, 0.65, 0.7) * 0.7
 #define NIGHTA_CLEAR vec3(0.75, 0.8, 0.9) * 0.7
 #define NIGHTM_CLEAR vec3(1.1, 1.3, 1.4) * 0.7
 
-#define NOON_OVERCAST vec3(1.0, 1.05, 1.1) * 1.5
-#define NOONA_OVERCAST vec3(0.7, 0.72, 0.75) * 1.25
-#define NOONM_OVERCAST vec3(0.65, 0.65, 0.65) * 1.25
-#define EVENING_OVERCAST vec3(1.0, 0.9, 0.85) * 1.3
-#define EVENINGA_OVERCAST vec3(0.7, 0.72, 0.75) * 1.25
-#define EVENINGM_OVERCAST vec3(0.6, 0.6, 0.6) * 1.25
+#define NOON_OVERCAST vec3(1.0, 1.05, 1.1) * 2.5
+#define NOONA_OVERCAST vec3(0.7, 0.72, 0.75) * 2.5
+#define NOONM_OVERCAST vec3(0.65, 0.65, 0.65) * 2.5
+#define EVENING_OVERCAST vec3(1.0, 0.9, 0.85) * 1.0
+#define EVENINGA_OVERCAST vec3(0.7, 0.72, 0.75) * 1.0
+#define EVENINGM_OVERCAST vec3(0.6, 0.6, 0.6) * 1.0
 #define NIGHT_OVERCAST vec3(0.65, 0.65, 0.65) * 0.7
 #define NIGHTA_OVERCAST vec3(0.75, 0.75, 0.75) * 0.7
 #define NIGHTM_OVERCAST vec3(1.0, 1.0, 1.0) * 0.7
 
 #define END_CLEAR vec3(0.8, 0.85, 0.85)
-#define ENDA_CLEAR vec3(0.97, 0.97, 1.05)
-#define ENDM_CLEAR vec3(1.15, 1.0, 1.2)
+#define ENDA_CLEAR vec3(0.9, 0.9, 0.95)
+#define ENDM_CLEAR vec3(1.0, 0.9, 1.0)
 
 #define NETHER_CLEAR vec3(1.15, 1.1, 1.0)
 #define NETHERA_CLEAR vec3(1.1, 1.0, 1.0)
@@ -180,7 +180,7 @@ float linearizeDepth(float depth) {
 }
 
 float luma(vec3 color) {
-    return dot(color, vec3(0.299, 0.587, 0.114));
+    return dot(color, vec3(0.2126, 0.7152, 0.0722));
 }
 
 vec4 backProject(vec4 vec) {
@@ -202,18 +202,18 @@ vec4 backProject(vec4 vec) {
 #define zenithOffset -0.04
 #define multiScatterPhaseClear 0.05
 #define multiScatterPhaseOvercast 0.1
-#define atmDensity 0.5
+#define atmDensity 0.55
 
-#define anisotropicIntensityClear 0.0 //Higher numbers result in more anisotropic scattering
-#define anisotropicIntensityOvercast 0.2 //Higher numbers result in more anisotropic scattering
+#define anisotropicIntensityClear 0.1 //Higher numbers result in more anisotropic scattering
+#define anisotropicIntensityOvercast 0.3 //Higher numbers result in more anisotropic scattering
 
-#define skyColorClear vec3(0.3, 0.53, 1.0) * (1.0 + anisotropicIntensityClear) //Make sure one of the conponents is never 0.0
-#define skyColorOvercast vec3(0.8, 0.9, 1.0) * (1.0 + anisotropicIntensityOvercast) //Make sure one of the conponents is never 0.0
+#define skyColorClear vec3(0.2, 0.43, 1.0) * (1.0 + anisotropicIntensityClear) //Make sure one of the conponents is never 0.0
+#define skyColorOvercast vec3(0.5, 0.55, 0.6) * (1.0 + anisotropicIntensityOvercast) //Make sure one of the conponents is never 0.0
 
 #define smooth(x) x*x*(3.0-2.0*x)
 
 // #define zenithDensity(x) atmDensity / pow(max((x - zenithOffset) / (1.0 - zenithOffset), 0.008), 0.75)
-#define zenithDensity(x) atmDensity / pow(smoothClamp(((x - zenithOffset < 0.0 ? -(x - zenithOffset) * 0.2 : (x - zenithOffset) * 0.6)) / (1.0 - zenithOffset), 0.03, 1.0), 0.75)
+#define zenithDensity(x) atmDensity / pow(smoothClamp(((x - zenithOffset < 0.0 ? -(x - zenithOffset) * 0.2 : (x - zenithOffset) * 0.8)) / (1.0 - zenithOffset), 0.03, 1.0), 0.75)
 
 float smoothClamp(float x, float a, float b)
 {
@@ -232,12 +232,16 @@ float getSunPoint(vec3 p, vec3 lp) {
     return smoothstep(0.03, 0.01, distance(p, lp)) * 40.0;
 }
 
+float getMoonPoint(vec3 p, vec3 lp) {
+    return smoothstep(0.05, 0.01, distance(p, lp)) * 1.0;
+}
+
 float getRayleigMultiplier(vec3 p, vec3 lp) {
     return 1.0 + pow(1.0 - clamp(distance(p, lp), 0.0, 1.0), 1.5) * pi * 0.5;
 }
 
 float getMie(vec3 p, vec3 lp) {
-    float disk = clamp(1.0 - pow(max(distance(p, lp), 0.02), mix(0.3, 0.08, clamp(2.0 * (exp(max(lp.y, 0.0)) - 1.0), 0.0, 1.0)) / 1.718281828), 0.0, 1.0);
+    float disk = clamp(1.0 - pow(max(distance(p, lp), 0.02), mix(0.16, 0.08, clamp(2.0 * (exp(max(lp.y, 0.0)) - 1.0), 0.0, 1.0)) / 1.718281828), 0.0, 1.0);
     
     return disk*disk*(3.0 - 2.0 * disk) * pi * 2.0;
 }
@@ -253,12 +257,12 @@ vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog) {
     vec3 absorption = getSkyAbsorption(sky, zenith, lp.y);
     vec3 sunAbsorption = getSkyAbsorption(sky, zenithDensity(ly + multiScatterPhase), lp.y);
 
-    sky = sky * zenith * rayleighMult * (1.0 - (0.75 * ly));
+    sky = sky * zenith * rayleighMult;
 
     vec3 totalSky = mix(sky * absorption, sky / (sky * 0.5 + 0.5), sunPointDistMult);
     if (!fog) {
         vec3 mie = getMie(p, lp) * sunAbsorption * sunAbsorption;
-        mie += getSunPoint(p, lp) * absorption * clamp(1.01 - rain, 0.0, 1.0);
+        mie += getSunPoint(p, lp) * absorption * clamp(1.02 - rain, 0.0, 1.0);
         totalSky += mie;
     }
     
@@ -335,7 +339,7 @@ void main() {
         vec2 sec2 = texture(DiffuseSampler, texCoord + vec2(-1.0, 0.0) * oneTexel).xy;
         
         sec = sec1.y;
-        if (abs(outColor.x - sec2.x) < abs(outColor.x - sec1.x)) {
+        if ((abs(outColor.x - sec2.x) < abs(outColor.x - sec1.x) && texCoord.x > oneTexel.x) || texCoord.x >= 1.0 - oneTexel.x) {
             sec = sec2.y;
         }
         outColor = decodeYUV(outColor, sec);

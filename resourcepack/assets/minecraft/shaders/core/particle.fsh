@@ -17,7 +17,7 @@ out vec4 fragColor;
 #define BLOCK_ALPHA 0.75
 
 void main() {
-    vec4 color = texture(Sampler0, texCoord0) * baseColor * vertexColor * ColorModulator;
+    vec4 color = textureLod(Sampler0, texCoord0, -4) * baseColor * vertexColor * ColorModulator;
 
     if (color.a < ALPHACUTOFF) {
         discard;

@@ -4,7 +4,6 @@ uniform sampler2D DiffuseSampler;
 uniform sampler2D DiffuseDepthSampler;
 uniform vec2 OutSize;
 uniform float Time;
-uniform float DirX;
 
 in vec2 texCoord;
 in vec2 oneTexel;
@@ -20,7 +19,7 @@ out vec4 fragColor;
 #define PROJNEAR 0.05
 #define FUDGE 32.0
 
-#define EMISS_MULT 3.0
+#define EMISS_MULT 4.0
 
 vec3 encodeInt(int i) {
     int s = int(i < 0) * 128;
@@ -82,14 +81,13 @@ float linearizeDepth(float depth) {
 #define BLF_STD_MIN 1.0
 #define BLF_STD_MAX 10.0
 #define BLF_STD_MULT 0.2
+#define BLF_IS_X false
 
-float Gaussian(float sigma, float x)
-{
+float Gaussian(float sigma, float x) {
     return exp(-(x*x) / (2.0 * sigma*sigma));
 }
 
-vec3 JoinedBilateralGaussianBlur(vec2 uv, float sigX, float sigY, float sigV, float stride, bool x)
-{   
+vec3 JoinedBilateralGaussianBlurY(vec2 uv, float sigX, float sigY, float sigV, float stride) {   
 
     float total = 0.0;
     vec3 ret = vec3(0.0);
@@ -98,17 +96,16 @@ vec3 JoinedBilateralGaussianBlur(vec2 uv, float sigX, float sigY, float sigV, fl
     
     for (float i = -BLF_SAMPLES * stride; i <= BLF_SAMPLES * stride; i+= stride)
     {
-        float fg = Gaussian( sigY, i );
+        float fg = Gaussian(sigY, i);
 
-        float offsetx = x ? i * oneTexel.x : 0.0;
-        float offsety = x ? 0.0 : i * oneTexel.y;
+        float offsety = i * oneTexel.y;
 
-        float sd = decodeDepth(texture(DiffuseDepthSampler, uv + vec2(offsetx, offsety)));
+        float sd = decodeDepth(texture(DiffuseDepthSampler, uv + vec2(0.0, offsety)));
                     
-        float fv = Gaussian( sigV, abs(sd - depth) );
+        float fv = Gaussian(sigV, abs(sd - depth));
         
-        total += fg*fv;
-        ret += fg*fv * texture(DiffuseSampler, uv + vec2(offsetx, offsety / 2.0)).rgb;
+        total += fg * fv;
+        ret += fg * fv * texture(DiffuseSampler, uv + vec2(0.0, offsety / 2.0)).rgb;
     }
         
     return ret / total;
@@ -122,7 +119,7 @@ void main() {
     float stride = clamp(BLF_STRIDE_MULT * OutSize.y / 1440.0 / ratio, BLF_STRIDE_MIN, BLF_STRIDE_MAX);
     float st_dev = clamp(BLF_STD_MULT * OutSize.y / 1440.0 / ratio, BLF_STD_MIN, BLF_STD_MAX);
 
-    outColor = vec4(JoinedBilateralGaussianBlur(texCoord, st_dev, st_dev, sigV, stride, DirX > 0.5), 1.0);
+    outColor = vec4(JoinedBilateralGaussianBlurY(texCoord, st_dev, st_dev, sigV, stride), 1.0);
 
     fragColor = outColor;
 }

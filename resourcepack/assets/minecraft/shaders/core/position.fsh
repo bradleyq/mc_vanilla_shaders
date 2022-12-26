@@ -33,7 +33,8 @@ float PRNG(int seed) {
     return abs(fract(float(seed) / 3141.592653));
 }
 
-
+#define SKY_NIGHT vec3(12.0 / 255.0, 14.0 / 255.0, 16.0 / 255.0)
+#define FOG_NIGHT_BOOST vec3(6.0 / 255.0, 7.0 / 255.0, 1.0 / 255.0)
 
 // at this point, the entire sky is drawable: isSky for sky, stars and void plane for everything else.
 // similar logic can be added in vsh to separate void plane from stars.
@@ -68,7 +69,9 @@ void main() {
 
                 // store FogColor in control pixels
                 else if (index == 25) {
-                    fragColor = vec4(FogColor.rgb, 1.0);
+                    vec4 fc = FogColor;
+                    fc.rgb += (1.0 - clamp(length(ColorModulator.rgb), 0.0, 1.0)) * FOG_NIGHT_BOOST;
+                    fragColor = vec4(fc.rgb, 1.0);
                 } 
 
                 // store FogStart
@@ -102,15 +105,13 @@ void main() {
             screenPos.xy = (screenPos.xy / ScreenSize - vec2(0.5)) * 2.0;
             screenPos.zw = vec2(1.0);
             vec3 view = normalize((ProjInv * screenPos).xyz);
-            float ndusq = clamp(dot(view, vec3(0.0, 1.0, 0.0)), 0.0, 1.0);
-            // ndusq = ndusq * ndusq;
             vec4 skycol = ColorModulator;
-            vec3 noise = vec3(PRNG(int(gl_FragCoord.x) + int(gl_FragCoord.y) * int(ScreenSize.x))) * 0.01;
-            skycol.rgb += (1.0 - clamp(length(skycol.rgb), 0.0, 1.0)) * (vec3(6.0 / 255.0, 6.0 / 255.0, 8.0 / 255.0));
+            vec3 noise = 2.0 * vec3(PRNG(int(gl_FragCoord.x) + int(gl_FragCoord.y) * int(ScreenSize.x))) / 255.0;
+            skycol.rgb += (1.0 - clamp(length(ColorModulator.rgb), 0.0, 1.0)) * SKY_NIGHT;
             vec4 fc = FogColor;
-            fc.rgb += (1.0 - clamp(length(skycol.rgb), 0.0, 1.0)) * (vec3(0.0 / 255.0, -2.0 / 255.0, -7.0 / 255.0));
+            fc.rgb += (1.0 - clamp(length(ColorModulator.rgb), 0.0, 1.0)) * FOG_NIGHT_BOOST;
             fc.rgb += noise;
-            skycol = linear_fog_real(skycol, pow(1.0 - ndusq, 4.0), 0.0, 1.0, fc);
+            skycol = linear_fog_real(skycol, pow(clamp(1.0 - view.y, 0.0, 1.0), 4.0), 0.0, 1.0, fc);
             skycol.a = 1.0;
             fragColor = getOutColorSTDALock(skycol, vec4(1.0), vec2(0.0), gl_FragCoord.xy);
         }

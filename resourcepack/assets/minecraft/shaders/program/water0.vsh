@@ -105,5 +105,5 @@ void main(){
     int flags = int(texture(DataSampler, start + 30.0 * inc).r * 255.0);
     underWater = float((flags & FLAG_UNDERWATER) > 0);
 
-    cave = smoothstep(0.3, 0.1, decodeFloat(texture(DataSampler, start + 37.0 * inc).rgb) + 2.0) * decodeFloat(texture(DataSampler, start + 44.0 * inc).rgb);
+    cave = smoothstep(0.3, 0.1, decodeFloat(texture(DataSampler, start + 41.0 * inc).rgb) + 2.0) * decodeFloat(texture(DataSampler, start + 48.0 * inc).rgb);
 }

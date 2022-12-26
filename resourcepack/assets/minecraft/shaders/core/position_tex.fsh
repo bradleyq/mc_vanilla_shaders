@@ -28,7 +28,7 @@ void main() {
     bool gui = isGUI(ProjMat);
     vec4 color = vec4(0.0);
 
-    color = texture(Sampler0, texCoord0) * ColorModulator;
+    color = textureLod(Sampler0, texCoord0, -4) * ColorModulator;
 
     if (!gui) {
         int index = inControl(gl_FragCoord.xy, ScreenSize.x);

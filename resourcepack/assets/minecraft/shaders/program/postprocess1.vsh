@@ -3,12 +3,11 @@
 in vec4 Position;
 
 uniform sampler2D DataSampler;
-
 uniform mat4 ProjMat;
-uniform vec2 AuxSize0;
+uniform vec2 OutSize;
 
 out vec2 texCoord;
-out float exposure;
+out vec2 oneTexel;
 
 // moj_import doesn't work in post-process shaders ;_; Felix pls fix
 #define FPRECISION 4000000.0
@@ -78,17 +77,13 @@ vec4 encodeHDR_1(vec4 color) {
     return vec4(color.rgb, mult) / 255.0;
 }
 
-float luma(vec3 color){
-    return dot(color, vec3(0.299, 0.587, 0.114));
+float luma(vec3 color) {
+    return dot(color, vec3(0.2126, 0.7152, 0.0722));
 }
 
 void main(){
     vec4 outPos = ProjMat * vec4(Position.xy, 0.0, 1.0);
     gl_Position = vec4(outPos.xy, 0.2, 1.0);
     texCoord = outPos.xy * 0.5 + 0.5;
-
-    vec2 start = getControl(0, AuxSize0);
-    vec2 inc = vec2(1.0 / AuxSize0.x, 0.0);
-
-    exposure = decodeFloat(texture(DataSampler, start + 37.0 * inc).rgb) + 2.0;
+    oneTexel = 1.0 / OutSize;
 }

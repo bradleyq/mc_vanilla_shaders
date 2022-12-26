@@ -178,18 +178,18 @@ vec3 blendmult(vec3 dst, vec4 src) {
 #define zenithOffset -0.04
 #define multiScatterPhaseClear 0.05
 #define multiScatterPhaseOvercast 0.1
-#define atmDensity 0.5
+#define atmDensity 0.55
 
-#define anisotropicIntensityClear 0.0 //Higher numbers result in more anisotropic scattering
-#define anisotropicIntensityOvercast 0.2 //Higher numbers result in more anisotropic scattering
+#define anisotropicIntensityClear 0.1 //Higher numbers result in more anisotropic scattering
+#define anisotropicIntensityOvercast 0.3 //Higher numbers result in more anisotropic scattering
 
-#define skyColorClear vec3(0.3, 0.53, 1.0) * (1.0 + anisotropicIntensityClear) //Make sure one of the conponents is never 0.0
-#define skyColorOvercast vec3(0.8, 0.9, 1.0) * (1.0 + anisotropicIntensityOvercast) //Make sure one of the conponents is never 0.0
+#define skyColorClear vec3(0.2, 0.43, 1.0) * (1.0 + anisotropicIntensityClear) //Make sure one of the conponents is never 0.0
+#define skyColorOvercast vec3(0.5, 0.55, 0.6) * (1.0 + anisotropicIntensityOvercast) //Make sure one of the conponents is never 0.0
 
 #define smooth(x) x*x*(3.0-2.0*x)
 
 // #define zenithDensity(x) atmDensity / pow(max((x - zenithOffset) / (1.0 - zenithOffset), 0.008), 0.75)
-#define zenithDensity(x) atmDensity / pow(smoothClamp(((x - zenithOffset < 0.0 ? -(x - zenithOffset) * 0.2 : (x - zenithOffset) * 0.6)) / (1.0 - zenithOffset), 0.03, 1.0), 0.75)
+#define zenithDensity(x) atmDensity / pow(smoothClamp(((x - zenithOffset < 0.0 ? -(x - zenithOffset) * 0.2 : (x - zenithOffset) * 0.8)) / (1.0 - zenithOffset), 0.03, 1.0), 0.75)
 
 float smoothClamp(float x, float a, float b)
 {
@@ -208,12 +208,16 @@ float getSunPoint(vec3 p, vec3 lp) {
     return smoothstep(0.03, 0.01, distance(p, lp)) * 40.0;
 }
 
+float getMoonPoint(vec3 p, vec3 lp) {
+    return smoothstep(0.05, 0.01, distance(p, lp)) * 1.0;
+}
+
 float getRayleigMultiplier(vec3 p, vec3 lp) {
     return 1.0 + pow(1.0 - clamp(distance(p, lp), 0.0, 1.0), 1.5) * pi * 0.5;
 }
 
 float getMie(vec3 p, vec3 lp) {
-    float disk = clamp(1.0 - pow(max(distance(p, lp), 0.02), mix(0.3, 0.08, clamp(2.0 * (exp(max(lp.y, 0.0)) - 1.0), 0.0, 1.0)) / 1.718281828), 0.0, 1.0);
+    float disk = clamp(1.0 - pow(max(distance(p, lp), 0.02), mix(0.16, 0.08, clamp(2.0 * (exp(max(lp.y, 0.0)) - 1.0), 0.0, 1.0)) / 1.718281828), 0.0, 1.0);
     
     return disk*disk*(3.0 - 2.0 * disk) * pi * 2.0;
 }
@@ -229,12 +233,12 @@ vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog) {
     vec3 absorption = getSkyAbsorption(sky, zenith, lp.y);
     vec3 sunAbsorption = getSkyAbsorption(sky, zenithDensity(ly + multiScatterPhase), lp.y);
 
-    sky = sky * zenith * rayleighMult * (1.0 - (0.75 * ly));
+    sky = sky * zenith * rayleighMult;
 
     vec3 totalSky = mix(sky * absorption, sky / (sky * 0.5 + 0.5), sunPointDistMult);
     if (!fog) {
         vec3 mie = getMie(p, lp) * sunAbsorption * sunAbsorption;
-        mie += getSunPoint(p, lp) * absorption * clamp(1.01 - rain, 0.0, 1.0);
+        mie += getSunPoint(p, lp) * absorption * clamp(1.02 - rain, 0.0, 1.0);
         totalSky += mie;
     }
     

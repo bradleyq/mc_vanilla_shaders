@@ -29,7 +29,7 @@ void main() {
         discardControlGLPos(gl_FragCoord.xy, glpos);
     }
 
-    vec4 outColor = texture(Sampler0, texCoord0) * baseColor * ColorModulator;
+    vec4 outColor = textureLod(Sampler0, texCoord0, -4) * baseColor * ColorModulator;
 
     if (!gui && !hand && notpickup) {
         outColor.a = (float(int(outColor.a * 255.0) / 4) * 4.0 + float(FACETYPE_S)) / 255.0;

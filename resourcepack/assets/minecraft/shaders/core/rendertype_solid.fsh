@@ -37,7 +37,7 @@ void main() {
     }
     else {
         discardControlGLPos(gl_FragCoord.xy, glpos);
-        vec4 outColor = texture(Sampler0, texCoord0);
+        vec4 outColor = textureLod(Sampler0, texCoord0, -4);
 
         vec4 baseColorDeband = baseColor;
         baseColorDeband.rgb += 5.0 * vec3(PRNG(int(gl_FragCoord.x * 1.123) + int(gl_FragCoord.y * 1.661) * int(1337))) / 255.0;

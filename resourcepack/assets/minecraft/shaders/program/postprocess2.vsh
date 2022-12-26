@@ -1,16 +1,26 @@
 #version 330
 
-uniform sampler2D DiffuseSampler;
+in vec4 Position;
 
-in vec2 texCoord;
+uniform sampler2D DataSampler;
 
-out vec4 fragColor;
+uniform mat4 ProjMat;
+uniform vec2 OutSize;
+uniform vec2 AuxSize0;
+
+out vec2 texCoord;
+out vec2 oneTexel;
+out float exposure;
 
 // moj_import doesn't work in post-process shaders ;_; Felix pls fix
 #define FPRECISION 4000000.0
 #define PROJNEAR 0.05
 #define PROJFAR 1024.0
 #define PI 3.14159265358979
+
+vec2 getControl(int index, vec2 screenSize) {
+    return vec2(float(index) + 0.5, 0.5) / screenSize;
+}
 
 vec3 encodeInt(int i) {
     int s = int(i < 0) * 128;
@@ -70,30 +80,21 @@ vec4 encodeHDR_1(vec4 color) {
     return vec4(color.rgb, mult) / 255.0;
 }
 
-float luma(vec3 color){
-    return dot(color, vec3(0.299, 0.587, 0.114));
+float luma(vec3 color) {
+    return dot(color, vec3(0.2126, 0.7152, 0.0722));
 }
 
-vec3 acesTonemap(vec3 x) {
-  const float a = 2.51;
-  const float b = 0.03;
-  const float c = 2.1;
-  const float d = 0.59;
-  const float e = 0.14;
-  return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
-}
+void main(){
+    vec4 outPos = ProjMat * vec4(Position.xy, 0.0, 1.0);
+    gl_Position = vec4(outPos.xy, 0.2, 1.0);
+    texCoord = outPos.xy * 0.5 + 0.5;
+    oneTexel = 1.0 / OutSize;
 
-vec3 jodieReinhardTonemap(vec3 c, float upper) {
-    float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
-    vec3 tc = c / (upper * c + 1.0);
+    vec2 start = getControl(0, AuxSize0);
+    vec2 inc = vec2(1.0 / AuxSize0.x, 0.0);
 
-    return mix(c / (upper * l + 1.0), tc, tc);
-}
-
-void main() {
-    vec4 outColor = decodeHDR_0(texture(DiffuseSampler, texCoord));
-
-    outColor = vec4(acesTonemap(outColor.rgb), 1.0);
-
-    fragColor = outColor;
+    exposure = decodeFloat(texture(DataSampler, start + 41.0 * inc).rgb) + 2.0;
+    float rain = texture(DataSampler, start + 29.0 * inc).r;
+    float cave = decodeFloat(texture(DataSampler, start + 48.0 * inc).rgb);
+    exposure *= 1.0 + 0.4 * rain * (1.0 - cave);
 }

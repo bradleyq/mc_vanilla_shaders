@@ -4,15 +4,17 @@
         "srcrgb": "one",
         "dstrgb": "zero"
     },
-    "vertex": "exposure",
-    "fragment": "exposure",
+    "vertex": "postprocess2",
+    "fragment": "postprocess2",
     "attributes": [ "Position" ],
     "samplers": [
         { "name": "DiffuseSampler" },
-        { "name": "DataSampler" }
+        { "name": "DataSampler" },
+        { "name": "BloomSampler" }
     ],
     "uniforms": [
         { "name": "ProjMat",    "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+        { "name": "OutSize",    "type": "float",     "count": 2,  "values": [ 1.0, 1.0 ] },
         { "name": "AuxSize0",   "type": "float",     "count": 2,  "values": [ 1.0, 1.0 ] }
     ]
 }

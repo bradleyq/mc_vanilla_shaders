@@ -15,7 +15,7 @@ out vec4 fragColor;
 
 void main() {
     discardControlGLPos(gl_FragCoord.xy, glpos);
-    vec4 outColor = texture(Sampler0, texCoord0) * vertexColor * ColorModulator;
+    vec4 outColor = textureLod(Sampler0, texCoord0, -4) * vertexColor * ColorModulator;
 
     if (outColor.a < 0.99) {
         discard;

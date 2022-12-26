@@ -23,7 +23,7 @@ out vec4 fragColor;
 #define PROJNEAR 0.05
 #define FUDGE 32.0
 
-#define EMISS_MULT 3.0
+#define EMISS_MULT 4.0
 
 const vec2 poissonDisk[64] = vec2[64](
     vec2(-0.613392, 0.617481), vec2(0.170019, -0.040254), vec2(-0.299417, 0.791925), vec2(0.645680, 0.493210), vec2(-0.651784, 0.717887), vec2(0.421003, 0.027070), vec2(-0.817194, -0.271096), vec2(-0.705374, -0.668203), 
@@ -130,7 +130,7 @@ float spiralAO(vec2 uv, vec3 p, vec3 n, float rad)
     vec2 spiralUV;
 
     for (int i = 0; i < AO_SAMPLES; i++) {
-        spiralUV.x = sin(rotatePhase);
+        spiralUV.x = sin(rotatePhase) * OutSize.y / OutSize.x;
         spiralUV.y = cos(rotatePhase);
         radius += rStep;
         ao += doAmbientOcclusion(uv, spiralUV * radius, p, n);
@@ -159,7 +159,7 @@ int xorshift(int value) {
 }
 
 float luma(vec3 color) {
-    return dot(color, vec3(0.299, 0.587, 0.114));
+    return dot(color, vec3(0.2126, 0.7152, 0.0722));
 }
 
 vec2 Volumetric(vec3 fragpos, vec3 sundir, float fragdepth, float rand) {
@@ -295,7 +295,7 @@ void main() {
                 normal = normal == vec3(0.0) ? vec3(0.0, 1.0, 0.0) : normalize(-normal);
 
                 // calculate AO output.
-                float rad = clamp(AO_SAMPLE_RAD/linearizeDepth(depth) * (70.0 / fov), 0.0005, 0.2);
+                float rad = clamp(AO_SAMPLE_RAD/linearizeDepth(depth) * (70.0 / fov), 0.0005, 0.1);
                 float ao = 1.0 - spiralAO(normCoord, fragpos, normal, rad) * AO_INTENSITY;
                 outColor.rgb *= ao;
             }
