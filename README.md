@@ -13,16 +13,15 @@ CL:
 - HDR buffers
 - Aurora (End)
 - Auto Exposure
-- ACES Filmic Tonemap
+- Parametric Rolloff Tonemap
+- Bloom
 
 Known issues:
 - optifine #moj_import bug
 - shadows are ... ok
 - Alpha-PBR specular, metalness
-- no bloom
 - some translucents visible over fog (slime entities)
-- poor fps near water
-- poor fps all the time lol
+- poor fps: AO pass, SSR pass, Shadow blur pass
 - blindness fog underwater in some biomes (swamp, warm ocean)
 - water fog too bright sometimes
 - particles are not emissive
