@@ -29,7 +29,7 @@ out vec4 fragColor;
 #define PROJNEAR 0.05
 #define FUDGE 32.0
 
-#define EMISS_MULT 4.0
+#define EMISSMULT 4.0
 
 #define TINT_WATER vec3(0.0 / 255.0, 248.0 / 255.0, 255.0 / 255.0)
 #define TINT_WATER_DISTANCE 48.0
@@ -118,7 +118,7 @@ vec4 backProject(vec4 vec) {
 #define smooth(x) x*x*(3.0-2.0*x)
 
 // #define zenithDensity(x) atmDensity / pow(max((x - zenithOffset) / (1.0 - zenithOffset), 0.008), 0.75)
-#define zenithDensity(x) atmDensity / pow(smoothClamp(((x - zenithOffset < 0.0 ? -(x - zenithOffset) * 0.2 : (x - zenithOffset) * 0.8)) / (1.0 - zenithOffset), 0.03, 1.0), 0.75)
+#define zenithDensity(x, lx) atmDensity / pow(smoothClamp(((x - zenithOffset < 0.0 ? -(x - zenithOffset) * 0.2 : (x - zenithOffset) * 0.8)) / (1.0 - zenithOffset), 0.03 + clamp(0.03 * lx, 0.0, 1.0), 1.0), 0.75)
 
 float smoothClamp(float x, float a, float b)
 {
@@ -146,13 +146,13 @@ float getRayleigMultiplier(vec3 p, vec3 lp) {
 }
 
 float getMie(vec3 p, vec3 lp) {
-    float disk = clamp(1.0 - pow(max(distance(p, lp), 0.02), mix(0.16, 0.08, clamp(2.0 * (exp(max(lp.y, 0.0)) - 1.0), 0.0, 1.0)) / 1.718281828), 0.0, 1.0);
+    float disk = clamp(1.0 - pow(max(distance(p, lp), 0.02), 0.08 / 1.718281828), 0.0, 1.0);
     
     return disk*disk*(3.0 - 2.0 * disk) * pi * 2.0;
 }
 
 vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog) {
-    float zenith = zenithDensity(p.y);
+    float zenith = zenithDensity(p.y, lp.y);
     float ly = lp.y < 0.0 ? lp.y * 0.3 : lp.y;
     float multiScatterPhase = mix(multiScatterPhaseClear, multiScatterPhaseOvercast, rain);
     float sunPointDistMult =  clamp(length(max(ly + multiScatterPhase - zenithOffset, 0.0)), 0.0, 1.0);
@@ -160,7 +160,7 @@ vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog) {
     float rayleighMult = getRayleigMultiplier(p, lp);
     vec3 sky = mix(skyColorClear, skyColorOvercast, rain);
     vec3 absorption = getSkyAbsorption(sky, zenith, lp.y);
-    vec3 sunAbsorption = getSkyAbsorption(sky, zenithDensity(ly + multiScatterPhase), lp.y);
+    vec3 sunAbsorption = getSkyAbsorption(sky, zenithDensity(ly + multiScatterPhase, lp.y), lp.y);
 
     sky = sky * zenith * rayleighMult;
 

@@ -25,7 +25,7 @@ out vec4 fragColor;
 #define DIM_NETHER 3
 #define DIM_MAX 3
 
-#define FOG_NETHER_GAIN vec3(0.1, 0.06, 0.04)
+#define FOG_NETHER_GAIN vec3(0.14, 0.08, 0.02)
 #define FOG_CAVE vec3(38.0 / 255.0, 38.0 / 255.0, 51.0 / 255.0)
 #define FOG_DEFAULT_WATER vec3(25.0 / 255.0, 25.0 / 255.0, 255.0 / 255.0)
 #define TINT_WATER vec3(0.0 / 255.0, 248.0 / 255.0, 255.0 / 255.0)
@@ -228,15 +228,17 @@ void main() {
             outColor = vec4(encodeFloat(clamp(lum, -2.0, 2.0)), 1.0); 
         }
         else if (index == 41) {
-            float lum = decodeFloat(texture(PrevDataSampler, startData + 32.0 * incData).rgb);
-            lum = max(lum, decodeFloat(texture(PrevDataSampler, startData + 33.0 * incData).rgb));
-            lum = max(lum, decodeFloat(texture(PrevDataSampler, startData + 34.0 * incData).rgb));
-            lum = max(lum, decodeFloat(texture(PrevDataSampler, startData + 35.0 * incData).rgb));
-            lum = max(lum, decodeFloat(texture(PrevDataSampler, startData + 36.0 * incData).rgb));
-            lum = max(lum, decodeFloat(texture(PrevDataSampler, startData + 37.0 * incData).rgb));
-            lum = max(lum, decodeFloat(texture(PrevDataSampler, startData + 38.0 * incData).rgb));
-            lum = max(lum, decodeFloat(texture(PrevDataSampler, startData + 39.0 * incData).rgb));
-            lum = max(lum, decodeFloat(texture(PrevDataSampler, startData + 40.0 * incData).rgb));
+            float lum = decodeFloat(texture(PrevDataSampler, startData + 32.0 * incData).rgb)
+                      + decodeFloat(texture(PrevDataSampler, startData + 33.0 * incData).rgb)
+                      + decodeFloat(texture(PrevDataSampler, startData + 34.0 * incData).rgb)
+                      + decodeFloat(texture(PrevDataSampler, startData + 35.0 * incData).rgb)
+                      + decodeFloat(texture(PrevDataSampler, startData + 36.0 * incData).rgb)
+                      + decodeFloat(texture(PrevDataSampler, startData + 37.0 * incData).rgb)
+                      + decodeFloat(texture(PrevDataSampler, startData + 38.0 * incData).rgb)
+                      + decodeFloat(texture(PrevDataSampler, startData + 39.0 * incData).rgb)
+                      + decodeFloat(texture(PrevDataSampler, startData + 40.0 * incData).rgb);
+
+            lum /= 9.0;
 
             vec4 last = texture(PrevDataSampler, startData + 41.0 * incData);
             if (last.a == 1.0) {
@@ -278,12 +280,12 @@ void main() {
                 al = decodeFloat(last.rgb);
             }
             else if (last.a == 1.0) {
-                al = mix(al, decodeFloat(last.rgb), 0.995);
+                al = mix(al, decodeFloat(last.rgb), 0.992);
             }
             outColor = vec4(encodeFloat(clamp(al, 0.5, 1.0)), 1.0); // [0.5, 1.0] to reduce inertia for cave checks
         }
         else if (index == 48) {
-            outColor = vec4(encodeFloat(smoothstep(2.0, 1.0, decodeFloat(texture(PrevDataSampler, startData + 41.0 * incData).rgb) + 2.0) 
+            outColor = vec4(encodeFloat(smoothstep(3.0, 2.0, decodeFloat(texture(PrevDataSampler, startData + 41.0 * incData).rgb) + 2.0) 
                                       * smoothstep(0.8, 1.0, decodeFloat(texture(PrevDataSampler, startData + 47.0 * incData).rgb))), 
                             1.0);
         }
@@ -326,13 +328,17 @@ void main() {
         // fog color
         else if (index == 25) {
             vec4 dimtmp = texture(PrevDataSampler, startData + 28.0 * incData);
-            if (dimtmp.a == 1.0 && int(dimtmp * 255.0) == DIM_NETHER) {
-                temp.rgb += FOG_NETHER_GAIN;
+            float dim = DIM_UNKNOWN;
+            if (dimtmp.a == 1.0) {
+                dim = int(dimtmp.r * 255.0);
             }
-            if (temp.b > 0.2) {
+            if ((dim == DIM_UNKNOWN || dim == DIM_END) && temp.b > 0.2) {
                 temp.rgb = mix(FOG_WATER, temp.rgb, smoothstep(0.0, 0.05, length(temp.rgb / temp.b - FOG_DEFAULT_WATER)));
             }
             else {
+                if (dim == DIM_NETHER) {
+                    temp.rgb += FOG_NETHER_GAIN;
+                }
                 float lava = smoothstep(0.0, 0.05, length(temp.rgb - FOG_LAVA));
                 float snow = smoothstep(0.0, 0.05, length(temp.rgb - FOG_SNOW));
                 float blind = smoothstep(0.0, 0.05, length(temp.rgb - FOG_DARKNESS));

@@ -28,7 +28,7 @@ out vec4 fragColor;
 #define PROJNEAR 0.05
 #define FUDGE 32.0
 
-#define EMISS_MULT 4.0
+#define EMISSMULT 4.0
 
 #define TINT_WATER vec3(0.0 / 255.0, 248.0 / 255.0, 255.0 / 255.0)
 #define TINT_WATER_DISTANCE 48.0
@@ -213,7 +213,7 @@ vec4 backProject(vec4 vec) {
 #define smooth(x) x*x*(3.0-2.0*x)
 
 // #define zenithDensity(x) atmDensity / pow(max((x - zenithOffset) / (1.0 - zenithOffset), 0.008), 0.75)
-#define zenithDensity(x) atmDensity / pow(smoothClamp(((x - zenithOffset < 0.0 ? -(x - zenithOffset) * 0.2 : (x - zenithOffset) * 0.8)) / (1.0 - zenithOffset), 0.03, 1.0), 0.75)
+#define zenithDensity(x, lx) atmDensity / pow(smoothClamp(((x - zenithOffset < 0.0 ? -(x - zenithOffset) * 0.2 : (x - zenithOffset) * 0.8)) / (1.0 - zenithOffset), 0.03 + clamp(0.03 * lx, 0.0, 1.0), 1.0), 0.75)
 
 float smoothClamp(float x, float a, float b)
 {
@@ -241,13 +241,13 @@ float getRayleigMultiplier(vec3 p, vec3 lp) {
 }
 
 float getMie(vec3 p, vec3 lp) {
-    float disk = clamp(1.0 - pow(max(distance(p, lp), 0.02), mix(0.16, 0.08, clamp(2.0 * (exp(max(lp.y, 0.0)) - 1.0), 0.0, 1.0)) / 1.718281828), 0.0, 1.0);
+    float disk = clamp(1.0 - pow(max(distance(p, lp), 0.02), 0.08 / 1.718281828), 0.0, 1.0);
     
     return disk*disk*(3.0 - 2.0 * disk) * pi * 2.0;
 }
 
 vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog) {
-    float zenith = zenithDensity(p.y);
+    float zenith = zenithDensity(p.y, lp.y);
     float ly = lp.y < 0.0 ? lp.y * 0.3 : lp.y;
     float multiScatterPhase = mix(multiScatterPhaseClear, multiScatterPhaseOvercast, rain);
     float sunPointDistMult =  clamp(length(max(ly + multiScatterPhase - zenithOffset, 0.0)), 0.0, 1.0);
@@ -255,7 +255,7 @@ vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog) {
     float rayleighMult = getRayleigMultiplier(p, lp);
     vec3 sky = mix(skyColorClear, skyColorOvercast, rain);
     vec3 absorption = getSkyAbsorption(sky, zenith, lp.y);
-    vec3 sunAbsorption = getSkyAbsorption(sky, zenithDensity(ly + multiScatterPhase), lp.y);
+    vec3 sunAbsorption = getSkyAbsorption(sky, zenithDensity(ly + multiScatterPhase, lp.y), lp.y);
 
     sky = sky * zenith * rayleighMult;
 
@@ -357,9 +357,13 @@ void main() {
             int face = int(data.y * 255.0) % 4;
             int stype = int(data.x * 255.0) % 8;
             float applyLight = clamp(float(int(data.y * 255.0) / 4) / 63.0, 0.0, 1.0);
-            if (face == FACETYPE_S && stype == PBRTYPE_STANDARD) {
-                applyLight = clamp(float(int(data.x * 255.0) / 16) / 15.0, 0.0, 1.0);
-            }
+            float pbrStrength = 0.0;
+            if (face == FACETYPE_S) {
+                pbrStrength = clamp(float(int(data.x * 255.0) / 16) / 15.0, 0.0, 1.0);
+                if (stype == PBRTYPE_STANDARD) {
+                    applyLight = pbrStrength;
+                }
+            } 
             int tmpFace;
 
             vec2 candidates[8] = vec2[8](texCoord + vec2(-oneTexel.x, -oneTexel.y), texCoord + vec2(0.0, -oneTexel.y), 
@@ -408,7 +412,7 @@ void main() {
             normal = normal.z < -(1.0 - 0.05 * clamp(length(fragpos) / SNAPRANGE, 0.0, 1.0)) ? vec3(0.0, 0.0, -1.0) : normal;
 
 
-            // use cos between sunDir to determine light and ambient colors
+            // get lighting color
             vec3 moonDir = normalize(vec3(-sunDir.xy, 0.0));
             float sdu = dot(vec3(0.0, 1.0, 0.0), sunDir);
             float mdu = dot(vec3(0.0, 1.0, 0.0), moonDir);
@@ -453,18 +457,18 @@ void main() {
             }
 
 
-            // apply ambient occlusion.
+            // get ambient occlusion.
             vec3 ao = vec3(texture(ShadingSampler, texCoord).b);
             ao.rgb += vec3(PRNG(int(gl_FragCoord.x) + int(gl_FragCoord.y) * int(OutSize.x))) / 255.0;
-            outColor.rgb *= ao;
 
-            // apply lighting color. not quite standard diffuse light equation since the blocks are already "pre-lit"
+            // get shadow / subsurface volume
             vec3 shade = vec3(texture(ShadingSampler, texCoord).r);
 
             vec3 eyedir = normalize(fragpos);
             float comp_bp = max(pow(dot(reflect(sunDir, normal), eyedir), 8.0), 0.0);
             float comp_diff = dot(normal, sunDir);
 
+            // calculate final lighting color
             vec3 lightColor = ambient;
 
             if (face == FACETYPE_S && stype == PBRTYPE_SUBSURFACE) {
@@ -475,13 +479,17 @@ void main() {
             else {
                 lightColor += (direct - ambient) * clamp((comp_bp * 0.25 + comp_diff + 0.05) * shade, 0.0, 1.0); 
             }
+
             lightColor += (backside - ambient) * clamp(dot(normal, moonDir), 0.0, 1.0); 
+
+            // calculate emissive value
+            float emission = 0.0;
             if (face == FACETYPE_S && stype == PBRTYPE_EMISSIVE) {
-                outColor.rgb *= EMISS_MULT;
-                lightColor = max(lightColor, vec3(EMISS_MULT));
+                emission = pbrStrength * EMISSMULT;
             }
 
-            outColor.rgb = mix(outColor.rgb * mix(lightColor, vec3(1.0), applyLight), lightColor, 0.0);
+            // final shading
+            outColor.rgb = outColor.rgb * (mix(lightColor, vec3(1.0), applyLight) * ao + emission);
 
             if (underWater > 0.5) {
                 outColor.rgb = mix(outColor.rgb, outColor.rgb * TINT_WATER, smoothstep(0, TINT_WATER_DISTANCE, length(fragpos)));
@@ -518,6 +526,7 @@ void main() {
             //     outColor.b = yuva.x * 1.0 + yuva.y * 1.765 + yuva.z * 0.0;
             // }
             // outColor.b += rain;
+            // outColor.rgb = vec3(pbrStrength);
         } 
         // if sky do atmosphere
         else if (dim == DIM_OVER) {
@@ -542,7 +551,7 @@ void main() {
                 outColor.rgb = blendmult(outColor.rgb, translucent);
             }
             else { // PBRTYPE_TEMISSIVE
-                outColor.rgb += translucent.rgb * translucent.a * EMISS_MULT;
+                outColor.rgb += translucent.rgb * translucent.a * EMISSMULT;
             }
         }
     }

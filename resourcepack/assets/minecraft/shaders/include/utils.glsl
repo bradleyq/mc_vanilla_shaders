@@ -32,7 +32,7 @@
 #define FACETYPE_Z 2
 #define FACETYPE_S 3
 
-#define EMISS_MULT 4.0
+#define EMISSMULT 4.0
 
 #define DIM_UNKNOWN 0
 #define DIM_OVER 1
@@ -254,7 +254,7 @@ vec4 getOutColorT(vec4 color, vec4 light, vec2 lightmask, vec2 fragcoord, int fa
 
     // get ambient, cave, and torch light
     if (type == PBRTYPE_EMISSIVE) { // emissive
-        outCol.rgb = color.rgb * mix(light.rgb / (1.0 + strength * (EMISS_MULT - 1.0)), vec3(1.0), strength);
+        outCol.rgb = color.rgb * mix(light.rgb / (1.0 + strength * (EMISSMULT - 1.0)), vec3(1.0), strength);
     }
     else if (type == PBRTYPE_SUBSURFACE) { // subsurface
         outCol.rgb = color.rgb * light.rgb;
