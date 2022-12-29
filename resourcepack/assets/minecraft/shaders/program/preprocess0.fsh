@@ -29,7 +29,7 @@ out vec4 fragColor;
 #define FOG_CAVE vec3(38.0 / 255.0, 38.0 / 255.0, 51.0 / 255.0)
 #define FOG_DEFAULT_WATER vec3(25.0 / 255.0, 25.0 / 255.0, 255.0 / 255.0)
 #define TINT_WATER vec3(0.0 / 255.0, 248.0 / 255.0, 255.0 / 255.0)
-#define FOG_WATER vec3(0.0 / 255.0, 37.0 / 255.0, 38.0 / 255.0)
+#define FOG_WATER vec3(0.0 / 255.0, 38.0 / 255.0, 38.0 / 255.0)
 #define FOG_WATER_FAR 72.0
 #define FOG_END vec3(19.0 / 255.0, 16.0 / 255.0, 19.0 / 255.0)
 #define FOG_LAVA vec3(153.0 / 255.0, 25.0 / 255.0, 0.0)
@@ -196,7 +196,7 @@ Post Temporals:
 [38] Exposure Sample 6
 [39] Exposure Sample 7
 [40] Exposure Sample 8
-[41] Exposure Max
+[41] Exposure Avg
 [42] ApplyLight Sample 0
 [43] ApplyLight Sample 1
 [44] ApplyLight Sample 2
@@ -282,7 +282,7 @@ void main() {
             else if (last.a == 1.0) {
                 al = mix(al, decodeFloat(last.rgb), 0.992);
             }
-            outColor = vec4(encodeFloat(clamp(al, 0.5, 1.0)), 1.0); // [0.5, 1.0] to reduce inertia for cave checks
+            outColor = vec4(encodeFloat(clamp(al, 0.6, 1.0)), 1.0); // [0.6, 1.0] to reduce inertia for cave checks
         }
         else if (index == 48) {
             outColor = vec4(encodeFloat(smoothstep(3.0, 2.0, decodeFloat(texture(PrevDataSampler, startData + 41.0 * incData).rgb) + 2.0) 
@@ -332,7 +332,7 @@ void main() {
             if (dimtmp.a == 1.0) {
                 dim = int(dimtmp.r * 255.0);
             }
-            if ((dim == DIM_UNKNOWN || dim == DIM_END) && temp.b > 0.2) {
+            if (((dim == DIM_UNKNOWN || dim == DIM_END) && temp.b > 0.2) || (dim == DIM_NETHER && temp.b > temp.g * 9.0)) {
                 temp.rgb = mix(FOG_WATER, temp.rgb, smoothstep(0.0, 0.05, length(temp.rgb / temp.b - FOG_DEFAULT_WATER)));
             }
             else {
