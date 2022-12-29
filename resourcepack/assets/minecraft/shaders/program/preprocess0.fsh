@@ -332,18 +332,30 @@ void main() {
             if (dimtmp.a == 1.0) {
                 dim = int(dimtmp.r * 255.0);
             }
+
+            vec4 flagtmp = texture(PrevDataSampler, startData + 30.0 * incData);
+            int flags = 0;
+            if (flagtmp.a == 1.0) {
+                flags = int(flagtmp.r * 255.0);
+            }
+
             if (((dim == DIM_UNKNOWN || dim == DIM_END) && temp.b > 0.2) || (dim == DIM_NETHER && temp.b > temp.g * 9.0)) {
                 temp.rgb = mix(FOG_WATER, temp.rgb, smoothstep(0.0, 0.05, length(temp.rgb / temp.b - FOG_DEFAULT_WATER)));
             }
             else {
-                if (dim == DIM_NETHER) {
-                    temp.rgb += FOG_NETHER_GAIN;
-                }
                 float lava = smoothstep(0.0, 0.05, length(temp.rgb - FOG_LAVA));
                 float snow = smoothstep(0.0, 0.05, length(temp.rgb - FOG_SNOW));
                 float blind = smoothstep(0.0, 0.05, length(temp.rgb - FOG_DARKNESS));
                 float cave = decodeFloat(texture(PrevDataSampler, startData + 48.0 * incData).rgb);
-                temp.rgb = mix(temp.rgb, FOG_CAVE, cave * (1.0 - lava) * (1.0 - snow) * (1.0 - blind));
+
+                if (dim == DIM_NETHER) {
+                    temp.rgb += FOG_NETHER_GAIN * lava * snow * blind;
+                }
+                else if (dim == DIM_OVER) {
+                    if (lava > 0.5 && snow > 0.5 && blind > 0.5) {
+                        temp.rgb = FOG_BLIND; // only case for this is transition from blind to not.
+                    }
+                }
             }
             outColor = temp;
         }
@@ -377,13 +389,18 @@ void main() {
         }
         else if (index == 30) {
             int currflags = 0;
-            if (temp.b > 0.2) {
-                vec4 dimtmp = texture(PrevDataSampler, startData + 28.0 * incData);
-                if (dimtmp.a == 1.0 && (int(dimtmp * 255.0) == DIM_END || int(dimtmp * 255.0) == DIM_NETHER) && smoothstep(0.0, 0.05, length(temp.rgb / temp.b - FOG_DEFAULT_WATER)) < 1.0) {
-                    currflags |= FLAG_UNDERWATER;
-                }
+            vec4 dimtmp = texture(PrevDataSampler, startData + 28.0 * incData);
+            float dim = DIM_UNKNOWN;
+            if (dimtmp.a == 1.0) {
+                dim = int(dimtmp.r * 255.0);
             }
-            outColor = vec4(float(currflags) / 255.0, 0.0, 0.0, 1.0);
+            if (((dim == DIM_UNKNOWN || dim == DIM_END) && temp.b > 0.2) || (dim == DIM_NETHER && temp.b > temp.g * 9.0)) {
+                currflags |= FLAG_UNDERWATER;
+                outColor = vec4(float(currflags) / 255.0, 0.0, 0.0, 1.0);
+            }
+            else if (dim == DIM_OVER) {
+                outColor = texture(PrevDataSampler, startData + 30.0 * incData);
+            }
         }
         // base case zero
         else {
