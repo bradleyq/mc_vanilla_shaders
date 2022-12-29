@@ -23,7 +23,6 @@ Known issues:
 - some translucents visible over fog (slime entities)
 - poor fps: AO pass, SSR pass, Shadow blur pass
 - blindness fog underwater in some biomes (swamp, warm ocean)
-- water fog too bright sometimes
 - particles are not emissive
 - no cloud shading
 - glow item frame items are lit as if outdoors
