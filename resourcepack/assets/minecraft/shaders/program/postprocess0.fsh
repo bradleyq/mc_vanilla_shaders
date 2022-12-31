@@ -6,7 +6,7 @@ uniform float Level;
 
 in vec2 texCoord;
 in vec2 oneTexel;
-in float exposure;
+in float exposureNorm;
 
 out vec4 fragColor;
 
@@ -101,12 +101,8 @@ void main() {
                      + decodeHDR_0(texture(FullResSampler, scaledCoord + 1.01 * vec2(oneTexel.x, -oneTexel.y)))
                      + decodeHDR_0(texture(FullResSampler, scaledCoord - 1.01 * vec2(oneTexel.x, -oneTexel.y)));
             outColor /= 16.0;
-            float exposureRamp = clamp(exposure, 0.375, 1.0);
-            exposureRamp -= 0.375;
-            exposureRamp /= 0.625;
-            exposureRamp = pow(exposureRamp, 0.5);
-            float startB = 0.5 + 4.8 * exposureRamp;
-            float endB = 2.0 + 4.8 * exposureRamp;
+            float startB = 1.0 + 5.0 * exposureNorm;
+            float endB = 2.0 + 4.8 * exposureNorm;
 
             outColor *= (clamp(length(outColor.rgb), startB, endB) - startB) / (endB - startB);
         }

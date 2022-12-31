@@ -10,7 +10,8 @@ uniform vec2 AuxSize0;
 
 out vec2 texCoord;
 out vec2 oneTexel;
-out float exposure;
+out float exposureNorm;
+out float exposureClampAdjusted;
 
 // moj_import doesn't work in post-process shaders ;_; Felix pls fix
 #define FPRECISION 4000000.0
@@ -93,8 +94,10 @@ void main(){
     vec2 start = getControl(0, AuxSize0);
     vec2 inc = vec2(1.0 / AuxSize0.x, 0.0);
 
-    exposure = decodeFloat(texture(DataSampler, start + 41.0 * inc).rgb) + 2.0;
     float rain = texture(DataSampler, start + 29.0 * inc).r;
     float cave = decodeFloat(texture(DataSampler, start + 48.0 * inc).rgb);
-    exposure *= 1.0 + 0.4 * rain * (1.0 - cave);
+    
+    float exposure = decodeFloat(texture(DataSampler, start + 41.0 * inc).rgb) + 2.0;
+    exposureClampAdjusted = clamp(exposure * (1.0 + 0.4 * rain * (1.0 - cave)), 0.375, 1.0);
+    exposureNorm = (clamp(exposure, 0.375, 1.0) - 0.375) / 0.625;
 }

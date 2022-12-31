@@ -5,7 +5,8 @@ uniform sampler2D BloomSampler;
 
 in vec2 texCoord;
 in vec2 oneTexel;
-in float exposure;
+in float exposureNorm;
+in float exposureClampAdjusted;
 
 out vec4 fragColor;
 
@@ -108,8 +109,6 @@ vec3 jodieReinhardTonemap(vec3 c, float upper) {
 
 void main() {
     vec4 outColor = decodeHDR_0(texture(DiffuseSampler, texCoord));
-    float exposureClamp = clamp(exposure, 0.375, 1.0);
-    float bloomRamp = 1.0 - (exposureClamp - 0.375) / 0.625;
 
     float bound = 0.5;
     vec2 scaledCoord = (texCoord + vec2(1.0, 0.0)) * bound;
@@ -125,14 +124,21 @@ void main() {
                   + decodeHDR_0(texture(BloomSampler, clampInBound(scaledCoord - 0.99 * vec2(oneTexel.x, -oneTexel.y), bound)));  
     bloomCol /= 16.0; 
 
+    float startB = 1.0 + 5.0 * exposureNorm;
+    float endB = 2.0 + 4.8 * exposureNorm;
+
+    bloomCol -= outColor;
+    bloomCol = max(bloomCol, vec4(0.0));
+
     // apply bloom
-    outColor += bloomCol * 0.5 * (bloomRamp * 0.5 + 0.5);
+    outColor += bloomCol * 0.5 * (pow(1.0 - exposureNorm, 2.0) * 0.5 + 0.5);
+    // outColor = bloomCol;
 
     // apply crosstalk
     outColor.rgb += vec3(0.05) * (outColor.r + outColor.g + outColor.b);
 
     // apply exposure
-    outColor.rgb /= exposureClamp * 2.0;
+    outColor.rgb /= exposureClampAdjusted * 2.0;
 
     // apply tonemap
     outColor.rgb = vec3(customRolloff9(outColor.r), customRolloff9(outColor.g), customRolloff9(outColor.b));
