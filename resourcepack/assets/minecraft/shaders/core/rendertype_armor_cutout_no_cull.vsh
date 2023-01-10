@@ -29,8 +29,15 @@ out vec4 glpos;
 void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
 
-    vertexColor = texelFetch(Sampler2, UV2 / 16, 0);
-    baseColor = Color;
+    if (isGUI(ProjMat)) {
+        baseColor = minecraft_mix_light(Light0_Direction, Light1_Direction, Normal, Color);
+        vertexColor = texelFetch(Sampler2, UV2 / 16, 0);
+    } 
+    else {
+        baseColor = Color;
+        vertexColor = minecraft_sample_lightmap(Sampler2, UV2);
+    }
+
     texCoord0 = UV0;
     texCoord2 = UV2 / 255.0;
     if (getDim(Sampler2) == DIM_OVER) {
