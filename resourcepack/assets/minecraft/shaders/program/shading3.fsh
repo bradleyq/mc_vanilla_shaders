@@ -142,21 +142,21 @@ vec4 encodeHDR_1(vec4 color) {
 
 // tweak lighting color here
 #define NOON_CLEAR vec3(1.2, 1.15, 1.1) * 3.0
-#define NOONA_CLEAR vec3(0.5, 0.55, 0.75) * 2.25
-#define NOONM_CLEAR vec3(0.45, 0.5, 0.7) * 2.25
-#define EVENING_CLEAR vec3(1.35, 0.8, 0.4) * 2.25
-#define EVENINGA_CLEAR vec3(0.45, 0.5, 0.75) * 2.0
-#define EVENINGM_CLEAR vec3(0.3, 0.35, 0.7) * 2.0
+#define NOONA_CLEAR vec3(0.55, 0.57, 0.7) * 2.25
+#define NOONM_CLEAR vec3(0.45, 0.47, 0.6) * 2.25
+#define EVENING_CLEAR vec3(1.35, 0.9, 0.4) * 2.25
+#define EVENINGA_CLEAR vec3(0.5, 0.55, 0.7) * 2.0
+#define EVENINGM_CLEAR vec3(0.4, 0.45, 0.6) * 2.0
 #define NIGHT_CLEAR vec3(0.65, 0.65, 0.7) * 0.7
 #define NIGHTA_CLEAR vec3(0.75, 0.8, 0.9) * 0.7
 #define NIGHTM_CLEAR vec3(1.1, 1.3, 1.4) * 0.7
 
 #define NOON_OVERCAST vec3(1.0, 1.05, 1.1) * 2.5
-#define NOONA_OVERCAST vec3(0.7, 0.72, 0.75) * 2.5
-#define NOONM_OVERCAST vec3(0.65, 0.65, 0.65) * 2.5
+#define NOONA_OVERCAST vec3(0.65, 0.67, 0.7) * 2.5
+#define NOONM_OVERCAST vec3(0.6, 0.6, 0.6) * 2.5
 #define EVENING_OVERCAST vec3(1.0, 0.9, 0.85) * 1.0
-#define EVENINGA_OVERCAST vec3(0.7, 0.72, 0.75) * 1.0
-#define EVENINGM_OVERCAST vec3(0.6, 0.6, 0.6) * 1.0
+#define EVENINGA_OVERCAST vec3(0.65, 0.67, 0.7) * 1.0
+#define EVENINGM_OVERCAST vec3(0.55, 0.55, 0.55) * 1.0
 #define NIGHT_OVERCAST vec3(0.65, 0.65, 0.65) * 0.7
 #define NIGHTA_OVERCAST vec3(0.75, 0.75, 0.75) * 0.7
 #define NIGHTM_OVERCAST vec3(1.0, 1.0, 1.0) * 0.7
