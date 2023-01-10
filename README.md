@@ -22,7 +22,7 @@ Known issues:
 - Alpha-PBR specular, metalness
 - some translucents visible over fog (slime entities)
 - poor fps: AO pass, SSR pass, Shadow blur pass
-- particles are not emissive
+- particles are lit
 - no cloud shading
 - glow item frame items are lit as if outdoors
 
@@ -66,6 +66,6 @@ Basic shader that adds as much as possible from OptiFine shaders to the vanilla 
 See License.md for licensing. This pack requires Fabulous graphics on. Supports FOV 30-140, distance 12-32. For best experience, use FOV 70 with render distance 16!
 
 ## Credits
-- **BSL shaders - capttatsu** for reference code for some of the features (SSR).
-- **Auroras - nimitz (twitter: @stormoid)** for base implementation of End Auroroa.
-- **Non physical based atmospheric scattering - robobo1221** Site: http://www.robobo1221.net/shaders.
+- **BSL shaders - capttatsu** for base SSR https://bitslablab.com/bslshaders/
+- **Auroras - nimitz (twitter: @stormoid)** for base End Auroroa https://www.shadertoy.com/view/XtGGRt
+- **Non physical based atmospheric scattering - robobo1221** for base sky https://www.shadertoy.com/view/Ml2cWG
