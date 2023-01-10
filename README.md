@@ -18,11 +18,10 @@ CL:
 
 Known issues:
 - optifine #moj_import bug
-- shadows are ... ok
+- shadow jank
 - Alpha-PBR specular, metalness
 - some translucents visible over fog (slime entities)
-- poor fps: AO pass, SSR pass, Shadow blur pass
-- particles are lit
+- particles are not lit
 - no cloud shading
 - glow item frame items are lit as if outdoors
 
