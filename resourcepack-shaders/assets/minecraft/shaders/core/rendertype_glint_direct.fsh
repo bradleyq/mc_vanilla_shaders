@@ -32,7 +32,6 @@ void main() {
     outColor.a = 1.0;
 
     if (!gui && !hand && notpickup) {
-        outColor.rgb *= 0.75;
         outColor = getOutColorSTDALock(outColor, vec4(1.0), vec2(0.0), gl_FragCoord.xy);
         outColor.gb = vec2(clamp(outColor.g - 0.5, 0.0, 0.5), 0.0);
     } 

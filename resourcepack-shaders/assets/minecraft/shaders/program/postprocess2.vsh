@@ -50,12 +50,13 @@ float decodeFloat(vec3 vec) {
 
 vec4 decodeHDR_0(vec4 color) {
     int alpha = int(color.a * 255.0);
-    return vec4(color.r + float((alpha >> 4) % 4), color.g + float((alpha >> 2) % 4), color.b + float(alpha % 4), 1.0);
+    return vec4(vec3(color.r + float((alpha >> 4) % 4), color.g + float((alpha >> 2) % 4), color.b + float(alpha % 4)) * float(alpha >> 6), 1.0);
 }
 
 vec4 encodeHDR_0(vec4 color) {
-    int alpha = 3;
-    color = clamp(color, 0.0, 4.0);
+    color = clamp(color, 0.0, 12.0);
+    int alpha = clamp(int((max(max(color.r, color.g), color.b) + 3.999) / 4.0), 1, 3);
+    color.rgb /= float(alpha);
     vec3 colorFloor = clamp(floor(color.rgb), 0.0, 3.0);
 
     alpha = alpha << 2;
@@ -65,21 +66,9 @@ vec4 encodeHDR_0(vec4 color) {
     alpha = alpha << 2;
     alpha += int(colorFloor.b);
 
-    return vec4(color.rgb - colorFloor, alpha / 255.0);
+    return vec4(clamp(color.rgb - colorFloor, 0.0, 1.0), alpha / 255.0);
 }
 
-vec4 decodeHDR_1(vec4 color) {
-    return vec4(color.rgb * (color.a + 1.0), 1.0);
-}
-
-vec4 encodeHDR_1(vec4 color) {
-    float maxval = max(color.r, max(color.g, color.b));
-    float mult = (maxval - 1.0) * 255.0 / 3.0;
-    mult = clamp(ceil(mult), 0.0, 255.0);
-    color.rgb = color.rgb * 255 / (mult / 255 * 3 + 1);
-    color.rgb = round(color.rgb);
-    return vec4(color.rgb, mult) / 255.0;
-}
 
 float luma(vec3 color) {
     return dot(color, vec3(0.2126, 0.7152, 0.0722));
@@ -98,6 +87,6 @@ void main(){
     float cave = decodeFloat(texture(DataSampler, start + 48.0 * inc).rgb);
     
     float exposure = decodeFloat(texture(DataSampler, start + 41.0 * inc).rgb) + 2.0;
-    exposureClampAdjusted = clamp(exposure * (1.0 + 0.4 * rain * (1.0 - cave)), 0.375, 1.0);
+    exposureClampAdjusted = clamp(exposure * (1.0 + 0.4 * rain * (1.0 - cave)), 0.375, 1.2);
     exposureNorm = (clamp(exposure, 0.375, 1.0) - 0.375) / 0.625;
 }

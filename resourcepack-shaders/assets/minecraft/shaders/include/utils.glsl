@@ -347,12 +347,13 @@ bool isPanorama(mat4 ProjMat) {
 
 vec4 decodeHDR_0(vec4 color) {
     int alpha = int(color.a * 255.0);
-    return vec4(color.r + float((alpha >> 4) % 4), color.g + float((alpha >> 2) % 4), color.b + float(alpha % 4), 1.0);
+    return vec4(vec3(color.r + float((alpha >> 4) % 4), color.g + float((alpha >> 2) % 4), color.b + float(alpha % 4)) * float(alpha >> 6), 1.0);
 }
 
 vec4 encodeHDR_0(vec4 color) {
-    int alpha = 3;
-    color = clamp(color, 0.0, 4.0);
+    color = clamp(color, 0.0, 12.0);
+    int alpha = clamp(int((max(max(color.r, color.g), color.b) + 3.999) / 4.0), 1, 3);
+    color.rgb /= float(alpha);
     vec3 colorFloor = clamp(floor(color.rgb), 0.0, 3.0);
 
     alpha = alpha << 2;
@@ -362,7 +363,7 @@ vec4 encodeHDR_0(vec4 color) {
     alpha = alpha << 2;
     alpha += int(colorFloor.b);
 
-    return vec4(color.rgb - colorFloor, alpha / 255.0);
+    return vec4(clamp(color.rgb - colorFloor, 0.0, 1.0), alpha / 255.0);
 }
 
 vec4 decodeHDR_1(vec4 color) {

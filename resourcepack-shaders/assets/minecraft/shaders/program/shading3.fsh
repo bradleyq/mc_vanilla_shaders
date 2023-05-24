@@ -109,12 +109,13 @@ float decodeDepth(vec4 depth) {
 
 vec4 decodeHDR_0(vec4 color) {
     int alpha = int(color.a * 255.0);
-    return vec4(color.r + float((alpha >> 4) % 4), color.g + float((alpha >> 2) % 4), color.b + float(alpha % 4), 1.0);
+    return vec4(vec3(color.r + float((alpha >> 4) % 4), color.g + float((alpha >> 2) % 4), color.b + float(alpha % 4)) * float(alpha >> 6), 1.0);
 }
 
 vec4 encodeHDR_0(vec4 color) {
-    int alpha = 3;
-    color = clamp(color, 0.0, 4.0);
+    color = clamp(color, 0.0, 12.0);
+    int alpha = clamp(int((max(max(color.r, color.g), color.b) + 3.999) / 4.0), 1, 3);
+    color.rgb /= float(alpha);
     vec3 colorFloor = clamp(floor(color.rgb), 0.0, 3.0);
 
     alpha = alpha << 2;
@@ -124,32 +125,20 @@ vec4 encodeHDR_0(vec4 color) {
     alpha = alpha << 2;
     alpha += int(colorFloor.b);
 
-    return vec4(color.rgb - colorFloor, alpha / 255.0);
+    return vec4(clamp(color.rgb - colorFloor, 0.0, 1.0), alpha / 255.0);
 }
 
-vec4 decodeHDR_1(vec4 color) {
-    return vec4(color.rgb * (color.a + 1.0), 1.0);
-}
-
-vec4 encodeHDR_1(vec4 color) {
-    float maxval = max(color.r, max(color.g, color.b));
-    float mult = (maxval - 1.0) * 255.0 / 3.0;
-    mult = clamp(ceil(mult), 0.0, 255.0);
-    color.rgb = color.rgb * 255 / (mult / 255 * 3 + 1);
-    color.rgb = round(color.rgb);
-    return vec4(color.rgb, mult) / 255.0;
-}
 
 // tweak lighting color here
 #define NOON_CLEAR vec3(1.2, 1.15, 1.1) * 3.0
 #define NOONA_CLEAR vec3(0.55, 0.57, 0.7) * 2.25
 #define NOONM_CLEAR vec3(0.45, 0.47, 0.6) * 2.25
-#define EVENING_CLEAR vec3(1.35, 0.9, 0.4) * 2.25
-#define EVENINGA_CLEAR vec3(0.5, 0.55, 0.7) * 2.0
-#define EVENINGM_CLEAR vec3(0.4, 0.45, 0.6) * 2.0
+#define EVENING_CLEAR vec3(1.25, 0.9, 0.5) * 2.25
+#define EVENINGA_CLEAR vec3(0.55, 0.57, 0.65) * 1.75
+#define EVENINGM_CLEAR vec3(0.4, 0.45, 0.6) * 1.75
 #define NIGHT_CLEAR vec3(0.65, 0.65, 0.7) * 0.7
-#define NIGHTA_CLEAR vec3(0.75, 0.8, 0.9) * 0.7
-#define NIGHTM_CLEAR vec3(1.1, 1.3, 1.4) * 0.7
+#define NIGHTA_CLEAR vec3(0.75, 0.75, 0.8) * 0.7
+#define NIGHTM_CLEAR vec3(1.2, 1.3, 1.4) * 0.7
 
 #define NOON_OVERCAST vec3(1.0, 1.05, 1.1) * 2.5
 #define NOONA_OVERCAST vec3(0.65, 0.67, 0.7) * 2.5
@@ -207,7 +196,7 @@ vec4 backProject(vec4 vec) {
 #define anisotropicIntensityClear 0.1 //Higher numbers result in more anisotropic scattering
 #define anisotropicIntensityOvercast 0.3 //Higher numbers result in more anisotropic scattering
 
-#define skyColorClear vec3(0.2, 0.43, 1.0) * (1.0 + anisotropicIntensityClear) //Make sure one of the conponents is never 0.0
+#define skyColorClear vec3(0.2, 0.45, 1.0) * (1.0 + anisotropicIntensityClear) //Make sure one of the conponents is never 0.0
 #define skyColorOvercast vec3(0.5, 0.55, 0.6) * (1.0 + anisotropicIntensityOvercast) //Make sure one of the conponents is never 0.0
 
 #define smooth(x) x*x*(3.0-2.0*x)

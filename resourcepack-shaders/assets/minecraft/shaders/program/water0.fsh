@@ -4,6 +4,7 @@ uniform sampler2D DiffuseSampler;
 uniform sampler2D DiffuseDepthSampler;
 uniform sampler2D TranslucentSampler;
 uniform sampler2D TranslucentDepthSampler;
+uniform vec2 OutSize;
 
 in vec2 texCoord;
 in vec2 oneTexel;
@@ -51,12 +52,13 @@ const vec2 poissonDisk[64] = vec2[64](
 
 vec4 decodeHDR_0(vec4 color) {
     int alpha = int(color.a * 255.0);
-    return vec4(color.r + float((alpha >> 4) % 4), color.g + float((alpha >> 2) % 4), color.b + float(alpha % 4), 1.0);
+    return vec4(vec3(color.r + float((alpha >> 4) % 4), color.g + float((alpha >> 2) % 4), color.b + float(alpha % 4)) * float(alpha >> 6), 1.0);
 }
 
 vec4 encodeHDR_0(vec4 color) {
-    int alpha = 3;
-    color = clamp(color, 0.0, 4.0);
+    color = clamp(color, 0.0, 12.0);
+    int alpha = clamp(int((max(max(color.r, color.g), color.b) + 3.999) / 4.0), 1, 3);
+    color.rgb /= float(alpha);
     vec3 colorFloor = clamp(floor(color.rgb), 0.0, 3.0);
 
     alpha = alpha << 2;
@@ -66,20 +68,7 @@ vec4 encodeHDR_0(vec4 color) {
     alpha = alpha << 2;
     alpha += int(colorFloor.b);
 
-    return vec4(color.rgb - colorFloor, alpha / 255.0);
-}
-
-vec4 decodeHDR_1(vec4 color) {
-    return vec4(color.rgb * (color.a + 1.0), 1.0);
-}
-
-vec4 encodeHDR_1(vec4 color) {
-    float maxval = max(color.r, max(color.g, color.b));
-    float mult = (maxval - 1.0) * 255.0 / 3.0;
-    mult = clamp(ceil(mult), 0.0, 255.0);
-    color.rgb = color.rgb * 255 / (mult / 255 * 3 + 1);
-    color.rgb = round(color.rgb);
-    return vec4(color.rgb, mult) / 255.0;
+    return vec4(clamp(color.rgb - colorFloor, 0.0, 1.0), alpha / 255.0);
 }
 
 
@@ -112,7 +101,7 @@ vec4 backProject(vec4 vec) {
 #define anisotropicIntensityClear 0.1 //Higher numbers result in more anisotropic scattering
 #define anisotropicIntensityOvercast 0.3 //Higher numbers result in more anisotropic scattering
 
-#define skyColorClear vec3(0.2, 0.43, 1.0) * (1.0 + anisotropicIntensityClear) //Make sure one of the conponents is never 0.0
+#define skyColorClear vec3(0.2, 0.45, 1.0) * (1.0 + anisotropicIntensityClear) //Make sure one of the conponents is never 0.0
 #define skyColorOvercast vec3(0.5, 0.55, 0.6) * (1.0 + anisotropicIntensityOvercast) //Make sure one of the conponents is never 0.0
 
 #define smooth(x) x*x*(3.0-2.0*x)
@@ -182,6 +171,7 @@ vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog) {
 #define NORMAL_SCATTER 0.004
 #define NORMAL_SMOOTHING 0.01
 #define NORMAL_DEPTH_REJECT 0.15
+#define NORMAL_DEPTH_REJECT_L 0.000001
 #define NORMRAD 5
 
 #define SSR_TAPS 2
@@ -345,9 +335,9 @@ void main() {
         vec3 p5 = backProject(vec4(scaledCoord - 2.0 * vec2(oneTexel.x, 0.0), ldepth5, 1.0)).xyz;
         p5 = p5 - fragpos;
 
-        bool p2v = ldepth2 < gdepth2 && length(p2) < length(NORMAL_DEPTH_REJECT * fragpos);
+        bool p2v = ldepth2 < gdepth2 && length(p2) < length(NORMAL_DEPTH_REJECT * fragpos) && texCoord.y + oneTexel.y < 1.0;
         bool p3v = ldepth3 < gdepth3 && length(p3) < length(NORMAL_DEPTH_REJECT * fragpos);
-        bool p4v = ldepth4 < gdepth4 && length(p4) < length(NORMAL_DEPTH_REJECT * fragpos);
+        bool p4v = ldepth4 < gdepth4 && length(p4) < length(NORMAL_DEPTH_REJECT * fragpos) && texCoord.y - oneTexel.y > 0.0;
         bool p5v = ldepth5 < gdepth5 && length(p5) < length(NORMAL_DEPTH_REJECT * fragpos);
 
         vec3 normal = normalize(cross(p2, p3)) * float(p2v && p3v) 
@@ -357,30 +347,32 @@ void main() {
 
         normal = normal == vec3(0.0) ? vec3(0.0, 1.0, 0.0) : normalize(-normal);
 
-        float smoothing = min(NORMAL_SMOOTHING, texCoord.y);
+        vec2 alignedSmoothing = oneTexel * vec2(ivec2(OutSize * vec2(aspectRatio * NORMAL_SMOOTHING, NORMAL_SMOOTHING)));
+        float smoothingNY = clamp(texCoord.y - oneTexel.y * 0.5, 0.0, alignedSmoothing.y);
+        float smoothingPY = clamp(1.0 - texCoord.y - oneTexel.y * 0.5, 0.0, alignedSmoothing.y);
         if (int(color.a * 255.0) % 2 == 0) {
-            float ldepth6 = (texture(TranslucentDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(0.0, 1.0)).r);
-            float ldepth7 = (texture(TranslucentDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(aspectRatio, 0.0)).r);
-            float ldepth8 = (texture(TranslucentDepthSampler, texCoord - smoothing * vec2(0.0, 1.0)).r);
-            float ldepth9 = (texture(TranslucentDepthSampler, texCoord - NORMAL_SMOOTHING * vec2(aspectRatio, 0.0)).r);
-            float gdepth6 = (texture(DiffuseDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(0.0, 1.0)).r);
-            float gdepth7 = (texture(DiffuseDepthSampler, texCoord + NORMAL_SMOOTHING * vec2(aspectRatio, 0.0)).r);
-            float gdepth8 = (texture(DiffuseDepthSampler, texCoord - smoothing * vec2(0.0, 1.0)).r);
-            float gdepth9 = (texture(DiffuseDepthSampler, texCoord - NORMAL_SMOOTHING * vec2(aspectRatio, 0.0)).r);
+            float ldepth6 = (texture(TranslucentDepthSampler, texCoord + vec2(0.0, smoothingPY)).r);
+            float ldepth7 = (texture(TranslucentDepthSampler, texCoord + vec2(alignedSmoothing.x, 0.0)).r);
+            float ldepth8 = (texture(TranslucentDepthSampler, texCoord - vec2(0.0, smoothingNY)).r);
+            float ldepth9 = (texture(TranslucentDepthSampler, texCoord - vec2(alignedSmoothing.x, 0.0)).r);
+            float gdepth6 = (texture(DiffuseDepthSampler, texCoord + vec2(0.0, smoothingPY)).r);
+            float gdepth7 = (texture(DiffuseDepthSampler, texCoord + vec2(alignedSmoothing.x, 0.0)).r);
+            float gdepth8 = (texture(DiffuseDepthSampler, texCoord - vec2(0.0, smoothingNY)).r);
+            float gdepth9 = (texture(DiffuseDepthSampler, texCoord - vec2(alignedSmoothing.x, 0.0)).r);
 
-            vec3 p6 = backProject(vec4(scaledCoord + 2.0 * NORMAL_SMOOTHING * vec2(0.0, 1.0), ldepth6, 1.0)).xyz;
+            vec3 p6 = backProject(vec4(scaledCoord + 2.0 * vec2(0.0, smoothingPY), ldepth6, 1.0)).xyz;
             p6 = p6 - fragpos;
-            vec3 p7 = backProject(vec4(scaledCoord + 2.0 * NORMAL_SMOOTHING * vec2(aspectRatio, 0.0), ldepth7, 1.0)).xyz;
+            vec3 p7 = backProject(vec4(scaledCoord + 2.0 * vec2(alignedSmoothing.x, 0.0), ldepth7, 1.0)).xyz;
             p7 = p7 - fragpos;
-            vec3 p8 = backProject(vec4(scaledCoord - 2.0 * smoothing * vec2(0.0, 1.0), ldepth8, 1.0)).xyz;
+            vec3 p8 = backProject(vec4(scaledCoord - 2.0 * vec2(0.0, smoothingNY), ldepth8, 1.0)).xyz;
             p8 = p8 - fragpos;
-            vec3 p9 = backProject(vec4(scaledCoord - 2.0 * NORMAL_SMOOTHING * vec2(aspectRatio, 0.0), ldepth9, 1.0)).xyz;
+            vec3 p9 = backProject(vec4(scaledCoord - 2.0 * vec2(alignedSmoothing.x, 0.0), ldepth9, 1.0)).xyz;
             p9 = p9 - fragpos;
 
-            bool p6v = ldepth6 < gdepth6 && length(p6) < length(NORMAL_DEPTH_REJECT * fragpos);
-            bool p7v = ldepth7 < gdepth7 && length(p7) < length(NORMAL_DEPTH_REJECT * fragpos);
-            bool p8v = ldepth8 < gdepth8 && length(p8) < length(NORMAL_DEPTH_REJECT * fragpos);
-            bool p9v = ldepth9 < gdepth9 && length(p9) < length(NORMAL_DEPTH_REJECT * fragpos);
+            bool p6v = ldepth6 < gdepth6 && length(p6) < length(NORMAL_DEPTH_REJECT * fragpos) && length(p6) > length(NORMAL_DEPTH_REJECT_L * fragpos);
+            bool p7v = ldepth7 < gdepth7 && length(p7) < length(NORMAL_DEPTH_REJECT * fragpos) && length(p7) > length(NORMAL_DEPTH_REJECT_L * fragpos);
+            bool p8v = ldepth8 < gdepth8 && length(p8) < length(NORMAL_DEPTH_REJECT * fragpos) && length(p8) > length(NORMAL_DEPTH_REJECT_L * fragpos);
+            bool p9v = ldepth9 < gdepth9 && length(p9) < length(NORMAL_DEPTH_REJECT * fragpos) && length(p9) > length(NORMAL_DEPTH_REJECT_L * fragpos);
 
             vec3 normalsmooth = normalize(cross(p6, p7)) * float(p6v && p7v) 
                               + normalize(cross(-p8, p7)) * float(p8v && p7v) 
@@ -389,7 +381,7 @@ void main() {
 
             if (normalsmooth != vec3(0.0)) {
                 normalsmooth = normalize(-normalsmooth);
-                normal = mix(normal, normalsmooth, smoothstep(0.9, 0.95, dot(normal, normalsmooth)) * (1.0 - clamp(lineardepth / (far / 4.0), 0.0, 1.0)));
+                normal = mix(normal, normalsmooth, clamp(smoothstep(0.7, 0.9, dot(normal, normalsmooth)) + smoothstep(0.0, 0.1, dot(-normalize(fragpos), normal)), 0.0, 1.0));
             }
         }
 
@@ -420,8 +412,6 @@ void main() {
             fresnel *= scale;
         }
         fresnel = min(fresnel, reflection.a);
-
-        // fresnel = 1.0;
 
         int alphaval = int(round(clamp(fresnel, 0.0, 1.0) * 127.0));
 

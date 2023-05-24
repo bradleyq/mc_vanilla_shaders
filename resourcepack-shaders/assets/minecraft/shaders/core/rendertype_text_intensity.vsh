@@ -7,22 +7,15 @@
 in vec3 Position;
 in vec4 Color;
 in vec2 UV0;
-in ivec2 UV1;
 in ivec2 UV2;
-in vec3 Normal;
 
-uniform sampler2D Sampler1;
 uniform sampler2D Sampler2;
 
 uniform mat4 ModelViewMat;
 uniform mat4 ProjMat;
 
-uniform vec3 Light0_Direction;
-uniform vec3 Light1_Direction;
-
 out vec4 vertexColor;
 out vec4 baseColor;
-out vec4 overlayColor;
 out vec2 texCoord0;
 out vec2 texCoord2;
 out vec4 glpos;
@@ -30,8 +23,8 @@ out vec4 glpos;
 void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
 
-    if (isGUI(ProjMat) || !notPickup2(ModelViewMat)) {
-        baseColor = minecraft_mix_light(Light0_Direction, Light1_Direction, Normal, Color);
+    if (isGUI(ProjMat)) {
+        baseColor = Color;
         vertexColor = texelFetch(Sampler2, UV2 / 16, 0);
     } 
     else {
@@ -47,6 +40,5 @@ void main() {
     else {
         texCoord2.y = 1.0;
     }
-    overlayColor = texelFetch(Sampler1, UV1, 0);
     glpos = gl_Position;
 }

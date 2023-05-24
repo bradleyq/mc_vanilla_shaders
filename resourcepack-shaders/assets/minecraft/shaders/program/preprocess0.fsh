@@ -14,6 +14,7 @@ out vec4 fragColor;
 
 // moj_import doesn't work in post-process shaders ;_; Felix pls fix
 #define FPRECISION 4000000.0
+#define FPRECISION_L 400000.0
 #define PROJNEAR 0.05
 #define PROJFAR 1024.0
 #define PI 3.14159265358979
@@ -42,8 +43,8 @@ out vec4 fragColor;
 #define FOG_DARKNESS_FAR 15.0
 #define FOG_DEFAULT_FAR 150.0
 #define FOG_TARGET 0.2
-#define FOG_DIST_MULT 3.0
-#define FOG_DIST_OVERCAST_REDUCE 1.5
+#define FOG_DIST_MULT 3.5
+#define FOG_DIST_OVERCAST_REDUCE 2.0
 
 #define FLAG_UNDERWATER 1<<0
 
@@ -111,14 +112,23 @@ float decodeFloat(vec3 vec) {
     return decodeInt(vec) / FPRECISION;
 }
 
+vec3 encodeFloatL(float f) {
+    return encodeInt(int(f * FPRECISION_L));
+}
+
+float decodeFloatL(vec3 vec) {
+    return decodeInt(vec) / FPRECISION_L;
+}
+
 vec4 decodeHDR_0(vec4 color) {
     int alpha = int(color.a * 255.0);
-    return vec4(color.r + float((alpha >> 4) % 4), color.g + float((alpha >> 2) % 4), color.b + float(alpha % 4), 1.0);
+    return vec4(vec3(color.r + float((alpha >> 4) % 4), color.g + float((alpha >> 2) % 4), color.b + float(alpha % 4)) * float(alpha >> 6), 1.0);
 }
 
 vec4 encodeHDR_0(vec4 color) {
-    int alpha = 3;
-    color = clamp(color, 0.0, 4.0);
+    color = clamp(color, 0.0, 12.0);
+    int alpha = clamp(int((max(max(color.r, color.g), color.b) + 3.999) / 4.0), 1, 3);
+    color.rgb /= float(alpha);
     vec3 colorFloor = clamp(floor(color.rgb), 0.0, 3.0);
 
     alpha = alpha << 2;
@@ -128,21 +138,9 @@ vec4 encodeHDR_0(vec4 color) {
     alpha = alpha << 2;
     alpha += int(colorFloor.b);
 
-    return vec4(color.rgb - colorFloor, alpha / 255.0);
+    return vec4(clamp(color.rgb - colorFloor, 0.0, 1.0), alpha / 255.0);
 }
 
-vec4 decodeHDR_1(vec4 color) {
-    return vec4(color.rgb * (color.a + 1.0), 1.0);
-}
-
-vec4 encodeHDR_1(vec4 color) {
-    float maxval = max(color.r, max(color.g, color.b));
-    float mult = (maxval - 1.0) * 255.0 / 3.0;
-    mult = clamp(ceil(mult), 0.0, 255.0);
-    color.rgb = color.rgb * 255 / (mult / 255 * 3 + 1);
-    color.rgb = round(color.rgb);
-    return vec4(color.rgb, mult) / 255.0;
-}
 
 float luma(vec3 color) {
     return dot(color, vec3(0.2126, 0.7152, 0.0722));
@@ -224,21 +222,23 @@ void main() {
             for (int i = 0; i < EXPOSURE_SAMPLES; i += 1) {
                 lum += luma(decodeHDR_0(texture(PrevMainSampler, EXPOSURE_RADIUS * (offset + poissonDisk[i + (index - 32) * EXPOSURE_SAMPLES] * 0.75) + vec2(0.5))).rgb);
             }
-            lum = lum / EXPOSURE_SAMPLES - 2.0; // Fixed point only supports so subtract 2 [-2, 2]
-            outColor = vec4(encodeFloat(clamp(lum, -2.0, 2.0)), 1.0); 
+            lum = lum / EXPOSURE_SAMPLES - 20.0; // Fixed point L only supports [-20, 20] so subtract 20
+            outColor = vec4(encodeFloatL(clamp(lum, -20.0, 20.0)), 1.0); 
         }
         else if (index == 41) {
-            float lum = decodeFloat(texture(PrevDataSampler, startData + 32.0 * incData).rgb)
-                      + decodeFloat(texture(PrevDataSampler, startData + 33.0 * incData).rgb)
-                      + decodeFloat(texture(PrevDataSampler, startData + 34.0 * incData).rgb)
-                      + decodeFloat(texture(PrevDataSampler, startData + 35.0 * incData).rgb)
-                      + decodeFloat(texture(PrevDataSampler, startData + 36.0 * incData).rgb)
-                      + decodeFloat(texture(PrevDataSampler, startData + 37.0 * incData).rgb)
-                      + decodeFloat(texture(PrevDataSampler, startData + 38.0 * incData).rgb)
-                      + decodeFloat(texture(PrevDataSampler, startData + 39.0 * incData).rgb)
-                      + decodeFloat(texture(PrevDataSampler, startData + 40.0 * incData).rgb);
+            float lum = decodeFloatL(texture(PrevDataSampler, startData + 32.0 * incData).rgb)
+                      + decodeFloatL(texture(PrevDataSampler, startData + 33.0 * incData).rgb)
+                      + decodeFloatL(texture(PrevDataSampler, startData + 34.0 * incData).rgb)
+                      + decodeFloatL(texture(PrevDataSampler, startData + 35.0 * incData).rgb)
+                      + decodeFloatL(texture(PrevDataSampler, startData + 36.0 * incData).rgb)
+                      + decodeFloatL(texture(PrevDataSampler, startData + 37.0 * incData).rgb)
+                      + decodeFloatL(texture(PrevDataSampler, startData + 38.0 * incData).rgb)
+                      + decodeFloatL(texture(PrevDataSampler, startData + 39.0 * incData).rgb)
+                      + decodeFloatL(texture(PrevDataSampler, startData + 40.0 * incData).rgb);
 
             lum /= 9.0;
+
+            lum += 20.0 - 2.0; // convert from fixed point L to regular fixed point
 
             vec4 last = texture(PrevDataSampler, startData + 41.0 * incData);
             if (last.a == 1.0) {
