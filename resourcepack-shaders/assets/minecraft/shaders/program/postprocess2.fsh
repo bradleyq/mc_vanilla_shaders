@@ -89,6 +89,10 @@ float customRolloff10(float x) {
     return x > 0.5 ? (x - 0.5) / (x - 0.5 + 1.0) + 0.5 : x;
 }
 
+float customRolloff2(float x) {
+    return x > 0.2945 ? 1.2 * (x - 0.2) / (x - 0.2 + 1.0) + 0.190891 : x;
+}
+
 vec3 jodieReinhardTonemap(vec3 c, float upper) {
     float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
     vec3 tc = c / (upper * c + 1.0);
@@ -129,7 +133,7 @@ void main() {
     outColor.rgb /= exposureClampAdjusted * 2.0;
 
     // apply tonemap
-    outColor.rgb = vec3(customRolloff9(outColor.r), customRolloff9(outColor.g), customRolloff9(outColor.b));
+    outColor.rgb = vec3(customRolloff2(outColor.r), customRolloff2(outColor.g), customRolloff2(outColor.b));
     // outColor.rgb = jodieReinhardTonemap(outColor.rgb, 0.5);
     // outColor.rgb = acesTonemap(outColor.rgb);
 
