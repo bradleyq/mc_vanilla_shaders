@@ -113,7 +113,7 @@ void main() {
                   + decodeHDR_0(texture(BloomSampler, clampInBound(scaledCoord - 0.99 * vec2(oneTexel.x, -oneTexel.y), bound)));  
     bloomCol /= 16.0; 
 
-    float startB = 1.0 + 5.0 * exposureNorm;
+    float startB = 1.0 + 3.0 * exposureNorm;
     float endB = 2.0 + 4.8 * exposureNorm;
 
     bloomCol -= outColor;
@@ -121,7 +121,6 @@ void main() {
 
     // apply bloom
     outColor += bloomCol * 0.5 * (pow(1.0 - exposureNorm, 2.0) * 0.5 + 0.5);
-    // outColor = bloomCol;
 
     // apply crosstalk
     outColor.rgb += vec3(0.05) * (outColor.r + outColor.g + outColor.b);
@@ -131,6 +130,8 @@ void main() {
 
     // apply tonemap
     outColor.rgb = vec3(customRolloff9(outColor.r), customRolloff9(outColor.g), customRolloff9(outColor.b));
+    // outColor.rgb = jodieReinhardTonemap(outColor.rgb, 0.5);
+    // outColor.rgb = acesTonemap(outColor.rgb);
 
     fragColor = outColor;
 }

@@ -30,7 +30,7 @@ out vec4 fragColor;
 #define PROJNEAR 0.05
 #define FUDGE 32.0
 
-#define EMISSMULT 4.0
+#define EMISSMULT 6.0
 
 #define TINT_WATER vec3(0.0 / 255.0, 248.0 / 255.0, 255.0 / 255.0)
 #define TINT_WATER_DISTANCE 48.0
@@ -404,7 +404,9 @@ void main() {
             fresnel = getFresnel(indexair, indexwater, theta);
         }
         
-        #define HDR_LIMIT 4.0
+        // fresnel = 1.0;
+
+        #define HDR_LIMIT 12.0
         float maxelem = max(reflection.r, max(reflection.g, reflection.b));
         if (maxelem > HDR_LIMIT) {
             float scale = min(maxelem / HDR_LIMIT, 1.0 / (fresnel + 0.001));
@@ -417,10 +419,10 @@ void main() {
 
         if (maxelem > 2.0) {
             alphaval += 128;
-            reflection.rgb /= 4.0;
+            reflection.rgb /= 12.0;
         }
         else {
-            reflection.rgb /= 2.0;
+            reflection.rgb /= 3.0;
         }
 
         outColor = vec4(reflection.rgb, float(alphaval) / 255.0);

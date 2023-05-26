@@ -81,5 +81,5 @@ void main(){
     vec2 start = getControl(0, AuxSize0);
     vec2 inc = vec2(1.0 / AuxSize0.x, 0.0);
 
-    exposureNorm = (clamp(decodeFloat(texture(DataSampler, start + 41.0 * inc).rgb) + 2.0, 0.375, 1.0) - 0.375) / 0.625;
+    exposureNorm = (clamp(decodeFloat(texture(DataSampler, start + 41.0 * inc).rgb) + 2.0, 0.3, 1.1) - 0.3) / 0.8;
 }

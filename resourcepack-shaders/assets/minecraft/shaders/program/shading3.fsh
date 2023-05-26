@@ -28,7 +28,7 @@ out vec4 fragColor;
 #define PROJNEAR 0.05
 #define FUDGE 32.0
 
-#define EMISSMULT 4.0
+#define EMISSMULT 6.0
 
 #define TINT_WATER vec3(0.0 / 255.0, 248.0 / 255.0, 255.0 / 255.0)
 #define TINT_WATER_DISTANCE 48.0
@@ -130,25 +130,25 @@ vec4 encodeHDR_0(vec4 color) {
 
 
 // tweak lighting color here
-#define NOON_CLEAR vec3(1.2, 1.15, 1.1) * 3.0
-#define NOONA_CLEAR vec3(0.55, 0.57, 0.7) * 2.25
-#define NOONM_CLEAR vec3(0.45, 0.47, 0.6) * 2.25
+#define NOON_CLEAR vec3(1.2, 1.15, 1.05) * 3.5
+#define NOONA_CLEAR vec3(0.55, 0.57, 0.7) * 2.2
+#define NOONM_CLEAR vec3(0.45, 0.47, 0.6) * 2.2
 #define EVENING_CLEAR vec3(1.25, 0.9, 0.5) * 2.25
 #define EVENINGA_CLEAR vec3(0.55, 0.57, 0.65) * 1.75
 #define EVENINGM_CLEAR vec3(0.4, 0.45, 0.6) * 1.75
-#define NIGHT_CLEAR vec3(0.65, 0.65, 0.7) * 0.7
-#define NIGHTA_CLEAR vec3(0.75, 0.75, 0.8) * 0.7
-#define NIGHTM_CLEAR vec3(1.2, 1.3, 1.4) * 0.7
+#define NIGHT_CLEAR vec3(0.65, 0.65, 0.7) * 0.6
+#define NIGHTA_CLEAR vec3(0.75, 0.75, 0.8) * 0.6
+#define NIGHTM_CLEAR vec3(1.2, 1.3, 1.4) * 0.6
 
 #define NOON_OVERCAST vec3(1.0, 1.05, 1.1) * 2.5
-#define NOONA_OVERCAST vec3(0.65, 0.67, 0.7) * 2.5
-#define NOONM_OVERCAST vec3(0.6, 0.6, 0.6) * 2.5
+#define NOONA_OVERCAST vec3(0.65, 0.67, 0.7) * 2.2
+#define NOONM_OVERCAST vec3(0.6, 0.6, 0.6) * 2.2
 #define EVENING_OVERCAST vec3(1.0, 0.9, 0.85) * 1.0
 #define EVENINGA_OVERCAST vec3(0.65, 0.67, 0.7) * 1.0
 #define EVENINGM_OVERCAST vec3(0.55, 0.55, 0.55) * 1.0
-#define NIGHT_OVERCAST vec3(0.65, 0.65, 0.65) * 0.7
-#define NIGHTA_OVERCAST vec3(0.75, 0.75, 0.75) * 0.7
-#define NIGHTM_OVERCAST vec3(1.0, 1.0, 1.0) * 0.7
+#define NIGHT_OVERCAST vec3(0.65, 0.65, 0.65) * 0.6
+#define NIGHTA_OVERCAST vec3(0.75, 0.75, 0.75) * 0.6
+#define NIGHTM_OVERCAST vec3(1.0, 1.0, 1.0) * 0.6
 
 #define END_CLEAR vec3(0.8, 0.85, 0.85)
 #define ENDA_CLEAR vec3(0.9, 0.9, 0.95)

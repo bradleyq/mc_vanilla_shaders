@@ -90,7 +90,7 @@ void main() {
                      + decodeHDR_0(texture(FullResSampler, scaledCoord + 1.01 * vec2(oneTexel.x, -oneTexel.y)))
                      + decodeHDR_0(texture(FullResSampler, scaledCoord - 1.01 * vec2(oneTexel.x, -oneTexel.y)));
             outColor /= 16.0;
-            float startB = 1.0 + 5.0 * exposureNorm;
+            float startB = 1.0 + 3.0 * exposureNorm;
             float endB = 2.0 + 4.8 * exposureNorm;
 
             outColor *= (clamp(length(outColor.rgb), startB, endB) - startB) / (endB - startB);

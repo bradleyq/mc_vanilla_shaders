@@ -1,4 +1,5 @@
 #version 330
+#define FSH
 
 uniform sampler2D Sampler0;
 

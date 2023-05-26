@@ -269,10 +269,10 @@ void main() {
     active_layers = 1;
     vec4 reflection = texture(ReflectionSampler, texCoord);
     if (reflection.a >= 128.0 / 255.0) {
-        reflection.rgb *= 4.0;
+        reflection.rgb *= 12.0;
     }
     else {
-        reflection.rgb *= 2.0;
+        reflection.rgb *= 3.0;
     }
     reflection.a = float(int(reflection.a * 255.0) % 128) / 127.0;
 
