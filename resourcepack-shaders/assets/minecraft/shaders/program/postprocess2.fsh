@@ -6,7 +6,7 @@ uniform sampler2D BloomSampler;
 in vec2 texCoord;
 in vec2 oneTexel;
 in float exposureNorm;
-in float exposureClampAdjusted;
+in float exposureClamp;
 
 out vec4 fragColor;
 
@@ -127,10 +127,10 @@ void main() {
     outColor += bloomCol * 0.5 * (pow(1.0 - exposureNorm, 2.0) * 0.5 + 0.5);
 
     // apply crosstalk
-    outColor.rgb += vec3(0.05) * (outColor.r + outColor.g + outColor.b);
+    outColor.rgb += vec3(0.02) * (outColor.r + outColor.g + outColor.b);
 
     // apply exposure
-    outColor.rgb /= exposureClampAdjusted * 2.0;
+    outColor.rgb /= exposureClamp * 2.0;
 
     // apply tonemap
     outColor.rgb = vec3(customRolloff2(outColor.r), customRolloff2(outColor.g), customRolloff2(outColor.b));

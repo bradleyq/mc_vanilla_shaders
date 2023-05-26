@@ -133,14 +133,14 @@ vec4 encodeHDR_0(vec4 color) {
 #define NOON_CLEAR vec3(1.2, 1.15, 1.05) * 3.5
 #define NOONA_CLEAR vec3(0.55, 0.57, 0.7) * 2.2
 #define NOONM_CLEAR vec3(0.45, 0.47, 0.6) * 2.2
-#define EVENING_CLEAR vec3(1.25, 0.9, 0.5) * 2.25
+#define EVENING_CLEAR vec3(1.3, 0.9, 0.5) * 2.25
 #define EVENINGA_CLEAR vec3(0.55, 0.57, 0.65) * 1.75
 #define EVENINGM_CLEAR vec3(0.4, 0.45, 0.6) * 1.75
 #define NIGHT_CLEAR vec3(0.65, 0.65, 0.7) * 0.6
 #define NIGHTA_CLEAR vec3(0.75, 0.75, 0.8) * 0.6
 #define NIGHTM_CLEAR vec3(1.2, 1.3, 1.4) * 0.6
 
-#define NOON_OVERCAST vec3(1.0, 1.05, 1.1) * 2.5
+#define NOON_OVERCAST vec3(1.0, 1.05, 1.1) * 2.2
 #define NOONA_OVERCAST vec3(0.65, 0.67, 0.7) * 2.2
 #define NOONM_OVERCAST vec3(0.6, 0.6, 0.6) * 2.2
 #define EVENING_OVERCAST vec3(1.0, 0.9, 0.85) * 1.0
