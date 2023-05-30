@@ -100,6 +100,26 @@ vec3 jodieReinhardTonemap(vec3 c, float upper) {
     return mix(c / (upper * l + 1.0), tc, tc);
 }
 
+// All components are in the range [0…1], including hue.
+vec3 rgb2hsv(vec3 c)
+{
+    vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+    vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+    vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+
+    float d = q.x - min(q.w, q.y);
+    float e = 1.0e-10;
+    return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
+
+// All components are in the range [0…1], including hue.
+vec3 hsv2rgb(vec3 c)
+{
+    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
 void main() {
     vec4 outColor = decodeHDR_0(texture(DiffuseSampler, texCoord));
 
@@ -117,25 +137,25 @@ void main() {
                   + decodeHDR_0(texture(BloomSampler, clampInBound(scaledCoord - 0.99 * vec2(oneTexel.x, -oneTexel.y), bound)));  
     bloomCol /= 16.0; 
 
-    float startB = 1.0 + 3.0 * exposureNorm;
-    float endB = 2.0 + 4.8 * exposureNorm;
-
-    bloomCol -= outColor;
-    bloomCol = max(bloomCol, vec4(0.0));
-
     // apply bloom
-    outColor += bloomCol * 0.5 * (pow(1.0 - exposureNorm, 2.0) * 0.5 + 0.5);
+    outColor += bloomCol * 0.25 * (pow(1.0 - exposureNorm, 2.0) * 0.75 + 0.5);
+    // outColor = bloomCol;
 
     // apply crosstalk
     outColor.rgb += vec3(0.02) * (outColor.r + outColor.g + outColor.b);
 
     // apply exposure
-    outColor.rgb /= exposureClamp * 2.0;
+    outColor.rgb /= exposureClamp * 1.8;
 
     // apply tonemap
-    outColor.rgb = vec3(customRolloff2(outColor.r), customRolloff2(outColor.g), customRolloff2(outColor.b));
+    outColor.rgb = vec3(customRolloff9(outColor.r), customRolloff9(outColor.g), customRolloff9(outColor.b));
     // outColor.rgb = jodieReinhardTonemap(outColor.rgb, 0.5);
     // outColor.rgb = acesTonemap(outColor.rgb);
+
+    // saturation
+    // outColor.rgb = rgb2hsv(outColor.rgb);
+    // outColor.g *= 1.4;
+    // outColor.rgb = hsv2rgb(outColor.rgb);
 
     fragColor = outColor;
 }

@@ -43,7 +43,7 @@ out vec4 fragColor;
 #define FOG_DARKNESS_FAR 15.0
 #define FOG_DEFAULT_FAR 150.0
 #define FOG_TARGET 0.2
-#define FOG_DIST_MULT 3.5
+#define FOG_DIST_MULT 3.0
 #define FOG_DIST_OVERCAST_REDUCE 2.0
 
 #define FLAG_UNDERWATER 1<<0

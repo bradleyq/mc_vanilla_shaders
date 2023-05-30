@@ -130,12 +130,12 @@ vec4 encodeHDR_0(vec4 color) {
 
 
 // tweak lighting color here
-#define NOON_CLEAR vec3(1.2, 1.15, 1.05) * 3.5
-#define NOONA_CLEAR vec3(0.55, 0.57, 0.7) * 2.2
-#define NOONM_CLEAR vec3(0.45, 0.47, 0.6) * 2.2
-#define EVENING_CLEAR vec3(1.3, 0.9, 0.5) * 2.25
-#define EVENINGA_CLEAR vec3(0.55, 0.57, 0.65) * 1.75
-#define EVENINGM_CLEAR vec3(0.4, 0.45, 0.6) * 1.75
+#define NOON_CLEAR vec3(1.2, 1.1, 0.95) * 4.0
+#define NOONA_CLEAR vec3(0.55, 0.57, 0.7) * 2.3
+#define NOONM_CLEAR vec3(0.45, 0.47, 0.6) * 2.3
+#define EVENING_CLEAR vec3(1.3, 0.9, 0.5) * 2.5
+#define EVENINGA_CLEAR vec3(0.55, 0.57, 0.65) * 1.5
+#define EVENINGM_CLEAR vec3(0.4, 0.45, 0.6) * 1.5
 #define NIGHT_CLEAR vec3(0.65, 0.65, 0.7) * 0.6
 #define NIGHTA_CLEAR vec3(0.75, 0.75, 0.8) * 0.6
 #define NIGHTM_CLEAR vec3(1.2, 1.3, 1.4) * 0.6
@@ -196,8 +196,9 @@ vec4 backProject(vec4 vec) {
 #define anisotropicIntensityClear 0.1 //Higher numbers result in more anisotropic scattering
 #define anisotropicIntensityOvercast 0.3 //Higher numbers result in more anisotropic scattering
 
-#define skyColorClear vec3(0.2, 0.45, 1.0) * (1.0 + anisotropicIntensityClear) //Make sure one of the conponents is never 0.0
+#define skyColorClear vec3(0.15, 0.50, 1.0) * (1.0 + anisotropicIntensityClear) //Make sure one of the conponents is never 0.0
 #define skyColorOvercast vec3(0.5, 0.55, 0.6) * (1.0 + anisotropicIntensityOvercast) //Make sure one of the conponents is never 0.0
+#define skyColorNightClear vec3(0.075, 0.1, 0.125)
 
 #define smooth(x) x*x*(3.0-2.0*x)
 
@@ -235,7 +236,57 @@ float getMie(vec3 p, vec3 lp) {
     return disk*disk*(3.0 - 2.0 * disk) * pi * 2.0;
 }
 
-vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog) {
+float hash12(vec2 p) {
+	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+}
+
+vec3 hash33(vec3 p3) {
+	p3 = fract(p3 * vec3(0.1031, 0.1030, 0.0973));
+    p3 += dot(p3, p3.yxz + 33.33);
+    return fract((p3.xxy + p3.yxx) * p3.zyx);
+
+}
+
+float valNoise( vec2 p ){
+    vec2 i = floor( p );
+    vec2 f = fract( p );
+	
+	vec2 u = f*f*(3.0-2.0*f);
+
+    return mix( mix( hash12( i + vec2(0.0,0.0) ), 
+                     hash12( i + vec2(1.0,0.0) ), u.x),
+                mix( hash12( i + vec2(0.0,1.0) ), 
+                     hash12( i + vec2(1.0,1.0) ), u.x), u.y);
+}
+
+float gNoise( vec3 p ) {
+    vec3 i = floor( p );
+    vec3 f = fract( p );
+
+    // cubic interpolant
+    vec3 u = f*f*(3.0-2.0*f);   
+
+    return mix( mix( mix( dot( hash33( i + vec3(0.0,0.0,0.0) ), f - vec3(0.0,0.0,0.0) ), 
+                          dot( hash33( i + vec3(1.0,0.0,0.0) ), f - vec3(1.0,0.0,0.0) ), u.x),
+                     mix( dot( hash33( i + vec3(0.0,1.0,0.0) ), f - vec3(0.0,1.0,0.0) ), 
+                          dot( hash33( i + vec3(1.0,1.0,0.0) ), f - vec3(1.0,1.0,0.0) ), u.x), u.y),
+                mix( mix( dot( hash33( i + vec3(0.0,0.0,1.0) ), f - vec3(0.0,0.0,1.0) ), 
+                          dot( hash33( i + vec3(1.0,0.0,1.0) ), f - vec3(1.0,0.0,1.0) ), u.x),
+                     mix( dot( hash33( i + vec3(0.0,1.0,1.0) ), f - vec3(0.0,1.0,1.0) ), 
+                          dot( hash33( i + vec3(1.0,1.0,1.0) ), f - vec3(1.0,1.0,1.0) ), u.x), u.y), u.z );
+}
+
+vec3 starField(vec3 pos)
+{
+    vec3 col = 1.0- vec3(valNoise(15.0 * (pos.xy + 0.05)), valNoise(20.0 * pos.yz), valNoise(25.0 * (pos.xz - 0.06)));
+    col *= vec3(0.4, 0.8, 1.0);
+    col = mix(col, vec3(1), 0.5);
+    return col * smoothstep(0.5, 0.6, 1.5 * gNoise(128.0 * pos));
+}
+
+vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog) {
     float zenith = zenithDensity(p.y, lp.y);
     float ly = lp.y < 0.0 ? lp.y * 0.3 : lp.y;
     float multiScatterPhase = mix(multiScatterPhaseClear, multiScatterPhaseOvercast, rain);
@@ -256,6 +307,16 @@ vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog) {
     }
     
     totalSky *= sunAbsorption * 0.5 + 0.5 * length(sunAbsorption);
+
+    float sdu = dot(lp, vec3(0.0, 1.0, 0.0));
+    if (sdu < 0.0) {
+        vec3 mlp = normalize(vec3(-lp.xy, 0.0));
+        vec3 nightSky = (1.0 - 0.8 * p.y) * skyColorNightClear;
+        if (!fog) {
+            nightSky += srccol + starField(vec3(dot(p, mlp), dot(p, vec3(0.0, 0.0, 1.0)), dot(p, normalize(cross(mlp, vec3(0.0, 0.0, 1.0))))));
+        }
+        totalSky = mix(nightSky, totalSky, clamp(5.0 * (0.2 - pow(abs(sdu), 1.5)), 0.0, 1.0));
+    }
 
     return totalSky;
 }
@@ -387,6 +448,16 @@ void main() {
             p4 = p4 - fragpos;
             vec3 p5 = backProject(vec4(scaledCoord - 2.0 * vec2(oneTexel.x, 0.0), depth5, 1.0)).xyz;
             p5 = p5 - fragpos;
+            if (face == 1.0 || face == 2.0) {
+                float tmplen = length(p2.xz);
+                if (tmplen > 1.0) {
+                    p2.xz = vec2(0.0);
+                }
+                tmplen = length(p4.xz);
+                if (tmplen > 1.0) {
+                    p4.xz = vec2(0.0);
+                }
+            }
             vec3 normal = normalize(cross(p2, p3)) 
                         + normalize(cross(-p4, p3)) 
                         + normalize(cross(p2, -p5)) 
@@ -519,19 +590,12 @@ void main() {
         } 
         // if sky do atmosphere
         else if (dim == DIM_OVER) {
-            float sdu = dot(vec3(0.0, 1.0, 0.0), sunDir);
-
             vec2 scaledCoord = 2.0 * (texCoord - vec2(0.5));
             vec3 fragpos = normalize(backProject(vec4(scaledCoord, depth, 1.0)).xyz);
-            vec3 color = getAtmosphericScattering(fragpos, sunDir, rain, false);
+            vec3 color = getAtmosphericScattering(outColor.rgb, fragpos, sunDir, rain, false);
             color += vec3(PRNG(int(gl_FragCoord.x) + int(gl_FragCoord.y) * int(OutSize.x))) / 255.0;
 
-            if (sdu > 0.0) {
-                outColor = vec4(color, 1.0 );
-            } else {
-                outColor.rgb = mix(outColor.rgb, color, clamp(5.0 * (0.2 - pow(abs(sdu), 1.5)), 0.0, 1.0));
-            }
-
+            outColor = vec4(color, 1.0);
         }
 
         vec4 translucent = texture(DiffuseTSampler, texCoord);

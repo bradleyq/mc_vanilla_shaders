@@ -15,25 +15,9 @@ uniform mat4 ProjMat;
 in mat4 ProjInv;
 in float isSky;
 in float vertexDistance;
-in float seed;
-in vec2 uv;
 
 out vec4 fragColor;
 
-int xorshift(int value) {
-    // Xorshift*32
-    value ^= value << 13;
-    value ^= value >> 17;
-    value ^= value << 5;
-    return value;
-}
-
-float PRNG(int seed) {
-    seed = xorshift(seed);
-    return abs(fract(float(seed) / 3141.592653));
-}
-
-#define SKY_NIGHT vec3(12.0 / 255.0, 14.0 / 255.0, 16.0 / 255.0)
 #define FOG_NIGHT_BOOST vec3(6.0 / 255.0, 7.0 / 255.0, 1.0 / 255.0)
 
 // at this point, the entire sky is drawable: isSky for sky, stars and void plane for everything else.
@@ -98,37 +82,9 @@ void main() {
                 discard;
             }
         }
-
-        // not a control pixel, draw sky like normal
-        else if (isSky > 0.5) {
-            vec4 screenPos = gl_FragCoord;
-            screenPos.xy = (screenPos.xy / ScreenSize - vec2(0.5)) * 2.0;
-            screenPos.zw = vec2(1.0);
-            vec3 view = normalize((ProjInv * screenPos).xyz);
-            vec4 skycol = ColorModulator;
-            vec3 noise = 2.0 * vec3(PRNG(int(gl_FragCoord.x) + int(gl_FragCoord.y) * int(ScreenSize.x))) / 255.0;
-            skycol.rgb += (1.0 - clamp(length(ColorModulator.rgb), 0.0, 1.0)) * SKY_NIGHT;
-            vec4 fc = FogColor;
-            fc.rgb += (1.0 - clamp(length(ColorModulator.rgb), 0.0, 1.0)) * FOG_NIGHT_BOOST;
-            fc.rgb += noise;
-            skycol = linear_fog_real(skycol, pow(clamp(1.0 - view.y, 0.0, 1.0), 4.0), 0.0, 1.0, fc);
-            skycol.a = 1.0;
-            fragColor = getOutColorSTDALock(skycol, vec4(1.0), vec2(0.0), gl_FragCoord.xy);
-        }
-
-        // draw stars with random colors
-        else if (isSky < -0.5) {
-            int s1 = int(seed);
-            int s2 = xorshift(s1);
-            int s3 = xorshift(s2);
-            int s4 = xorshift(s3);
-            vec4 starColor = ColorModulator * 1.4 + vec4(PRNG(s1) * 0.3, PRNG(s2) * 0.2, PRNG(s3) * 0.3, PRNG(s4) - 0.6);
-
-            starColor = mix(starColor, vec4(starColor.rgb, 0.0), clamp(length(uv - vec2(0.5)) * 2.0, 0.0, 1.0));
-            fragColor = getOutColorSTDALock(starColor, vec4(1.0), vec2(0.0), gl_FragCoord.xy);
-        }
+        // not a control pixel, draw nothing. Sky drawn in post.
         else {
-            fragColor = getOutColorSTDALock(linear_fog_real(ColorModulator, vertexDistance, FogStart, FogEnd, FogColor), vec4(1.0), vec2(0.0), gl_FragCoord.xy);
+            fragColor = getOutColorSTDALock(vec4(0.0, 0.0, 0.0, 1.0), vec4(1.0), vec2(0.0), gl_FragCoord.xy);
         }
     }
     else {

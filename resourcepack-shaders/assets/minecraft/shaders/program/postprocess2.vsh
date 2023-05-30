@@ -87,6 +87,6 @@ void main(){
     float cave = decodeFloat(texture(DataSampler, start + 48.0 * inc).rgb);
     
     float exposure = decodeFloat(texture(DataSampler, start + 41.0 * inc).rgb) + 2.0;
-    exposureClamp = clamp(exposure, 0.4, 1.3);
-    exposureNorm = (clamp(exposure, 0.4, 1.3) - 0.4) / 0.9;
+    exposureNorm = (clamp(exposure, 0.4, 1.6) - 0.4) / 1.2;
+    exposureClamp = clamp(exposure, 0.4, 1.6);
 }

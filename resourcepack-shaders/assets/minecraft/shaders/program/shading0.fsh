@@ -91,18 +91,15 @@ vec4 backProject(vec4 vec) {
 }
 
 #define AO_SAMPLES 32
-#define AO_INTENSITY 3.0
+#define AO_INTENSITY 4.0
 #define AO_SCALE 2.5
-#define AO_BIAS 0.15
+#define AO_BIAS 0.008
 #define AO_SAMPLE_RAD 0.5
 #define AO_MAX_DISTANCE 3.0
 
-#define MOD3 vec3(.1031,.11369,.13787)
-
-float hash12(vec2 p)
-{
-    vec3 p3  = fract(vec3(p.xyx) * MOD3);
-    p3 += dot(p3, p3.yzx + 19.19);
+float hash12(vec2 p) {
+	vec3 p3  = fract(vec3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
     return fract((p3.x + p3.y) * p3.z);
 }
 
@@ -112,7 +109,7 @@ float doAmbientOcclusion(vec2 tcoord, vec2 uv, vec3 p, vec3 cnorm)
     float l = length(diff);
     vec3 v = diff/(l + 0.0000001);
     float d = l*AO_SCALE;
-    float ao = max(0.0,dot(cnorm,v)-AO_BIAS)*(1.0/(1.0+d));
+    float ao = max(0.0,dot(cnorm,v))*(1.0/(1.0+d));
     ao *= smoothstep(AO_MAX_DISTANCE,AO_MAX_DISTANCE * 0.5, l);
     return ao;
 
@@ -129,15 +126,17 @@ float spiralAO(vec2 uv, vec3 p, vec3 n, float rad)
     float rStep = inv * rad;
     vec2 spiralUV;
 
+    p *= 1.0 - AO_BIAS;
+
     for (int i = 0; i < AO_SAMPLES; i++) {
-        spiralUV.x = sin(rotatePhase) * OutSize.y / OutSize.x;
-        spiralUV.y = cos(rotatePhase);
+        spiralUV.x = int(sin(rotatePhase) * OutSize.y) / OutSize.x;
+        spiralUV.y = int(cos(rotatePhase) * OutSize.y) / OutSize.y;
         radius += rStep;
         ao += doAmbientOcclusion(uv, spiralUV * radius, p, n);
         rotatePhase += goldenAngle;
     }
     ao *= inv;
-    return ao;
+    return ao * AO_INTENSITY;
 }
 
 #define S_PENUMBRA 0.01
@@ -291,12 +290,12 @@ void main() {
                 p2 = p2 - fragpos;
                 vec3 p3 = backProject(vec4(scaledCoord + 2.0 * vec2(oneTexel.x, 0.0), depth3, 1.0)).xyz;
                 p3 = p3 - fragpos;
-                vec3 normal = normalize(cross(p2, p3));
+                vec3 normal = cross(p2, p3);
                 normal = normal == vec3(0.0) ? vec3(0.0, 1.0, 0.0) : normalize(-normal);
 
                 // calculate AO output.
                 float rad = clamp(AO_SAMPLE_RAD/linearizeDepth(depth) * (70.0 / fov), 0.0005, 0.1);
-                float ao = 1.0 - spiralAO(normCoord, fragpos, normal, rad) * AO_INTENSITY;
+                float ao = 1.0 - spiralAO(normCoord, fragpos, normal, rad);
                 outColor.rgb *= ao;
             }
             else {

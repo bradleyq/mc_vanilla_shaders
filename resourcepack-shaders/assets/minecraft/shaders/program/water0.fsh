@@ -101,8 +101,9 @@ vec4 backProject(vec4 vec) {
 #define anisotropicIntensityClear 0.1 //Higher numbers result in more anisotropic scattering
 #define anisotropicIntensityOvercast 0.3 //Higher numbers result in more anisotropic scattering
 
-#define skyColorClear vec3(0.2, 0.45, 1.0) * (1.0 + anisotropicIntensityClear) //Make sure one of the conponents is never 0.0
+#define skyColorClear vec3(0.15, 0.50, 1.0) * (1.0 + anisotropicIntensityClear) //Make sure one of the conponents is never 0.0
 #define skyColorOvercast vec3(0.5, 0.55, 0.6) * (1.0 + anisotropicIntensityOvercast) //Make sure one of the conponents is never 0.0
+#define skyColorNightClear vec3(0.075, 0.1, 0.125)
 
 #define smooth(x) x*x*(3.0-2.0*x)
 
@@ -140,7 +141,57 @@ float getMie(vec3 p, vec3 lp) {
     return disk*disk*(3.0 - 2.0 * disk) * pi * 2.0;
 }
 
-vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog) {
+float hash12(vec2 p) {
+	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+}
+
+vec3 hash33(vec3 p3) {
+	p3 = fract(p3 * vec3(0.1031, 0.1030, 0.0973));
+    p3 += dot(p3, p3.yxz + 33.33);
+    return fract((p3.xxy + p3.yxx) * p3.zyx);
+
+}
+
+float valNoise( vec2 p ){
+    vec2 i = floor( p );
+    vec2 f = fract( p );
+	
+	vec2 u = f*f*(3.0-2.0*f);
+
+    return mix( mix( hash12( i + vec2(0.0,0.0) ), 
+                     hash12( i + vec2(1.0,0.0) ), u.x),
+                mix( hash12( i + vec2(0.0,1.0) ), 
+                     hash12( i + vec2(1.0,1.0) ), u.x), u.y);
+}
+
+float gNoise( vec3 p ) {
+    vec3 i = floor( p );
+    vec3 f = fract( p );
+
+    // cubic interpolant
+    vec3 u = f*f*(3.0-2.0*f);   
+
+    return mix( mix( mix( dot( hash33( i + vec3(0.0,0.0,0.0) ), f - vec3(0.0,0.0,0.0) ), 
+                          dot( hash33( i + vec3(1.0,0.0,0.0) ), f - vec3(1.0,0.0,0.0) ), u.x),
+                     mix( dot( hash33( i + vec3(0.0,1.0,0.0) ), f - vec3(0.0,1.0,0.0) ), 
+                          dot( hash33( i + vec3(1.0,1.0,0.0) ), f - vec3(1.0,1.0,0.0) ), u.x), u.y),
+                mix( mix( dot( hash33( i + vec3(0.0,0.0,1.0) ), f - vec3(0.0,0.0,1.0) ), 
+                          dot( hash33( i + vec3(1.0,0.0,1.0) ), f - vec3(1.0,0.0,1.0) ), u.x),
+                     mix( dot( hash33( i + vec3(0.0,1.0,1.0) ), f - vec3(0.0,1.0,1.0) ), 
+                          dot( hash33( i + vec3(1.0,1.0,1.0) ), f - vec3(1.0,1.0,1.0) ), u.x), u.y), u.z );
+}
+
+vec3 starField(vec3 pos)
+{
+    vec3 col = 1.0- vec3(valNoise(15.0 * (pos.xy + 0.05)), valNoise(20.0 * pos.yz), valNoise(25.0 * (pos.xz - 0.06)));
+    col *= vec3(0.4, 0.8, 1.0);
+    col = mix(col, vec3(1), 0.5);
+    return col * smoothstep(0.5, 0.6, 1.5 * gNoise(128.0 * pos));
+}
+
+vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog) {
     float zenith = zenithDensity(p.y, lp.y);
     float ly = lp.y < 0.0 ? lp.y * 0.3 : lp.y;
     float multiScatterPhase = mix(multiScatterPhaseClear, multiScatterPhaseOvercast, rain);
@@ -161,6 +212,16 @@ vec3 getAtmosphericScattering(vec3 p, vec3 lp, float rain, bool fog) {
     }
     
     totalSky *= sunAbsorption * 0.5 + 0.5 * length(sunAbsorption);
+
+    float sdu = dot(lp, vec3(0.0, 1.0, 0.0));
+    if (sdu < 0.0) {
+        vec3 mlp = normalize(vec3(-lp.xy, 0.0));
+        vec3 nightSky = (1.0 - 0.8 * p.y) * skyColorNightClear;
+        if (!fog) {
+            nightSky += srccol + starField(vec3(dot(p, mlp), dot(p, vec3(0.0, 0.0, 1.0)), dot(p, normalize(cross(mlp, vec3(0.0, 0.0, 1.0))))));
+        }
+        totalSky = mix(nightSky, totalSky, clamp(5.0 * (0.2 - pow(abs(sdu), 1.5)), 0.0, 1.0));
+    }
 
     return totalSky;
 }
@@ -240,14 +301,11 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec2 randsam
     }
 
     float sdu = dot(vec3(0.0, 1.0, 0.0), sunDir);
-    float day = (sdu < 0.0) ? clamp(5.0 * (0.2 - pow(abs(sdu), 1.5)), 0.0, 1.0) : 1.0;
-    vec3 skycol = fogColor.rgb;
+    vec3 skycol = vec3(0.0);
     if (underWater < 0.5 && dim == DIM_OVER) {
-        skycol = getAtmosphericScattering(rayDir, sunDir, rain, false);
-
         vec3 moonDir = normalize(vec3(-sunDir.xy, 0.0));
-        skycol += vec3(getMoonPoint(rayDir, moonDir)) * (1.0 - day) * (1.0 - rain);
-        
+        skycol += vec3(getMoonPoint(rayDir, moonDir)) * (1.0 - rain);
+        skycol = getAtmosphericScattering(skycol, rayDir, sunDir, rain, false);
         skycol = mix(skycol, fogColor.rgb, cave);
     }
     
@@ -277,13 +335,10 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec2 randsam
             if (underWater < 0.5 && dim == DIM_OVER) {
                 rayDir.y = abs(rayDir.y * 0.5);
                 rayDir = normalize(rayDir);
-                fogcol = getAtmosphericScattering(rayDir, sunDir, rain, true);
-                fogcol = mix(fogColor.rgb, fogcol, (1.0 - cave) * day);
+                fogcol = getAtmosphericScattering(vec3(0.0), rayDir, sunDir, rain, true);
+                fogcol = mix(fogcol, fogColor.rgb, cave);
             }
             candidate = exponential_fog(candidate, vec4(fogcol, 1.0), length(backProject(vec4(pos.xy, dtmp_nolin, 1.0)).xyz - fragpos), fogLambda);
-        }
-        else if (sdu < 0.0 && underWater < 0.5) {
-            candidate = mix(vec4(colortmp, 1.0), candidate, day);
         }
     }
 
