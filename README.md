@@ -15,6 +15,7 @@ CL:
 - Auto Exposure
 - Parametric Rolloff Tonemap
 - Bloom
+- Volumetric Clouds
 
 Known issues:
 - optifine #moj_import bug
@@ -22,7 +23,6 @@ Known issues:
 - Alpha-PBR specular, metalness
 - some translucents visible over fog (slime entities)
 - particles are not lit
-- no cloud shading
 - glow item frame items are lit as if outdoors
 - hand item shading is flat
 - shader unused uniform warnings
@@ -71,3 +71,4 @@ See License.md for licensing. This pack requires Fabulous graphics on. Supports 
 - **BSL shaders - capttatsu** for base SSR https://bitslablab.com/bslshaders/
 - **Auroras - nimitz (twitter: @stormoid)** for base End Auroroa https://www.shadertoy.com/view/XtGGRt
 - **Non physical based atmospheric scattering - robobo1221** for base sky https://www.shadertoy.com/view/Ml2cWG
+- **Star Spheremap - peremoya2000** for base stars https://www.shadertoy.com/user/peremoya2000
