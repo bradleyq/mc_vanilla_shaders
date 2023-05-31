@@ -341,6 +341,7 @@ void main() {
 
             if (((dim == DIM_UNKNOWN || dim == DIM_END) && temp.b > 0.2) || (dim == DIM_NETHER && temp.b > temp.g * 9.0)) {
                 temp.rgb = mix(FOG_WATER, temp.rgb, smoothstep(0.0, 0.05, length(temp.rgb / temp.b - FOG_DEFAULT_WATER)));
+                temp.rgb *= 0.5;
             }
             else {
                 float lava = smoothstep(0.0, 0.05, length(temp.rgb - FOG_LAVA));
@@ -411,7 +412,12 @@ void main() {
         if (index == 25) {
             int fstart = decodeInt(texture(DiffuseSampler, start + 26.0 * inc).rgb);
             if (fstart == -8) {
+                vec3 sunDir = vec3(decodeFloat(texture(DiffuseSampler, start).xyz), 
+                                   decodeFloat(texture(DiffuseSampler, start + inc).xyz), 
+                                   decodeFloat(texture(DiffuseSampler, start + 2.0 * inc).xyz));
+                sunDir = normalize(sunDir);
                 outColor = vec4(FOG_WATER, 1.0);
+                outColor *= 1.0 - 0.5 * smoothstep(0.2, -0.2, dot(sunDir, vec3(0.0, 1.0, 0.0)));
             }             
             else {
                 outColor = vec4(mix(temp.rgb, FOG_CAVE, decodeFloat(texture(PrevDataSampler, startData + 48.0 * incData).rgb)), 1.0);

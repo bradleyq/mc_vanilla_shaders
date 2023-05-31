@@ -177,14 +177,6 @@ vec4 backProject(vec4 vec) {
     return tmp / tmp.w;
 }
 
-/*
-
-    Non physical based atmospheric scattering made by robobo1221
-    Site: http://www.robobo1221.net/shaders
-    Shadertoy: http://www.shadertoy.com/user/robobo1221
-
-*/
-
 #define pi 3.14159265359
 #define invPi 1.0 / pi
 
@@ -199,6 +191,7 @@ vec4 backProject(vec4 vec) {
 #define skyColorClear vec3(0.15, 0.50, 1.0) * (1.0 + anisotropicIntensityClear) //Make sure one of the conponents is never 0.0
 #define skyColorOvercast vec3(0.5, 0.55, 0.6) * (1.0 + anisotropicIntensityOvercast) //Make sure one of the conponents is never 0.0
 #define skyColorNightClear vec3(0.075, 0.1, 0.125)
+#define skyColorNightOvercast vec3(0.07, 0.07, 0.085)
 
 #define smooth(x) x*x*(3.0-2.0*x)
 
@@ -280,9 +273,9 @@ float gNoise( vec3 p ) {
 
 vec3 starField(vec3 pos)
 {
-    vec3 col = 1.0- vec3(valNoise(15.0 * (pos.xy + 0.05)), valNoise(20.0 * pos.yz), valNoise(25.0 * (pos.xz - 0.06)));
+    vec3 col = 1.0 - vec3(valNoise(15.0 * (pos.xy + 0.05)), valNoise(20.0 * pos.yz), valNoise(25.0 * (pos.xz - 0.06)));
     col *= vec3(0.4, 0.8, 1.0);
-    col = mix(col, vec3(1), 0.5);
+    col = mix(col, vec3(1.0), 0.5);
     return col * smoothstep(0.5, 0.6, 1.5 * gNoise(128.0 * pos));
 }
 
@@ -302,7 +295,7 @@ vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog
     vec3 totalSky = mix(sky * absorption, sky / (sky * 0.5 + 0.5), sunPointDistMult);
     if (!fog) {
         vec3 mie = getMie(p, lp) * sunAbsorption * sunAbsorption;
-        mie += getSunPoint(p, lp) * absorption * clamp(1.02 - rain, 0.0, 1.0);
+        mie += getSunPoint(p, lp) * absorption * clamp(1.2 - rain, 0.0, 1.0);
         totalSky += mie;
     }
     
@@ -311,9 +304,9 @@ vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog
     float sdu = dot(lp, vec3(0.0, 1.0, 0.0));
     if (sdu < 0.0) {
         vec3 mlp = normalize(vec3(-lp.xy, 0.0));
-        vec3 nightSky = (1.0 - 0.8 * p.y) * skyColorNightClear;
+        vec3 nightSky = (1.0 - 0.8 * p.y) * mix(skyColorNightClear, skyColorNightOvercast, rain);
         if (!fog) {
-            nightSky += srccol + starField(vec3(dot(p, mlp), dot(p, vec3(0.0, 0.0, 1.0)), dot(p, normalize(cross(mlp, vec3(0.0, 0.0, 1.0))))));
+            nightSky += srccol + (1.0 - rain) * starField(vec3(dot(p, mlp), dot(p, vec3(0.0, 0.0, 1.0)), dot(p, normalize(cross(mlp, vec3(0.0, 0.0, 1.0))))));
         }
         totalSky = mix(nightSky, totalSky, clamp(5.0 * (0.2 - pow(abs(sdu), 1.5)), 0.0, 1.0));
     }
@@ -480,7 +473,7 @@ void main() {
             vec3 ambient;
             vec3 backside;
 
-            if (dim == DIM_OVER) {
+            if (abs(dim - DIM_OVER) < 0.01) {
                 vec3 evening = mix(EVENING_CLEAR, EVENING_OVERCAST, rain);
                 vec3 evening_a = mix(EVENINGA_CLEAR, EVENINGA_OVERCAST, rain);
                 vec3 evening_m = mix(EVENINGM_CLEAR, EVENINGM_OVERCAST, rain);
@@ -500,12 +493,12 @@ void main() {
                     backside = mix(evening_m, night_m, pow(-sdu, 0.5));
                 }
             }
-            else if (dim == DIM_END) {
+            else if (abs(dim - DIM_END) < 0.01) {
                 direct = END_CLEAR;
                 ambient = ENDA_CLEAR;
                 backside = ENDM_CLEAR;
             }
-            else if (dim == DIM_NETHER) {
+            else if (abs(dim - DIM_NETHER) < 0.01) {
                 direct = NETHER_CLEAR;
                 ambient = NETHERA_CLEAR;
                 backside = NETHERM_CLEAR;
@@ -589,7 +582,7 @@ void main() {
             // outColor.rgb = vec3(pbrStrength);
         } 
         // if sky do atmosphere
-        else if (dim == DIM_OVER) {
+        else if (abs(dim - DIM_OVER) < 0.01) {
             vec2 scaledCoord = 2.0 * (texCoord - vec2(0.5));
             vec3 fragpos = normalize(backProject(vec4(scaledCoord, depth, 1.0)).xyz);
             vec3 color = getAtmosphericScattering(outColor.rgb, fragpos, sunDir, rain, false);

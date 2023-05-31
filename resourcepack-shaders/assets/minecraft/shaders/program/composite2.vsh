@@ -18,6 +18,7 @@ out float fogLambda;
 out float underWater;
 out float rain;
 out float cave;
+out float dim;
 
 // moj_import doesn't work in post-process shaders ;_; Felix pls fix
 #define FPRECISION 4000000.0
@@ -95,10 +96,7 @@ void main() {
     int flags = int(texture(DataSampler, start + 30.0 * inc).r * 255.0);
     underWater = float((flags & FLAG_UNDERWATER) > 0);
 
-    if (underWater > 0.5) {
-        float mult = smoothstep(0.2, -0.2, dot(sunDir, vec3(0.0, 1.0, 0.0)));
-        fogColor *= 1.0 - 0.5 * mult;
-    }
-
     cave = decodeFloat(texture(DataSampler, start + 48.0 * inc).rgb);
+
+    dim = texture(DataSampler, start + 28.0 * inc).r * 255.0;
 }

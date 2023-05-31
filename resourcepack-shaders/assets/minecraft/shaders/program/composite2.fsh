@@ -25,6 +25,12 @@ in float fogLambda;
 in float underWater;
 in float rain;
 in float cave;
+in float dim;
+
+#define DIM_UNKNOWN 0
+#define DIM_OVER 1
+#define DIM_END 2
+#define DIM_NETHER 3
 
 #define NUM_LAYERS 5
 
@@ -168,14 +174,6 @@ vec3 blendmult(vec3 dst, vec4 src) {
     return BLENDMULT_FACTOR * dst * mix(vec3(1.0), src.rgb, src.a) + (1.0 - BLENDMULT_FACTOR) * mix(dst.rgb, src.rgb, src.a);
 }
 
-/*
-
-    Non physical based atmospheric scattering made by robobo1221
-    Site: http://www.robobo1221.net/shaders
-    Shadertoy: http://www.shadertoy.com/user/robobo1221
-
-*/
-
 #define pi 3.14159265359
 #define invPi 1.0 / pi
 
@@ -190,6 +188,7 @@ vec3 blendmult(vec3 dst, vec4 src) {
 #define skyColorClear vec3(0.15, 0.50, 1.0) * (1.0 + anisotropicIntensityClear) //Make sure one of the conponents is never 0.0
 #define skyColorOvercast vec3(0.5, 0.55, 0.6) * (1.0 + anisotropicIntensityOvercast) //Make sure one of the conponents is never 0.0
 #define skyColorNightClear vec3(0.075, 0.1, 0.125)
+#define skyColorNightOvercast vec3(0.07, 0.07, 0.085)
 
 #define smooth(x) x*x*(3.0-2.0*x)
 
@@ -271,9 +270,9 @@ float gNoise( vec3 p ) {
 
 vec3 starField(vec3 pos)
 {
-    vec3 col = 1.0- vec3(valNoise(15.0 * (pos.xy + 0.05)), valNoise(20.0 * pos.yz), valNoise(25.0 * (pos.xz - 0.06)));
+    vec3 col = 1.0 - vec3(valNoise(15.0 * (pos.xy + 0.05)), valNoise(20.0 * pos.yz), valNoise(25.0 * (pos.xz - 0.06)));
     col *= vec3(0.4, 0.8, 1.0);
-    col = mix(col, vec3(1), 0.5);
+    col = mix(col, vec3(1.0), 0.5);
     return col * smoothstep(0.5, 0.6, 1.5 * gNoise(128.0 * pos));
 }
 
@@ -293,7 +292,7 @@ vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog
     vec3 totalSky = mix(sky * absorption, sky / (sky * 0.5 + 0.5), sunPointDistMult);
     if (!fog) {
         vec3 mie = getMie(p, lp) * sunAbsorption * sunAbsorption;
-        mie += getSunPoint(p, lp) * absorption * clamp(1.02 - rain, 0.0, 1.0);
+        mie += getSunPoint(p, lp) * absorption * clamp(1.2 - rain, 0.0, 1.0);
         totalSky += mie;
     }
     
@@ -302,9 +301,9 @@ vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog
     float sdu = dot(lp, vec3(0.0, 1.0, 0.0));
     if (sdu < 0.0) {
         vec3 mlp = normalize(vec3(-lp.xy, 0.0));
-        vec3 nightSky = (1.0 - 0.8 * p.y) * skyColorNightClear;
+        vec3 nightSky = (1.0 - 0.8 * p.y) * mix(skyColorNightClear, skyColorNightOvercast, rain);
         if (!fog) {
-            nightSky += srccol + starField(vec3(dot(p, mlp), dot(p, vec3(0.0, 0.0, 1.0)), dot(p, normalize(cross(mlp, vec3(0.0, 0.0, 1.0))))));
+            nightSky += srccol + (1.0 - rain) * starField(vec3(dot(p, mlp), dot(p, vec3(0.0, 0.0, 1.0)), dot(p, normalize(cross(mlp, vec3(0.0, 0.0, 1.0))))));
         }
         totalSky = mix(nightSky, totalSky, clamp(5.0 * (0.2 - pow(abs(sdu), 1.5)), 0.0, 1.0));
     }
@@ -314,15 +313,18 @@ vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog
 
 void main() {
     vec3 fragpos = backProject(vec4(scaledCoord, 1.0, 1.0)).xyz;
+    float sdu = dot(vec3(0.0, 1.0, 0.0), sunDir);
+
     fragpos = normalize(fragpos);
     fragpos.y = abs(fragpos.y * 0.5);
     fragpos = normalize(fragpos);
 
     vec4 calculatedFog = vec4(1.0);
 
-    vec3 color = getAtmosphericScattering(vec3(0.0), fragpos, sunDir, rain, true);
-
-    float sdu = dot(vec3(0.0, 1.0, 0.0), sunDir);
+    vec3 color = fogColor.rgb;
+    if (abs(dim - DIM_OVER) < 0.01) {
+        color = getAtmosphericScattering(vec3(0.0), fragpos, sunDir, rain, true);
+    }
     if (underWater > 0.5) {
         calculatedFog.rgb = fogColor.rgb;
     }
@@ -351,8 +353,9 @@ void main() {
     float clouddepth = texture(CloudsDepthSampler, texCoord).r;
     vec4 cloudcolor = texture(CloudsSampler, texCoord);
     if( cloudcolor.a > 0.0) {
+        cloudcolor.a *= 1.0 - rain;
         cloudcolor.rgb = mix(getAtmosphericScattering(vec3(0.0), vec3(fragpos.x, -fragpos.y, fragpos.z), sunDir, rain, true), 
-                             getAtmosphericScattering(vec3(0.0), sunDir, sunDir, rain, false) / 40.0 + vec3(0.2), cloudcolor.r);
+                             getAtmosphericScattering(vec3(0.0), sunDir, sunDir, rain, false) / 20.0 + vec3(0.2), cloudcolor.r);
 
         cloudcolor.rgb = mix(cloudcolor.rgb, normalize(vec3(1.0)) * length(cloudcolor.rgb), 0.4);
         try_insert( linear_fog(cloudcolor, cylindricalDistance(vec4(scaledCoord, clouddepth, 1.0)), 400.0, 512.0, vec4(cloudcolor.rgb, 0.0)), clouddepth, FOGFADE);

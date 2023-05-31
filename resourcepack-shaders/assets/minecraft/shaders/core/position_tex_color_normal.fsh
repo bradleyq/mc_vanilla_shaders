@@ -22,7 +22,7 @@ out vec4 fragColor;
 #define CLOUD_W 12.0
 #define CLOUD_H 8.0
 #define ABSORPTION 0.1
-#define SCATTER 0.8
+#define SCATTER 0.1
 #define ATTENUATION (ABSORPTION + SCATTER)
 #define MAX_VOXELS 4
 #define FUDGE 0.000001
