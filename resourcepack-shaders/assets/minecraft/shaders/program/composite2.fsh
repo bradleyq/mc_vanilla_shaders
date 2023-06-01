@@ -322,7 +322,7 @@ void main() {
     vec4 calculatedFog = vec4(1.0);
 
     vec3 color = fogColor.rgb;
-    if (abs(dim - DIM_OVER) < 0.01) {
+    if (abs(dim - DIM_OVER) < 0.01 && fogColor.a == 1.0) {
         color = getAtmosphericScattering(vec3(0.0), fragpos, sunDir, rain, true);
     }
     if (underWater > 0.5) {
@@ -354,8 +354,13 @@ void main() {
     vec4 cloudcolor = texture(CloudsSampler, texCoord);
     if( cloudcolor.a > 0.0) {
         cloudcolor.a *= 1.0 - rain;
-        cloudcolor.rgb = mix(getAtmosphericScattering(vec3(0.0), vec3(fragpos.x, -fragpos.y, fragpos.z), sunDir, rain, true), 
-                             getAtmosphericScattering(vec3(0.0), sunDir, sunDir, rain, false) / 20.0 + vec3(0.2), cloudcolor.r);
+        if (abs(dim - DIM_OVER) < 0.01 && fogColor.a == 1.0) {
+            cloudcolor.rgb = mix(getAtmosphericScattering(vec3(0.0), vec3(fragpos.x, -fragpos.y, fragpos.z), sunDir, rain, true), 
+                                getAtmosphericScattering(vec3(0.0), sunDir, sunDir, rain, false) / 20.0 + vec3(0.2), cloudcolor.r);
+        }
+        else {
+            cloudcolor.rgb = fogColor.rgb;
+        }
 
         cloudcolor.rgb = mix(cloudcolor.rgb, normalize(vec3(1.0)) * length(cloudcolor.rgb), 0.4);
         try_insert( linear_fog(cloudcolor, cylindricalDistance(vec4(scaledCoord, clouddepth, 1.0)), 400.0, 512.0, vec4(cloudcolor.rgb, 0.0)), clouddepth, FOGFADE);

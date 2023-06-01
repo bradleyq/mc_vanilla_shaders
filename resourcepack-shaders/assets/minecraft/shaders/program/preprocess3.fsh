@@ -114,9 +114,9 @@ void main() {
         outColor = sampleTexture(DiffuseSampler, texCoord, depth);
         int pbrtype = int(outColor.b * 255.0) % 8;
 
-        // remove translucent checker pixels pixels
+        // remove translucent checker pixels
         if ((int(gl_FragCoord.x) + int(gl_FragCoord.y)) % 2 == 0 
-          && depth < PROJFAR - FUDGE 
+          && (depth < PROJFAR - FUDGE || outColor.a == 1.0)
           && int(outColor.a * 255.0) % 4 == FACETYPE_S 
           && pbrtype >= PBRTYPE_TRANSLUCENT) {
             // average luma left right up, take chroma up, take material of left

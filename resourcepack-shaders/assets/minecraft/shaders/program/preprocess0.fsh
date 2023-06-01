@@ -30,7 +30,7 @@ out vec4 fragColor;
 #define FOG_CAVE vec3(38.0 / 255.0, 38.0 / 255.0, 51.0 / 255.0)
 #define FOG_DEFAULT_WATER vec3(25.0 / 255.0, 25.0 / 255.0, 255.0 / 255.0)
 #define TINT_WATER vec3(0.0 / 255.0, 248.0 / 255.0, 255.0 / 255.0)
-#define FOG_WATER vec3(0.0 / 255.0, 38.0 / 255.0, 38.0 / 255.0)
+#define FOG_WATER vec3(0.0 / 255.0, 42.0 / 255.0, 42.0 / 255.0)
 #define FOG_WATER_FAR 72.0
 #define FOG_END vec3(19.0 / 255.0, 16.0 / 255.0, 19.0 / 255.0)
 #define FOG_LAVA vec3(153.0 / 255.0, 25.0 / 255.0, 0.0)
@@ -226,7 +226,7 @@ void main() {
             outColor = vec4(encodeFloatL(clamp(lum, -20.0, 20.0)), 1.0); 
         }
         else if (index == 41) {
-            float lum = decodeFloatL(texture(PrevDataSampler, startData + 32.0 * incData).rgb)
+            float lum = 2.0 * decodeFloatL(texture(PrevDataSampler, startData + 32.0 * incData).rgb)
                       + decodeFloatL(texture(PrevDataSampler, startData + 33.0 * incData).rgb)
                       + decodeFloatL(texture(PrevDataSampler, startData + 34.0 * incData).rgb)
                       + decodeFloatL(texture(PrevDataSampler, startData + 35.0 * incData).rgb)
@@ -236,7 +236,7 @@ void main() {
                       + decodeFloatL(texture(PrevDataSampler, startData + 39.0 * incData).rgb)
                       + decodeFloatL(texture(PrevDataSampler, startData + 40.0 * incData).rgb);
 
-            lum /= 9.0;
+            lum /= 10.0;
 
             lum += 20.0 - 2.0; // convert from fixed point L to regular fixed point
 
@@ -340,8 +340,7 @@ void main() {
             }
 
             if (((dim == DIM_UNKNOWN || dim == DIM_END) && temp.b > 0.2) || (dim == DIM_NETHER && temp.b > temp.g * 9.0)) {
-                temp.rgb = mix(FOG_WATER, temp.rgb, smoothstep(0.0, 0.05, length(temp.rgb / temp.b - FOG_DEFAULT_WATER)));
-                temp.rgb *= 0.5;
+                temp.rgb = mix(FOG_WATER * 0.5, temp.rgb, smoothstep(0.0, 0.05, length(temp.rgb / temp.b - FOG_DEFAULT_WATER))); // assume dark water (*0.5)
             }
             else {
                 float lava = smoothstep(0.0, 0.05, length(temp.rgb - FOG_LAVA));
@@ -417,7 +416,7 @@ void main() {
                                    decodeFloat(texture(DiffuseSampler, start + 2.0 * inc).xyz));
                 sunDir = normalize(sunDir);
                 outColor = vec4(FOG_WATER, 1.0);
-                outColor *= 1.0 - 0.5 * smoothstep(0.2, -0.2, dot(sunDir, vec3(0.0, 1.0, 0.0)));
+                outColor *= 1.0 - 0.5 * smoothstep(0.2, -0.2, dot(normalize(vec3(sunDir.xy, 0.0)), vec3(0.0, 1.0, 0.0)));
             }             
             else {
                 outColor = vec4(mix(temp.rgb, FOG_CAVE, decodeFloat(texture(PrevDataSampler, startData + 48.0 * incData).rgb)), 1.0);

@@ -464,7 +464,7 @@ void main() {
 
         int alphaval = int(round(clamp(fresnel, 0.0, 1.0) * 127.0));
 
-        if (maxelem > 2.0) {
+        if (maxelem > 3.0) {
             alphaval += 128;
             reflection.rgb /= 12.0;
         }

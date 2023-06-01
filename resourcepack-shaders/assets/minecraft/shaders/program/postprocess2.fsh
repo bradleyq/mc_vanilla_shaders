@@ -145,7 +145,7 @@ void main() {
     outColor.rgb += vec3(0.02) * (outColor.r + outColor.g + outColor.b);
 
     // apply exposure
-    outColor.rgb /= exposureClamp * 1.8;
+    outColor.rgb /= exposureClamp * 2.0;
 
     // apply tonemap
     outColor.rgb = vec3(customRolloff9(outColor.r), customRolloff9(outColor.g), customRolloff9(outColor.b));

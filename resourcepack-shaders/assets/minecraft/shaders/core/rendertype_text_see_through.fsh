@@ -16,18 +16,21 @@ out vec4 fragColor;
 void main() {
     discardControlGLPos(gl_FragCoord.xy, glpos);
     vec4 outColor = textureLod(Sampler0, texCoord0, -4);
-    
-    if (outColor.a < 0.1 || (int(gl_FragCoord.x) + int(gl_FragCoord.y)) % 2 == 1) {
-        discard;
-    }
 
     outColor *= vertexColor * ColorModulator;
 
-    if (outColor.r > 0.0 && outColor.g > 0.0 && outColor.b > 0.0 && outColor.a < 0.99) { // hide name behind blocks to prevent z fighting
+    if (outColor.a < 0.1 || (outColor.a < 254.5 / 255.0 && (int(gl_FragCoord.x) + int(gl_FragCoord.y)) % 2 == 1)) {
         discard;
     }
 
-    outColor = getOutColorT(outColor, vec4(0.0), vec2(0.0), gl_FragCoord.xy, FACETYPE_S, PBRTYPE_TRANSLUCENT);
-    outColor.a = 1.0;
+    if (outColor.a < 254.5 / 255.0) {
+        outColor = getOutColorT(outColor, vec4(0.0), vec2(0.0), gl_FragCoord.xy, FACETYPE_S, PBRTYPE_TRANSLUCENT);
+        outColor.a = 1.0;
+    }
+    else {
+        outColor.a = 1.0;
+        outColor = getOutColorSTDALock(outColor, vec4(1.0), vec2(0.0), gl_FragCoord.xy);
+    }
+
     fragColor = outColor;
 }

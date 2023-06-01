@@ -300,7 +300,8 @@ vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog
     }
     
     totalSky *= sunAbsorption * 0.5 + 0.5 * length(sunAbsorption);
-
+    totalSky += srccol;
+    
     float sdu = dot(lp, vec3(0.0, 1.0, 0.0));
     if (sdu < 0.0) {
         vec3 mlp = normalize(vec3(-lp.xy, 0.0));
@@ -582,7 +583,7 @@ void main() {
             // outColor.rgb = vec3(pbrStrength);
         } 
         // if sky do atmosphere
-        else if (abs(dim - DIM_OVER) < 0.01) {
+        else if (abs(dim - DIM_OVER) < 0.01 && fogColor.a == 1.0) {
             vec2 scaledCoord = 2.0 * (texCoord - vec2(0.5));
             vec3 fragpos = normalize(backProject(vec4(scaledCoord, depth, 1.0)).xyz);
             vec3 color = getAtmosphericScattering(outColor.rgb, fragpos, sunDir, rain, false);

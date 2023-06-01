@@ -108,7 +108,7 @@ void main() {
         outColor = texture(DiffuseSampler, texCoord);
         outDepth = texture(DiffuseDepthSampler, texCoord).r;
 
-        // remove translucent checker pixels pixels
+        // remove translucent checker pixels
         if ((int(gl_FragCoord.x) + int(gl_FragCoord.y)) % 2 == 0 
           && linearizeDepth(outDepth) < PROJFAR - FUDGE 
           && int(outColor.a * 255.0) % 4 == FACETYPE_S 

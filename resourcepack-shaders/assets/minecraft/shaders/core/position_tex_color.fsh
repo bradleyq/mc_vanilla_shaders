@@ -168,11 +168,11 @@ void main() {
 
             vec3 dir = normalize((mat4(IViewRotMat) * inverse(ModelViewMat) * inverse(ProjMat) * glpos).xyz);
         
-            float fade = smoothstep(0.,0.1,abs(dir.y));
+            float fade = smoothstep(0.0, 0.1, abs(dir.y));
             
-            if (dir.y > 0.){
-                vec4 aur = smoothstep(0.,1.5,aurora(dir))*fade;
-                outColor.rgb = outColor.rgb*(1.-aur.a) + aur.rgb;
+            if (dir.y > 0.0){
+                vec4 aur = smoothstep(0.0, 1.5, aurora(dir)) * fade;
+                outColor.rgb = outColor.rgb * (1.0 - aur.a) + aur.rgb;
             }
             else {
                 outColor.rgb += mix(AURORA_COLOR_BASE2, AURORA_COLOR_TIP2, -dir.y) * triNoise2d(dir.xz, AURORA_SPEED2) * fade;

@@ -64,7 +64,8 @@ vec4 encodeHDR_0(vec4 color) {
 
 
 float luma(vec3 color) {
-    return dot(color, vec3(0.2126, 0.7152, 0.0722));
+    return length(color);
+    // return dot(color, vec3(0.2126, 0.7152, 0.0722));
 }
 
 #define CLAMP_EDGE oneTexel * 0.55
@@ -91,7 +92,7 @@ void main() {
                      + decodeHDR_0(texture(FullResSampler, scaledCoord - 1.01 * vec2(oneTexel.x, -oneTexel.y)));
             outColor /= 16.0;
 
-            outColor *= smoothstep(4.0, 5.5, luma(outColor.rgb) / exposureClamp * 2.0);
+            outColor *= smoothstep(5.0, 6.5, luma(outColor.rgb) / exposureClamp * 2.0);
         }
         else {
             outColor = 4.0 * decodeHDR_0(texture(DiffuseSampler, clampInBound(scaledCoord, 2.0 * bound)))
