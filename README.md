@@ -16,15 +16,14 @@ CL:
 - Parametric Rolloff Tonemap
 - Bloom
 - Volumetric Clouds
+- Compatible with Optifine Fabulous & Dynamic Lights
 
 Known issues:
-- optifine #moj_import bug
 - shadow jank
 - Alpha-PBR specular, metalness
 - some translucents visible over fog (slime entities)
 - glow item frame items are lit as if outdoors
 - hand item shading is flat
-- shader unused uniform warnings
 - support translucent text in text display
 
 ## Overview
