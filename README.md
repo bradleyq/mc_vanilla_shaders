@@ -22,7 +22,6 @@ Known issues:
 - shadow jank
 - Alpha-PBR specular, metalness
 - some translucents visible over fog (slime entities)
-- particles are not lit
 - glow item frame items are lit as if outdoors
 - hand item shading is flat
 - shader unused uniform warnings
