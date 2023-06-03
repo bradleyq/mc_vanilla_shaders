@@ -21,7 +21,7 @@ out vec4 glpos;
 void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
 
-    vertexColor = minecraft_sample_lightmap(Sampler2, UV2);
+    vertexColor = minecraft_sample_lightmap_optifine(Sampler2, UV2);
     baseColor = Color;
     texCoord2 = UV2 / 255.0;
     if (getDim(Sampler2) == DIM_OVER) {

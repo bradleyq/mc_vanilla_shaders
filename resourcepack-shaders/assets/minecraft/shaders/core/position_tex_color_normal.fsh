@@ -2,17 +2,11 @@
 #define FSH
 
 #moj_import <fog.glsl>
+#moj_import <utils.glsl>
 
 uniform sampler2D Sampler0;
 
-uniform vec4 ColorModulator;
-uniform float FogStart;
-uniform float FogEnd;
-uniform vec4 FogColor;
-
 in vec2 texCoord0;
-in float vertexDistance;
-in vec4 vertexColor;
 in vec3 normal;
 in vec3 gpos;
 in float yval;
@@ -31,19 +25,6 @@ out vec4 fragColor;
 
 bool inCloud(vec3 pos) {
     return pos.x >= 0.0 && pos.y >= 0.0 && pos.z >= 0.0 && pos.x <= CLOUD_W &&  pos.y <= CLOUD_H &&  pos.z <= CLOUD_W;
-}
-
-int xorshift(int value) {
-    // Xorshift*32
-    value ^= value << 13;
-    value ^= value >> 17;
-    value ^= value << 5;
-    return value;
-}
-
-float PRNG(int seed) {
-    seed = xorshift(seed);
-    return abs(fract(float(seed) / 3141.592653));
 }
 
 void main() {
@@ -236,8 +217,7 @@ void main() {
         if (!incloud) {
             scatter = (1.0 - WRAP_AMOUNT) * yval + WRAP_AMOUNT * smoothstep(WRAP_RADIUS, 0.0, edgedist);
         }
-        int seed = int(gl_FragCoord.x) + int(gl_FragCoord.y) * 853;
-        vec4 noise = 2 * vec4(vec3(PRNG(seed)) - 0.5, PRNG(seed + 1) - 0.5) / 255.0;
+        vec4 noise = 2 * vec4(vec3(hash21(gl_FragCoord.xy * 1.1 + 0.1)) - 0.5, hash21(gl_FragCoord.xy * 1.12 + 0.12) - 0.5) / 255.0;
 
         fragColor = vec4(vec3(scatter), 1.0 - exp(-ATTENUATION * distatt)) + noise;
     }

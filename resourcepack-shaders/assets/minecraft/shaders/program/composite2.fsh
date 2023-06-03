@@ -49,6 +49,18 @@ out vec4 fragColor;
 
 vec2 scaledCoord = 2.0 * (texCoord - vec2(0.5));
 
+float hash21(vec2 p) {
+    vec3 p3  = fract(vec3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+}
+
+vec3 hash33(vec3 p3) {
+	p3 = fract(p3 * vec3(0.1031, 0.1030, 0.0973));
+    p3 += dot(p3, p3.yxz + 33.33);
+    return fract((p3.xxy + p3.yxx) * p3.zyx);
+}
+
 vec4 decodeHDR_0(vec4 color) {
     int alpha = int(color.a * 255.0);
     return vec4(vec3(color.r + float((alpha >> 4) % 4), color.g + float((alpha >> 2) % 4), color.b + float(alpha % 4)) * float(alpha >> 6), 1.0);
@@ -94,19 +106,6 @@ uint decodeUInt(vec4 ivec) {
     return uint(ivec.r) + (uint(ivec.g) << 8u) + (uint(ivec.b) << 16u) + (uint(ivec.a) << 24u);
 }
 
-int xorshift(int value) {
-    // Xorshift*32
-    value ^= value << 13;
-    value ^= value >> 17;
-    value ^= value << 5;
-    return value;
-}
-
-float PRNG(int seed) {
-    seed = xorshift(seed);
-    return abs(fract(float(seed) / 3141.592653));
-}
-
 vec4 encodeDepth(float depth) {
     return encodeUInt(floatBitsToUint(depth)); 
 }
@@ -120,7 +119,7 @@ float linearizeDepth(float depth) {
 }
 
 vec4 exponential_fog(vec4 inColor, vec4 fogColor, float depth, float lambda) {
-    float fogValue = exp(-lambda * depth * (1.0 + 0.05 * PRNG(int(gl_FragCoord.x * 1.983) + int(gl_FragCoord.y * 890.261) * int(OutSize.x))));
+    float fogValue = exp(-lambda * depth * (1.0 + 0.05 * hash21(gl_FragCoord.xy * vec2(0.983, 1.261))));
     return mix(fogColor, inColor, fogValue);
 }
 
@@ -234,29 +233,16 @@ float getMie(vec3 p, vec3 lp) {
     return disk*disk*(3.0 - 2.0 * disk) * pi * 2.0;
 }
 
-float hash12(vec2 p) {
-	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
-    p3 += dot(p3, p3.yzx + 33.33);
-    return fract((p3.x + p3.y) * p3.z);
-}
-
-vec3 hash33(vec3 p3) {
-	p3 = fract(p3 * vec3(0.1031, 0.1030, 0.0973));
-    p3 += dot(p3, p3.yxz + 33.33);
-    return fract((p3.xxy + p3.yxx) * p3.zyx);
-
-}
-
 float valNoise( vec2 p ){
     vec2 i = floor( p );
     vec2 f = fract( p );
 	
 	vec2 u = f*f*(3.0-2.0*f);
 
-    return mix( mix( hash12( i + vec2(0.0,0.0) ), 
-                     hash12( i + vec2(1.0,0.0) ), u.x),
-                mix( hash12( i + vec2(0.0,1.0) ), 
-                     hash12( i + vec2(1.0,1.0) ), u.x), u.y);
+    return mix( mix( hash21( i + vec2(0.0,0.0) ), 
+                     hash21( i + vec2(1.0,0.0) ), u.x),
+                mix( hash21( i + vec2(0.0,1.0) ), 
+                     hash21( i + vec2(1.0,1.0) ), u.x), u.y);
 }
 
 float gNoise( vec3 p ) {

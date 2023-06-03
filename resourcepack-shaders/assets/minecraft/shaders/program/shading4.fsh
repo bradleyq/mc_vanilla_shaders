@@ -167,19 +167,6 @@ vec4 backProject(vec4 vec) {
     return tmp / tmp.w;
 }
 
-int xorshift(int value) {
-    // Xorshift*32
-    value ^= value << 13;
-    value ^= value >> 17;
-    value ^= value << 5;
-    return value;
-}
-
-float PRNG(int seed) {
-    seed = xorshift(seed);
-    return abs(fract(float(seed) / 3141.592653));
-}
-
 vec3 blend( vec3 dst, vec4 src ) {
     return mix(dst.rgb, src.rgb, src.a);
 }

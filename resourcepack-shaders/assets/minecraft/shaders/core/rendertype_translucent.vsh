@@ -52,6 +52,6 @@ void main() {
 
     gl_Position = ProjMat * ModelViewMat * (vec4(position, 1.0) + vec4(0.0, (a1 + a2 + a3 + a4) / 64.0, 0.0, 0.0));
 
-    vertexColor = col * minecraft_sample_lightmap(Sampler2, UV2);
+    vertexColor = col * minecraft_sample_lightmap_optifine(Sampler2, UV2);
     texCoord0 = UV0;
 }

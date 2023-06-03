@@ -60,6 +60,19 @@ const vec2 poissonDisk[64] = vec2[64](
     vec2(0.062655, -0.611866), vec2(0.315226, -0.604297), vec2(-0.780145, 0.486251), vec2(-0.371868, 0.882138), vec2(0.200476, 0.494430), vec2(-0.494552, -0.711051), vec2(0.612476, 0.705252), vec2(-0.578845, -0.768792),
     vec2(-0.772454, -0.090976), vec2(0.504440, 0.372295), vec2(0.155736, 0.065157), vec2(0.391522, 0.849605), vec2(-0.620106, -0.328104), vec2(0.789239, -0.419965), vec2(-0.545396, 0.538133), vec2(-0.178564, -0.596057));
 
+float hash21(vec2 p) {
+	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+}
+
+vec3 hash33(vec3 p3) {
+	p3 = fract(p3 * vec3(0.1031, 0.1030, 0.0973));
+    p3 += dot(p3, p3.yxz + 33.33);
+    return fract((p3.xxy + p3.yxx) * p3.zyx);
+
+}
+
 vec3 encodeInt(int i) {
     int s = int(i < 0) * 128;
     i = abs(i);
@@ -228,29 +241,16 @@ float getMie(vec3 p, vec3 lp) {
     return disk*disk*(3.0 - 2.0 * disk) * pi * 2.0;
 }
 
-float hash12(vec2 p) {
-	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
-    p3 += dot(p3, p3.yzx + 33.33);
-    return fract((p3.x + p3.y) * p3.z);
-}
-
-vec3 hash33(vec3 p3) {
-	p3 = fract(p3 * vec3(0.1031, 0.1030, 0.0973));
-    p3 += dot(p3, p3.yxz + 33.33);
-    return fract((p3.xxy + p3.yxx) * p3.zyx);
-
-}
-
 float valNoise( vec2 p ){
     vec2 i = floor( p );
     vec2 f = fract( p );
 	
 	vec2 u = f*f*(3.0-2.0*f);
 
-    return mix( mix( hash12( i + vec2(0.0,0.0) ), 
-                     hash12( i + vec2(1.0,0.0) ), u.x),
-                mix( hash12( i + vec2(0.0,1.0) ), 
-                     hash12( i + vec2(1.0,1.0) ), u.x), u.y);
+    return mix( mix( hash21( i + vec2(0.0,0.0) ), 
+                     hash21( i + vec2(1.0,0.0) ), u.x),
+                mix( hash21( i + vec2(0.0,1.0) ), 
+                     hash21( i + vec2(1.0,1.0) ), u.x), u.y);
 }
 
 float gNoise( vec3 p ) {
@@ -312,19 +312,6 @@ vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog
     }
 
     return totalSky;
-}
-
-int xorshift(int value) {
-    // Xorshift*32
-    value ^= value << 13;
-    value ^= value >> 17;
-    value ^= value << 5;
-    return value;
-}
-
-float PRNG(int seed) {
-    seed = xorshift(seed);
-    return abs(fract(float(seed) / 3141.592653));
 }
 
 vec2 encodeYUV(vec2 coord, vec3 color) {
@@ -511,28 +498,37 @@ void main() {
 
             // get ambient occlusion.
             vec3 ao = vec3(texture(ShadingSampler, texCoord).b);
-            ao.rgb += vec3(PRNG(int(gl_FragCoord.x) + int(gl_FragCoord.y) * int(OutSize.x))) / 255.0;
+            ao.rgb += vec3(hash21(gl_FragCoord.xy)) / 255.0;
 
             // get shadow / subsurface volume
             vec3 shade = vec3(texture(ShadingSampler, texCoord).r);
 
             vec3 eyedir = normalize(fragpos);
-            float comp_bp = max(pow(dot(reflect(sunDir, normal), eyedir), 8.0), 0.0);
-            float comp_diff = dot(normal, sunDir);
+            float comp_bp_s = max(pow(dot(reflect(sunDir, normal), eyedir), 8.0), 0.0);
+            float comp_bp_m = max(pow(dot(reflect(moonDir, normal), eyedir), 8.0), 0.0);
+            float comp_diff_s = dot(normal, sunDir);
+            float comp_diff_m = dot(normal, moonDir);
 
             // calculate final lighting color
             vec3 lightColor = ambient;
 
             if (face == FACETYPE_S && stype == PBRTYPE_SUBSURFACE) {
                 float volume = texture(ShadingSampler, texCoord).g;
-                float comp_sss = max(mix(pow(1.0 - volume, 2.0) - pow(length(scaledCoord), 4.0), comp_diff, 0.25), comp_diff);
-                lightColor += (direct - ambient) * clamp((comp_bp * 0.25 + comp_sss + 0.05) * shade, 0.0, 1.0); 
+                float comp_sss_s = 0.0;
+                float comp_sss_m = 0.0;
+                if (sdu > 0.0) {
+                    comp_sss_s = max(mix(pow(1.0 - volume, 2.0) - pow(length(scaledCoord), 4.0), comp_diff_s, 0.25), comp_diff_s);
+                }
+                else {
+                    comp_sss_m = max(mix(pow(1.0 - volume, 2.0) - pow(length(scaledCoord), 4.0), comp_diff_m, 0.25), comp_diff_m);
+                }
+                lightColor += (direct - ambient) * clamp((comp_bp_s * 0.25 + comp_sss_s + 0.05) * shade, 0.0, 1.0); 
+                lightColor += (backside - ambient) * clamp((comp_bp_m * 0.25 + comp_sss_m + 0.05) * shade, 0.0, 1.0); 
             }
             else {
-                lightColor += (direct - ambient) * clamp((comp_bp * 0.25 + comp_diff + 0.05) * shade, 0.0, 1.0); 
+                lightColor += (direct - ambient) * clamp((comp_bp_s * 0.25 + comp_diff_s + 0.05) * shade, 0.0, 1.0); 
+                lightColor += (backside - ambient) * clamp((comp_bp_m * 0.25 + comp_diff_m + 0.05) * shade, 0.0, 1.0); 
             }
-
-            lightColor += (backside - ambient) * clamp(dot(normal, moonDir), 0.0, 1.0); 
 
             // calculate emissive value
             float emission = 0.0;
@@ -546,13 +542,15 @@ void main() {
             if (underWater > 0.5) {
                 outColor.rgb = mix(outColor.rgb, outColor.rgb * TINT_WATER, smoothstep(0, TINT_WATER_DISTANCE, length(fragpos)));
             }
+
+
         } 
         // if sky do atmosphere
         else if (abs(dim - DIM_OVER) < 0.01 && fogColor.a == 1.0) {
             vec2 scaledCoord = 2.0 * (texCoord - vec2(0.5));
             vec3 fragpos = normalize(backProject(vec4(scaledCoord, depth, 1.0)).xyz);
             vec3 color = getAtmosphericScattering(outColor.rgb, fragpos, sunDir, rain, false);
-            color += vec3(PRNG(int(gl_FragCoord.x) + int(gl_FragCoord.y) * int(OutSize.x))) / 255.0;
+            color += vec3(hash21(gl_FragCoord.xy * 0.97 + 0.79)) / 255.0;
 
             outColor = vec4(color, 1.0);
         }

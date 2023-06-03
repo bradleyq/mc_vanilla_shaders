@@ -97,7 +97,7 @@ vec4 backProject(vec4 vec) {
 #define AO_SAMPLE_RAD 0.5
 #define AO_MAX_DISTANCE 3.0
 
-float hash12(vec2 p) {
+float hash21(vec2 p) {
 	vec3 p3  = fract(vec3(p.xyx) * 0.1031);
     p3 += dot(p3, p3.yzx + 33.33);
     return fract((p3.x + p3.y) * p3.z);
@@ -122,7 +122,7 @@ float spiralAO(vec2 uv, vec3 p, vec3 n, float rad)
     float inv = 1. / float(AO_SAMPLES);
     float radius = 0.;
 
-    float rotatePhase = hash12( uv*101. + Time * 69. ) * 6.28;
+    float rotatePhase = hash21( uv*101. + Time * 69. ) * 6.28;
     float rStep = inv * rad;
     vec2 spiralUV;
 
@@ -259,9 +259,6 @@ void main() {
 
         // only do lighting if not sky
         if (!isSky) {
-            vec3 moonDir = normalize(vec3(-sunDir.xy, 0.0));
-            float sdu = dot(vec3(0.0, 1.0, 0.0), sunDir);
-
             if (top) {
                 float minEdge = decodeFloat(texture(EdgeSampler, normCoord).rgb);
                 float tmpEdge;
@@ -299,6 +296,12 @@ void main() {
                 outColor.rgb *= ao;
             }
             else {
+                vec3 dir = sunDir; 
+                float ldu = dot(vec3(0.0, 1.0, 0.0), dir);
+                if (ldu < 0.0) {
+                    dir = normalize(vec3(-sunDir.xy, 0.0));
+                    ldu = dot(vec3(0.0, 1.0, 0.0), dir);
+                }
                 vec2 scaledCoord = 2.0 * (normCoord - vec2(0.5));
                 vec3 fragpos = backProject(vec4(scaledCoord, depth, 1.0)).xyz;
 
@@ -306,11 +309,11 @@ void main() {
                 vec2 shade = vec2(0.0);
                 for (int k = 0; k < S_TAPS; k += 1) {
                     int pindex = (k + int(gl_FragCoord.x * gl_FragCoord.y)) % 60;
-                    shade += Volumetric(fragpos * (1.0 - S_BIAS), normalize(sunDir + S_PENUMBRA * vec3(poissonDisk[pindex].x, 0.0, poissonDisk[pindex].y)), linearizeDepth(depth), poissonDisk[pindex+1].x);
+                    shade += Volumetric(fragpos * (1.0 - S_BIAS), normalize(dir + S_PENUMBRA * vec3(poissonDisk[pindex].x, 0.0, poissonDisk[pindex].y)), linearizeDepth(depth), poissonDisk[pindex+1].x);
                 }
                 shade /= S_TAPS;
                 shade.x = shade.x * shade.x * shade.x;
-                shade.x = mix(1.0, shade.x, pow(max(sdu, 0.0), 0.25));
+                shade.x = mix(1.0, shade.x, pow(max(ldu, 0.0), 0.25));
                 outColor.rg = shade;
             }
 

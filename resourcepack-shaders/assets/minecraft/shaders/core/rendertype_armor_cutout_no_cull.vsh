@@ -35,7 +35,7 @@ void main() {
     } 
     else {
         baseColor = Color;
-        vertexColor = minecraft_sample_lightmap(Sampler2, UV2);
+        vertexColor = minecraft_sample_lightmap_optifine(Sampler2, UV2);
     }
 
     texCoord0 = UV0;

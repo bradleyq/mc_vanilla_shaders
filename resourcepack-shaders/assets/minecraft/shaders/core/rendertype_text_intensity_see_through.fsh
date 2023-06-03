@@ -8,8 +8,6 @@ uniform mat4 ProjMat;
 uniform sampler2D Sampler0;
 
 uniform vec4 ColorModulator;
-uniform float FogStart;
-uniform float FogEnd;
 
 in vec4 vertexColor;
 in vec4 baseColor;

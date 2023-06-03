@@ -23,6 +23,7 @@ out vec4 baseColor;
 out vec2 texCoord0;
 out vec2 texCoord2;
 out vec3 normal;
+out vec3 pos;
 out vec4 glpos;
 
 void main() {
@@ -35,32 +36,8 @@ void main() {
     } 
     gl_Position = ProjMat * ModelViewMat * position;
 
-    vec4 col = Color;
-    float up = 255.0;
-    float down = 127.0;
-    if (getDim(Sampler2) == DIM_NETHER) {
-        up = 229.0;
-        down = 229.0;
-    }
-    if (dot(Normal, vec3(0.0, -1.0, 0.0)) > 0.999) {
-        col *= 255.0 / down;
-    }
-    else if (dot(Normal, vec3(0.0, 1.0, 0.0)) > 0.999) {
-        col *= 255.0 / up;
-    }
-    else if (abs(dot(Normal, vec3(1.0, 0.0, 0.0))) > 0.999) {
-        col *= 255.0 / 153.0;
-    }
-    else if (abs(dot(Normal, vec3(0.0, 0.0, 1.0))) > 0.999) {
-        col *= 255.0 / 204.0;
-    }
-    else if (col.r == col.g && col.g == col.b){
-        col = vec4(1.0);
-    }
-    col = min(col, 1.0);
-    
-    baseColor = col;
-    vertexColor = minecraft_sample_lightmap(Sampler2, UV2);
+    baseColor = Color;
+    vertexColor = minecraft_sample_lightmap_optifine(Sampler2, UV2);
     texCoord0 = UV0;
     texCoord2 = UV2 / 255.0;
     if (getDim(Sampler2) == DIM_OVER) {
@@ -71,4 +48,5 @@ void main() {
     }
     normal = Normal;
     glpos = gl_Position;
+    pos = Position;
 }

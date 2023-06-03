@@ -38,7 +38,7 @@ void main() {
     }
     else {
         baseColor = Color;
-        vertexColor = minecraft_sample_lightmap(Sampler2, UV2);
+        vertexColor = minecraft_sample_lightmap_optifine(Sampler2, UV2);
     }
 
     overlayColor = texelFetch(Sampler1, UV1, 0);
