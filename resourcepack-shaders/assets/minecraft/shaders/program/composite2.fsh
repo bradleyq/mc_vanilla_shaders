@@ -12,7 +12,6 @@ uniform sampler2D ParticlesWeatherDepthSampler;
 uniform sampler2D CloudsSampler;
 uniform sampler2D CloudsDepthSampler;
 uniform vec2 OutSize;
-uniform float Time;
 
 in vec2 texCoord;
 in vec2 oneTexel;
@@ -71,6 +70,16 @@ vec4 encodeHDR_0(vec4 color) {
     return vec4(clamp(color.rgb - colorFloor, 0.0, 1.0), alpha / 255.0);
 }
 
+vec4 encodeHDR_1(vec4 color) {
+    color = clamp(color, 0.0, 8.0);
+    int alpha = clamp(int(log2(max(max(max(color.r, color.g), color.b), 0.0001) * 0.9999)) + 1, 0, 3);
+    return vec4(color.rgb / float(pow(2, alpha)), float(int(round(max(color.a, 0.0) * 63.0)) * 4 + alpha) / 255.0);
+}
+
+vec4 decodeHDR_1(vec4 color) {
+    int alpha = int(round(color.a * 255.0));
+    return vec4(color.rgb * float(pow(2, (alpha % 4))), float(alpha / 4) / 63.0);
+}
 
 vec4 encodeUInt(uint i) {
     uint r = (i) % 256u;
@@ -165,7 +174,6 @@ void try_insert( vec4 color, float depth, uint op ) {
 
 vec3 blend(vec3 dst, vec4 src) {
     return mix(dst.rgb, src.rgb, src.a);
-    // return ( dst * ( 1.0 - src.a ) ) + src.rgb;
 }
 
 #define BLENDMULT_FACTOR 0.5
@@ -297,7 +305,8 @@ vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog
     }
     
     totalSky *= sunAbsorption * 0.5 + 0.5 * length(sunAbsorption);
-
+    totalSky += srccol;
+    
     float sdu = dot(lp, vec3(0.0, 1.0, 0.0));
     if (sdu < 0.0) {
         vec3 mlp = normalize(vec3(-lp.xy, 0.0));
@@ -369,7 +378,7 @@ void main() {
     // glass, water
     try_insert( texture(TranslucentSampler, texCoord), texture(TranslucentDepthSampler, texCoord).r, BLENDMULT | HASREFLECT); 
     // rain, snow, tripwire
-    try_insert( texture(ParticlesWeatherSampler, texCoord), decodeDepth(texture(ParticlesWeatherDepthSampler, texCoord)), DEFAULT);
+    try_insert( decodeHDR_1(texture(ParticlesWeatherSampler, texCoord)), decodeDepth(texture(ParticlesWeatherDepthSampler, texCoord)), DEFAULT);
     // translucent_moving_block, lines, item_entity_translucent_cull
     try_insert( texture(ItemEntitySampler, texCoord), texture(ItemEntityDepthSampler, texCoord).r, DEFAULT);
 

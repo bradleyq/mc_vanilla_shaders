@@ -23,8 +23,19 @@ vec3 blendmult( vec3 dst, vec4 src) {
     return BLENDMULT_FACTOR * dst * mix(vec3(1.0), src.rgb, src.a) + (1.0 - BLENDMULT_FACTOR) * mix(dst.rgb, src.rgb, src.a);
 }
 
+vec4 encodeHDR_1(vec4 color) {
+    color = clamp(color, 0.0, 8.0);
+    int alpha = clamp(int(log2(max(max(max(color.r, color.g), color.b), 0.0001) * 0.9999)) + 1, 0, 3);
+    return vec4(color.rgb / float(pow(2, alpha)), float(int(round(max(color.a, 0.0) * 63.0)) * 4 + alpha) / 255.0);
+}
+
+vec4 decodeHDR_1(vec4 color) {
+    int alpha = int(round(color.a * 255.0));
+    return vec4(color.rgb * float(pow(2, (alpha % 4))), float(alpha / 4) / 63.0);
+}
+
 void main() {
-    vec4 c0 = texture(DiffuseSampler, texCoord);
+    vec4 c0 = decodeHDR_1(texture(DiffuseSampler, texCoord));
     float d0 = texture(DiffuseDepthSampler, texCoord).r;
 
     vec4 c1 = texture(WeatherSampler, texCoord); 
@@ -37,5 +48,5 @@ void main() {
     }
 
     c0 = vec4(blendadd(c1.rgb, c0), c0.a + (1.0 - c0.a) * c1.a);
-    fragColor = c0;
+    fragColor = encodeHDR_1(c0);
 }

@@ -67,12 +67,7 @@
             "name": "preprocess2",
             "intarget": "minecraft:main",
             "outtarget": "swap3",
-            "auxtargets": [
-                {
-                    "name": "DiffuseDepthSampler",
-                    "id": "minecraft:main:depth"
-                }
-            ]
+            "auxtargets": []
         },
         {
             "name": "preprocess3",
@@ -177,6 +172,21 @@
             ]
         },
         {
+            "name": "shading4",
+            "intarget": "particles",
+            "outtarget": "swap7",
+            "auxtargets": [
+                {
+                    "name": "DataSampler",
+                    "id": "temporals1"
+                },
+                {
+                    "name": "DiffuseDepthSampler",
+                    "id": "particles:depth"
+                }
+            ]
+        },
+        {
             "name": "water0",
             "intarget": "swap2",
             "outtarget": "swap3",
@@ -220,7 +230,7 @@
         },
         {
             "name": "composite0",
-            "intarget": "particles",
+            "intarget": "swap7",
             "outtarget": "swap5",
             "auxtargets": [
                 {
@@ -239,7 +249,7 @@
         },
         {
             "name": "composite1",
-            "intarget": "particles",
+            "intarget": "swap7",
             "outtarget": "swap6",
             "auxtargets": [
                 {

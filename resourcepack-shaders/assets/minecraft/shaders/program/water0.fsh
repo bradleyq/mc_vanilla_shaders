@@ -205,7 +205,8 @@ vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog
     }
     
     totalSky *= sunAbsorption * 0.5 + 0.5 * length(sunAbsorption);
-
+    totalSky += srccol;
+    
     float sdu = dot(lp, vec3(0.0, 1.0, 0.0));
     if (sdu < 0.0) {
         vec3 mlp = normalize(vec3(-lp.xy, 0.0));

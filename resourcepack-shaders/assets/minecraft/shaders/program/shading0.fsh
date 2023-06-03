@@ -91,7 +91,7 @@ vec4 backProject(vec4 vec) {
 }
 
 #define AO_SAMPLES 32
-#define AO_INTENSITY 4.0
+#define AO_INTENSITY 3.5
 #define AO_SCALE 2.5
 #define AO_BIAS 0.008
 #define AO_SAMPLE_RAD 0.5

@@ -101,9 +101,4 @@ void main() {
 
     int flags = int(texture(DataSampler, start + 30.0 * inc).r * 255.0);
     underWater = float((flags & FLAG_UNDERWATER) > 0);
-
-    if (underWater > 0.5) {
-        float mult = smoothstep(0.2, -0.2, dot(sunDir, vec3(0.0, 1.0, 0.0)));
-        fogColor *= 1.0 - 0.5 * mult;
-    }
 }

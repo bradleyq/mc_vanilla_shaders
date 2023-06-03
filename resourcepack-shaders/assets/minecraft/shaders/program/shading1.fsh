@@ -3,7 +3,6 @@
 uniform sampler2D DiffuseSampler;
 uniform sampler2D DiffuseDepthSampler;
 uniform vec2 OutSize;
-uniform float Time;
 
 in vec2 texCoord;
 in vec2 oneTexel;

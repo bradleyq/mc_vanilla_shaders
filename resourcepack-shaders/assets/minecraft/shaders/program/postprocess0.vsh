@@ -83,5 +83,6 @@ void main(){
     vec2 inc = vec2(1.0 / AuxSize0.x, 0.0);
 
     float exposure = decodeFloat(texture(DataSampler, start + 41.0 * inc).rgb) + 2.0;
+    exposureNorm = (clamp(exposure, 0.5, 1.6) - 0.5) / 1.1;
     exposureClamp = clamp(exposure, 0.5, 1.6);
 }

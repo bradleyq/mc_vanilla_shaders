@@ -143,7 +143,6 @@ void main() {
                 edgedistz = lpos.z;
             }
             if (edgedistx < WRAP_RADIUS && edgedistz < WRAP_RADIUS) {
-                // edgedist = max(CLOUD_W * 0.5 - length(lpos.xz - vec2(CLOUD_W * 0.5)), 0.0);
                 edgedist = max(WRAP_RADIUS - length(vec2(edgedistx, edgedistz) - vec2(WRAP_RADIUS)), 0.0);
             }
             else {

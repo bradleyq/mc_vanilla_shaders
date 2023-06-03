@@ -1,9 +1,7 @@
 #version 330
 
 uniform sampler2D DiffuseSampler;
-uniform sampler2D DiffuseDepthSampler;
 
-uniform vec2 InSize;
 uniform vec2 OutSize;
 
 in vec2 texCoord;
@@ -87,16 +85,6 @@ void main() {
     if (gl_FragCoord.y < 0.75) { // avoid control pixel row
         adjustedCoord.y += oneTexel.y;
     }
-
-    // float strength = clamp(float(int(outColor.b * 255.0) / 16) / 15.0, 0.0, 1.0);
-    // int(outColor.a * 255.0) % 4 == FACETYPE_S 
-    // int pbrtype = int(outColor.b * 255.0) % 8;
-    //     if (int(pixCoord.x) % 2 == 0) {
-    //     yuv = vec3(inCol.xy, sec);
-    // }
-    // else {
-    //     yuv = vec3(inCol.x, sec, inCol.y);
-    // }
 
     vec3 yuv = vec3(0.0);
     float strength = 0.0;

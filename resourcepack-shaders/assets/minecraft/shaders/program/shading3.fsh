@@ -6,7 +6,6 @@ uniform sampler2D DiffuseTSampler;
 uniform sampler2D EdgeSampler;
 uniform sampler2D ShadingSampler;
 uniform vec2 OutSize;
-uniform float Time;
 
 in vec2 texCoord;
 in vec2 oneTexel;
@@ -301,7 +300,7 @@ vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog
     
     totalSky *= sunAbsorption * 0.5 + 0.5 * length(sunAbsorption);
     totalSky += srccol;
-    
+
     float sdu = dot(lp, vec3(0.0, 1.0, 0.0));
     if (sdu < 0.0) {
         vec3 mlp = normalize(vec3(-lp.xy, 0.0));
@@ -359,7 +358,6 @@ vec4 decodeYUV(vec4 inCol, float sec) {
 
 vec3 blend( vec3 dst, vec4 src ) {
     return mix(dst.rgb, src.rgb, src.a);
-    // return ( dst * ( 1.0 - src.a ) ) + src.rgb;
 }
 
 #define BLENDMULT_FACTOR 0.5
@@ -548,39 +546,6 @@ void main() {
             if (underWater > 0.5) {
                 outColor.rgb = mix(outColor.rgb, outColor.rgb * TINT_WATER, smoothstep(0, TINT_WATER_DISTANCE, length(fragpos)));
             }
-
-            // outColor.r = applyLight;
-
-            // outColor.r = float(face == 0);
-            // outColor.rgb = vec3(float(face) / 3.0);
-            // if (face == 3) {
-            //     outColor.rgb = vec3(clamp(float(int(data.x * 255.0) / 16) / 15.0, 0.0, 1.0));
-            // } else {
-            //     outColor.rgb = vec3(clamp(float(int(data.y * 255.0) / 4) / 63.0, 0.0, 1.0));
-            // }
-            // outColor.rgb = vec3(linearizeDepth(depth) / (far / 3.0));
-            // outColor.rgb = 0.5 * (normal + vec3(1.0));
-            // outColor.a = 1.0;
-            // outColor.rgb = vec3(float(stype) / 8.0);
-            // outColor.rgb = vec3(data.y);
-
-            // vec4 yuva = vec4(0.0);
-
-            // outColor.rgb = min(outColor.rgb, vec3(1.0));
-
-            // if (gl_FragCoord.x > OutSize.x / 2.0) {
-            //     yuva.x = outColor.r * 0.299 + outColor.g * 0.587 + outColor.b * 0.114;
-            //     yuva.y = outColor.r * -0.169 + outColor.g * -0.331 + outColor.b * 0.5 + 0.5;
-            //     yuva.z = outColor.r * 0.5 + outColor.g * -0.419 + outColor.b * -0.081 + 0.5;
-
-            //     yuva = vec4(yuva.x, (yuva.y - 0.5), (yuva.z - 0.5), 1.0);
-
-            //     outColor.r = yuva.x * 1.0 + yuva.y * 0.0 + yuva.z * 1.4;
-            //     outColor.g = yuva.x * 1.0 + yuva.y * -0.343 + yuva.z * -0.711;
-            //     outColor.b = yuva.x * 1.0 + yuva.y * 1.765 + yuva.z * 0.0;
-            // }
-            // outColor.b += rain;
-            // outColor.rgb = vec3(pbrStrength);
         } 
         // if sky do atmosphere
         else if (abs(dim - DIM_OVER) < 0.01 && fogColor.a == 1.0) {

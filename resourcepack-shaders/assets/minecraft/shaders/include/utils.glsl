@@ -33,6 +33,7 @@
 #define FACETYPE_S 3
 
 #define EMISSMULT 6.0
+#define EMISSMULTP 1.0
 
 #define DIM_UNKNOWN 0
 #define DIM_OVER 1
@@ -223,18 +224,18 @@ vec2 encodeYUV(vec2 coord, vec3 color) {
 }
 
 vec2 getBA(vec2 lightmask, int type, int facetype, float strength) {
-    float b = 255.0;
-    float a = 255.0;
+    int b = 255;
+    int a = 255;
     if (type != PBRTYPE_TRANSLUCENT && type != PBRTYPE_TEMISSIVE) {
-        a = 1.0 - smoothstep(5.0 / 15.0, 12.0 / 15.0, lightmask.y);
+        float af = 1.0 - smoothstep(5.0 / 15.0, 12.0 / 15.0, lightmask.y);
 
         if (type != PBRTYPE_EMISSIVE) {
-            a = max(smoothstep(5.0 / 15.0, 1.0, lightmask.x), a);
+            af = max(smoothstep(5.0 / 15.0, 1.0, lightmask.x), af);
         }
 
-        a = round(a * 63.0) * 4.0;
+        a = int(round(af * 63.0)) * 4;
         if (type == PBRTYPE_STANDARD) {
-            a += float(facetype);
+            a += facetype;
         }
         else {
             a += FACETYPE_S;
@@ -242,10 +243,10 @@ vec2 getBA(vec2 lightmask, int type, int facetype, float strength) {
     }
 
     if (type != PBRTYPE_STANDARD) {
-        b = round(strength * 15.0) * 16.0 + float(type);
+        b = int(round(strength * 15.0)) * 16 + type;
     }
     
-    return vec2(b, a) / 255.0;
+    return vec2(float(b), float(a)) / 255.0;
 }
 
 vec4 getOutColorT(vec4 color, vec4 light, vec2 lightmask, vec2 fragcoord, int facetype, int type) {
@@ -276,17 +277,17 @@ vec4 getOutColorT(vec4 color, vec4 light, vec2 lightmask, vec2 fragcoord, int fa
 }
 
 vec4 getOutColor(vec4 color, vec4 light, vec2 lightmask, vec2 fragcoord, int facetype) {
-    float alpha255 = color.a * 255.0;
+    int alpha255 = int(round(color.a * 255.0));
 
     // get material type based on alpha
     int type = PBRTYPE_EMISSIVE * int(alpha255 >= EMISSMIN && alpha255 <= EMISSMAX) + 
                PBRTYPE_SUBSURFACE * int(alpha255 >= SUBSSMIN && alpha255 <= SUBSSMAX);
 
     if (type == PBRTYPE_EMISSIVE) {
-        color.a = (alpha255 - EMISSMIN) / (EMISSMAX - EMISSMIN);
+        color.a = float(alpha255 - EMISSMIN) / float(EMISSMAX - EMISSMIN);
     }
     else if (type == PBRTYPE_SUBSURFACE) {
-        color.a = (alpha255 - SUBSSMIN) / (SUBSSMAX - SUBSSMIN);
+        color.a = float(alpha255 - SUBSSMIN) / float(SUBSSMAX - SUBSSMIN);
     }
 
     return getOutColorT(color, light, lightmask, fragcoord, facetype, type);
@@ -301,9 +302,19 @@ vec4 getOutColorSTDALock(vec4 color, vec4 light, vec2 lightmask, vec2 fragcoord)
     outCol.rg = encodeYUV(fragcoord, outCol.rgb);
 
     float b = max(smoothstep(5.0 / 15.0, 1.0, lightmask.x), 1.0 - smoothstep(5.0 / 15.0, 12.0 / 15.0, lightmask.y));
-    outCol.b = (round(b * 15.0) * 16.0 + float(PBRTYPE_STANDARD)) / 255.0;
+    outCol.b = float(int(round(b * 15.0)) * 16 + PBRTYPE_STANDARD) / 255.0;
 
     outCol.a = color.a;
+
+    return outCol;
+}
+
+vec4 getOutColorPtclRGBLock(vec4 color, vec4 light, vec2 lightmask, int type) {
+    vec4 outCol = color;
+    outCol.rgb *= light.rgb;
+
+    float a = max(smoothstep(5.0 / 15.0, 1.0, lightmask.x), 1.0 - smoothstep(5.0 / 15.0, 12.0 / 15.0, lightmask.y));
+    outCol.a = float(int(round(max(color.a - 0.1, 0.0) / 0.9 * 31.0)) * 8 + int(round(a * 3.0)) * 2 + int(type == PBRTYPE_EMISSIVE)) / 255.0;
 
     return outCol;
 }
@@ -345,6 +356,7 @@ bool isPanorama(mat4 ProjMat) {
     return far < 9.99996 && far > 9.99995;
 }
 
+// 10bit + 4x scalar hdr, alpha fully used
 vec4 decodeHDR_0(vec4 color) {
     int alpha = int(color.a * 255.0);
     return vec4(vec3(color.r + float((alpha >> 4) % 4), color.g + float((alpha >> 2) % 4), color.b + float(alpha % 4)) * float(alpha >> 6), 1.0);
@@ -366,15 +378,14 @@ vec4 encodeHDR_0(vec4 color) {
     return vec4(clamp(color.rgb - colorFloor, 0.0, 1.0), alpha / 255.0);
 }
 
-vec4 decodeHDR_1(vec4 color) {
-    return vec4(color.rgb * (color.a + 1.0), 1.0);
+// 8x scalar hdr, 6bit alpha
+vec4 encodeHDR_1(vec4 color) {
+    color = clamp(color, 0.0, 8.0);
+    int alpha = clamp(int(log2(max(max(max(color.r, color.g), color.b), 0.0001) * 0.9999)) + 1, 0, 3);
+    return vec4(color.rgb / float(pow(2, alpha)), float(int(round(max(color.a, 0.0) * 63.0)) * 4 + alpha) / 255.0);
 }
 
-vec4 encodeHDR_1(vec4 color) {
-    float maxval = max(color.r, max(color.g, color.b));
-    float mult = (maxval - 1.0) * 255.0 / 3.0;
-    mult = clamp(ceil(mult), 0.0, 255.0);
-    color.rgb = color.rgb * 255 / (mult / 255 * 3 + 1);
-    color.rgb = round(color.rgb);
-    return vec4(color.rgb, mult) / 255.0;
+vec4 decodeHDR_1(vec4 color) {
+    int alpha = int(round(color.a * 255.0));
+    return vec4(color.rgb * float(pow(2, (alpha % 4))), float(alpha / 4) / 63.0);
 }

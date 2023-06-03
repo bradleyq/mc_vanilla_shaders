@@ -20,12 +20,7 @@ in vec4 glpos;
 out vec4 fragColor;
 
 void main() {
-    bool gui = isGUI(ProjMat);
-    bool hand = isHand(FogStart, FogEnd);
-    
-    if (!gui && !hand) {
-        discardControlGLPos(gl_FragCoord.xy, glpos);
-    }
+    discardControlGLPos(gl_FragCoord.xy, glpos);
 
     vec4 outColor = textureLod(Sampler0, texCoord0, -4).rrrr;
 
@@ -35,13 +30,8 @@ void main() {
     
     outColor *= baseColor * ColorModulator;
     
-    if (!gui && !hand) {
-        outColor.a = 1.0;
-        outColor = getOutColorSTDALock(outColor, vertexColor, texCoord2, gl_FragCoord.xy);
-    }
-    else {
-        outColor *= vertexColor;
-    }
+    outColor.a = 1.0;
+    outColor = getOutColorSTDALock(outColor, vertexColor, texCoord2, gl_FragCoord.xy);
     
     fragColor = outColor;
 }
