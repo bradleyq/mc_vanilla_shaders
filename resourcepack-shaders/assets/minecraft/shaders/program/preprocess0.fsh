@@ -226,7 +226,7 @@ void main() {
             outColor = vec4(encodeFloatL(clamp(lum, -20.0, 20.0)), 1.0); 
         }
         else if (index == 41) {
-            float lum = 2.0 * decodeFloatL(texture(PrevDataSampler, startData + 32.0 * incData).rgb)
+            float lum = decodeFloatL(texture(PrevDataSampler, startData + 32.0 * incData).rgb)
                       + decodeFloatL(texture(PrevDataSampler, startData + 33.0 * incData).rgb)
                       + decodeFloatL(texture(PrevDataSampler, startData + 34.0 * incData).rgb)
                       + decodeFloatL(texture(PrevDataSampler, startData + 35.0 * incData).rgb)
@@ -236,7 +236,7 @@ void main() {
                       + decodeFloatL(texture(PrevDataSampler, startData + 39.0 * incData).rgb)
                       + decodeFloatL(texture(PrevDataSampler, startData + 40.0 * incData).rgb);
 
-            lum /= 10.0;
+            lum /= 9.0;
 
             lum += 20.0 - 2.0; // convert from fixed point L to regular fixed point
 

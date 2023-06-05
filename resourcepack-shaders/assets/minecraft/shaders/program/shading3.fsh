@@ -143,8 +143,8 @@ vec4 encodeHDR_0(vec4 color) {
 
 // tweak lighting color here
 #define NOON_CLEAR vec3(1.2, 1.1, 0.95) * 4.0
-#define NOONA_CLEAR vec3(0.55, 0.57, 0.7) * 2.3
-#define NOONM_CLEAR vec3(0.45, 0.47, 0.6) * 2.3
+#define NOONA_CLEAR vec3(0.55, 0.57, 0.7) * 2.5
+#define NOONM_CLEAR vec3(0.45, 0.47, 0.6) * 2.5
 #define EVENING_CLEAR vec3(1.3, 0.9, 0.5) * 2.5
 #define EVENINGA_CLEAR vec3(0.55, 0.57, 0.65) * 1.5
 #define EVENINGM_CLEAR vec3(0.4, 0.45, 0.6) * 1.5
