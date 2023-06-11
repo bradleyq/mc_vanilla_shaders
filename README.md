@@ -56,7 +56,7 @@ Vibrance      [0.0, 2.0]    1.0  Color vibrance / saturation
         <tr>
             <td align="middle">
               <img src="images/5.png"/> 
-              <figcaption align="middle">shader v3 (alpha)</figcaption>
+              <figcaption align="middle">shader v3</figcaption>
             </td>
         </tr>
     </table>
