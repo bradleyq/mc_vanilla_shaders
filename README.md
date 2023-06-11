@@ -4,6 +4,9 @@
 ## Overview
 Shader that adds as much as possible from OptiFine shaders to the vanilla transparency shader available in "Fabulous" graphics setting. Due to limited material, light, time, and shadow information, some advanced features are not possible. A good number, however, are. I have ported them here. Most samples in credits are heavily modified to fit with the vanilla pipeline. Supports all FOV and render distances.
 
+### Usage
+See License.md for licensing. This pack requires Fabulous graphics on. For best experience, use FOV 70 with render distance 16!
+
 ### Configuration
 Some basic settings can be toggled by editing `assets\minecraft\shaders\post\transparency.json` in `uniforms` for `preprocess0` pass and `postprocess2` pass. The following can be changed:
 ```
@@ -15,7 +18,7 @@ ExposurePoint [1.0, 4.0]    2.0  Target value to expose to
 Vibrance      [0.0, 2.0]    1.0  Color vibrance / saturation
 ```
 
-### Features
+## Features
 - Water Waves
 - SSAO
 - Revamped Skys: Approximate Atmosphereic Scattering (Overworld), Aurora (End)
@@ -58,9 +61,6 @@ Vibrance      [0.0, 2.0]    1.0  Color vibrance / saturation
         </tr>
     </table>
 </div>
-
-## Usage
-See License.md for licensing. This pack requires Fabulous graphics on. Supports FOV 30-140, distance 12-32. For best experience, use FOV 70 with render distance 16!
 
 ## Credits
 - **BSL shaders - capttatsu** for base SSR https://bitslablab.com/bslshaders/
