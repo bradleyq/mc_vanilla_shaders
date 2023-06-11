@@ -10,8 +10,8 @@ uniform sampler2D Sampler1;
 uniform float GameTime;
 uniform int EndPortalLayers;
 
-in vec4 texProj0;
 in vec4 glpos;
+in vec3 pos;
 
 const vec3[] COLORS = vec3[](
     vec3(0.022087, 0.098399, 0.110818),
@@ -32,26 +32,31 @@ const vec3[] COLORS = vec3[](
     vec3(0.080955, 0.314821, 0.661491)
 );
 
-const mat4 SCALE_TRANSLATE = mat4(
-    0.5, 0.0, 0.0, 0.25,
-    0.0, 0.5, 0.0, 0.25,
-    0.0, 0.0, 1.0, 0.0,
-    0.0, 0.0, 0.0, 1.0
+const mat3 SCALE_TRANSLATE = mat3(
+    0.5, 0.0, 0.25,
+    0.0, 0.5, 0.25,
+    0.0, 0.0, 1.0
 );
 
-mat4 end_portal_layer(float layer) {
-    mat4 translate = mat4(
-        1.0, 0.0, 0.0, 17.0 / layer,
-        0.0, 1.0, 0.0, (2.0 + layer / 1.5) * (GameTime * 1.5),
-        0.0, 0.0, 1.0, 0.0,
-        0.0, 0.0, 0.0, 1.0
+mat3 end_portal_layer(float layer) {
+    mat3 translate = mat3(
+        1.0, 0.0, 17.0 / layer,
+        0.0, 1.0, (2.0 + layer / 1.5) * (GameTime * 1.5),
+        0.0, 0.0, 1.0
     );
 
-    mat2 rotate = mat2_rotate_z(radians((layer * layer * 4321.0 + layer * 9.0) * 2.0));
-
     mat2 scale = mat2((4.5 - layer / 4.0) * 2.0);
+    
+    return mat3(scale) * translate * SCALE_TRANSLATE;
+}
 
-    return mat4(scale * rotate) * translate * SCALE_TRANSLATE;
+vec3 proj_3d_to_2d(vec3 dir) {
+    dir.xz = normalize(dir.xz);
+    dir.x = (dir.z > 0.0 ? acos(dir.x) : 2 * PI - acos(dir.x)) / PI * 2.0;
+    dir.y = (acos(dir.y)) / PI * 2.0;
+    dir.z = 1.0;
+
+    return dir;
 }
 
 out vec4 fragColor;
@@ -59,12 +64,18 @@ out vec4 fragColor;
 void main() {
     discardControlGLPos(gl_FragCoord.xy, glpos);
     vec4 outColor = vec4(1.0);
-    outColor.rgb = textureProj(Sampler0, texProj0).rgb * COLORS[0];
-    
+
+    vec3 tmppos = normalize(pos);
+    tmppos = proj_3d_to_2d(tmppos);
+
+    outColor.rgb = texture(Sampler0, tmppos.xy).rgb * COLORS[0];
+
     for (int i = 0; i < EndPortalLayers; i++) {
-        outColor.rgb += textureProj(Sampler1, texProj0 * end_portal_layer(float(i + 1))).rgb * COLORS[i];
+        float layer = float(i) + 1.0;
+        tmppos = proj_3d_to_2d(mat3(mat2_rotate_z(radians((layer * layer * 4321.0 + layer * 9.0) * 2.0))) * normalize(pos));
+        outColor.rgb += texture(Sampler1, (tmppos * end_portal_layer(float(i + 1))).xy).rgb * COLORS[i];
     }
 
-    outColor = getOutColorT(outColor, vec4(1.0), vec2(1.0, 0.0), gl_FragCoord.xy, FACETYPE_Y, PBRTYPE_STANDARD);
+    outColor = getOutColorT(outColor * 0.5, vec4(1.0), vec2(1.0, 0.0), gl_FragCoord.xy, FACETYPE_Y, PBRTYPE_TEMISSIVE);
     fragColor = outColor;
 }

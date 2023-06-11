@@ -27,17 +27,21 @@ void main() {
         discardControlGLPos(gl_FragCoord.xy, glpos);
     }
 
-    vec4 outColor = textureLod(Sampler0, texCoord0, -4).rrrr;
+    vec4 outColor = textureLod(Sampler0, texCoord0, -4).rrrr * baseColor * ColorModulator;
 
-    if (outColor.a < 0.1) {
+    if (outColor.a < 0.1 || (!gui && !hand && outColor.a < 254.5 / 255.0 && (int(gl_FragCoord.x) + int(gl_FragCoord.y)) % 2 == 1)) {
         discard;
     }
     
-    outColor *= baseColor * ColorModulator;
-    
     if (!gui && !hand) {
-        outColor.a = 1.0;
-        outColor = getOutColorSTDALock(outColor, vertexColor, texCoord2, gl_FragCoord.xy);
+        if (outColor.a < 254.5 / 255.0) {
+            outColor = getOutColorT(outColor, vec4(0.0), vec2(0.0), gl_FragCoord.xy, FACETYPE_S, PBRTYPE_TRANSLUCENT);
+            outColor.a = 1.0;
+        }
+        else {
+            outColor.a = 1.0;
+            outColor = getOutColorSTDALock(outColor, vec4(1.0), vec2(0.0), gl_FragCoord.xy);
+        }
     }
     else {
         outColor *= vertexColor;
