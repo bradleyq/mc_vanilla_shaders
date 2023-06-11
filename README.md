@@ -1,14 +1,5 @@
-# Shaders for vanilla 1.19 DEV BRANCH!!!!!
+# Better Environment Shaders for vanilla 1.19
 <img src="images/4.png" /> 
-
-## TIS HOT DEV BRANCH!!! STUFF MAY NOT WORK!!!
-
-Known issues:
-- shadow jank
-- Alpha-PBR specular, metalness
-- some translucents visible over fog (slime entities)
-- glow item frame items are lit as if outdoors
-- hand item shading is flat
 
 ## Overview
 Shader that adds as much as possible from OptiFine shaders to the vanilla transparency shader available in "Fabulous" graphics setting. Due to limited material, light, time, and shadow information, some advanced features are not possible. A good number, however, are. I have ported them here. Most samples in credits are heavily modified to fit with the vanilla pipeline. Supports all FOV and render distances.
