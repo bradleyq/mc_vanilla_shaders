@@ -15,8 +15,9 @@
         { "name": "CurrCodedMainSamplerDepth" }
     ],
     "uniforms": [
-        { "name": "InSize",     "type": "float",     "count": 2,  "values": [ 1.0, 1.0 ] },
-        { "name": "AuxSize0",   "type": "float",     "count": 2,  "values": [ 1.0, 1.0 ] },
-        { "name": "FOVGuess",   "type": "float",     "count": 1, "values": [ 1.0 ] }
+        { "name": "InSize",      "type": "float",     "count": 2,  "values": [ 1.0, 1.0 ] },
+        { "name": "AuxSize0",    "type": "float",     "count": 2,  "values": [ 1.0, 1.0 ] },
+        { "name": "FOVGuess",    "type": "float",     "count": 1, "values": [ 70.0 ] },
+        { "name": "FogDistance", "type": "float",     "count": 1, "values": [ 3.0 ] }
     ]
 }

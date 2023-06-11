@@ -3,6 +3,11 @@
 uniform sampler2D DiffuseSampler;
 uniform sampler2D BloomSampler;
 
+uniform float BloomAmount;
+uniform float AutoExposure;
+uniform float ExposurePoint;
+uniform float Vibrance;
+
 in vec2 texCoord;
 in vec2 oneTexel;
 in float exposureNorm;
@@ -138,24 +143,29 @@ void main() {
     bloomCol /= 16.0; 
 
     // apply bloom
-    outColor += bloomCol * 0.25 * (pow(1.0 - exposureNorm, 2.0) * 0.75 + 0.5);
+    outColor += bloomCol * BloomAmount * (pow(1.0 - exposureNorm, 2.0) * 0.75 + 0.5);
     // outColor = bloomCol;
 
     // apply crosstalk
     outColor.rgb += vec3(0.02) * (outColor.r + outColor.g + outColor.b);
 
-    // apply exposure
-    outColor.rgb /= exposureClamp * 2.0;
+    if (AutoExposure > 0.5) {
+        // apply exposure
+        outColor.rgb /= exposureClamp * ExposurePoint;
 
-    // apply tonemap
-    outColor.rgb = vec3(customRolloff9(outColor.r), customRolloff9(outColor.g), customRolloff9(outColor.b));
-    // outColor.rgb = jodieReinhardTonemap(outColor.rgb, 0.5);
+        // apply tonemap
+        outColor.rgb = vec3(customRolloff9(outColor.r), customRolloff9(outColor.g), customRolloff9(outColor.b));
+    }
+    else {
+        outColor.rgb /= ExposurePoint;
+        outColor.rgb = jodieReinhardTonemap(outColor.rgb, 1.0);
+    }
     // outColor.rgb = acesTonemap(outColor.rgb);
 
     // saturation
-    // outColor.rgb = rgb2hsv(outColor.rgb);
-    // outColor.g *= 1.4;
-    // outColor.rgb = hsv2rgb(outColor.rgb);
+    outColor.rgb = rgb2hsv(outColor.rgb);
+    outColor.g *= Vibrance;
+    outColor.rgb = hsv2rgb(outColor.rgb);
 
     fragColor = outColor;
 }

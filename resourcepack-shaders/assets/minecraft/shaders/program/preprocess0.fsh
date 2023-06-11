@@ -9,6 +9,7 @@ uniform sampler2D CurrCodedMainSamplerDepth;
 uniform vec2 InSize;
 uniform vec2 AuxSize0;
 uniform float FOVGuess;
+uniform float FogDistance;
 
 out vec4 fragColor;
 
@@ -43,7 +44,6 @@ out vec4 fragColor;
 #define FOG_DARKNESS_FAR 15.0
 #define FOG_DEFAULT_FAR 150.0
 #define FOG_TARGET 0.2
-#define FOG_DIST_MULT 3.0
 #define FOG_DIST_OVERCAST_REDUCE 2.0
 
 #define FLAG_UNDERWATER 1<<0
@@ -430,7 +430,7 @@ void main() {
             float rain = texture(DiffuseSampler, start + 29.0 * inc).r;
             int fend = int(FOG_WATER_FAR);
             if (fstart != -8) {
-                fend = int(float(decodeInt(texture(DiffuseSampler, start + 27.0 * inc).rgb)) * (FOG_DIST_MULT - FOG_DIST_OVERCAST_REDUCE * rain));
+                fend = int(float(decodeInt(texture(DiffuseSampler, start + 27.0 * inc).rgb)) * (FogDistance - FOG_DIST_OVERCAST_REDUCE * rain));
             }
             outColor = vec4(encodeFloat(log(FOG_TARGET) / float(-fend)), 1.0);
         }

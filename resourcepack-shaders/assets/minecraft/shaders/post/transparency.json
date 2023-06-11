@@ -44,6 +44,10 @@
                 {
                     "name":"FOVGuess",
                     "values": [ 70.0 ]
+                },
+                {
+                    "name":"FogDistance",
+                    "values": [ 3.0 ]
                 }
             ]
         },
@@ -66,8 +70,7 @@
         {
             "name": "preprocess2",
             "intarget": "minecraft:main",
-            "outtarget": "swap3",
-            "auxtargets": []
+            "outtarget": "swap3"
         },
         {
             "name": "preprocess3",
@@ -442,6 +445,24 @@
                 {
                     "name": "BloomSampler",
                     "id": "swap5"
+                }
+            ],
+            "uniforms": [
+                {
+                    "name":"BloomAmount",
+                    "values": [ 0.25 ]
+                },
+                {
+                    "name":"AutoExposure",
+                    "values": [ 1.0 ]
+                },
+                {
+                    "name":"ExposurePoint",
+                    "values": [ 2.0 ]
+                },
+                {
+                    "name":"Vibrance",
+                    "values": [ 1.0 ]
                 }
             ]
         }

@@ -1,7 +1,6 @@
 #version 330
 #define FSH
 
-#moj_import <fog.glsl>
 #moj_import <utils.glsl>
 
 uniform mat4 ProjMat;
@@ -40,7 +39,7 @@ void main() {
         }
         else {
             outColor.a = 1.0;
-            outColor = getOutColorSTDALock(outColor, vec4(1.0), vec2(0.0), gl_FragCoord.xy);
+            outColor = getOutColorSTDALock(outColor, vertexColor, texCoord2, gl_FragCoord.xy);
         }
     }
     else {

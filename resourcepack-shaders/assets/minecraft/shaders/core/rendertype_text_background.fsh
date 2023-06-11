@@ -7,8 +7,8 @@ uniform sampler2D Sampler0;
 
 uniform vec4 ColorModulator;
 
-in vec4 baseColor;
 in vec4 vertexColor;
+in vec4 baseColor;
 in vec2 texCoord2;
 in vec4 glpos;
 
@@ -16,8 +16,8 @@ out vec4 fragColor;
 
 void main() {
     discardControlGLPos(gl_FragCoord.xy, glpos);
-    vec4 outColor = baseColor;
-    outColor *= ColorModulator;
+
+    vec4 outColor = baseColor * ColorModulator;
 
     if (outColor.a < 0.1 || (outColor.a < 254.5 / 255.0 && (int(gl_FragCoord.x) + int(gl_FragCoord.y)) % 2 == 1)) {
         discard;

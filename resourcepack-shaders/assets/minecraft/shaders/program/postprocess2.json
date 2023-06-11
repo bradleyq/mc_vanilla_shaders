@@ -13,8 +13,12 @@
         { "name": "BloomSampler" }
     ],
     "uniforms": [
-        { "name": "ProjMat",    "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
-        { "name": "OutSize",    "type": "float",     "count": 2,  "values": [ 1.0, 1.0 ] },
-        { "name": "AuxSize0",   "type": "float",     "count": 2,  "values": [ 1.0, 1.0 ] }
+        { "name": "ProjMat",       "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+        { "name": "OutSize",       "type": "float",     "count": 2,  "values": [ 1.0, 1.0 ] },
+        { "name": "AuxSize0",      "type": "float",     "count": 2,  "values": [ 1.0, 1.0 ] },
+        { "name": "BloomAmount",   "type": "float",     "count": 1,  "values": [ 0.25 ] },
+        { "name": "AutoExposure",  "type": "float",     "count": 1,  "values": [ 1.0 ] },
+        { "name": "ExposurePoint", "type": "float",     "count": 1,  "values": [ 2.0 ] },
+        { "name": "Vibrance",      "type": "float",     "count": 1,  "values": [ 1.0 ] }
     ]
 }

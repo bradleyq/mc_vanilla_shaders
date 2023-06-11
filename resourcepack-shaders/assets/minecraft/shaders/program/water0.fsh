@@ -451,8 +451,6 @@ void main() {
         else {
             fresnel = getFresnel(indexair, indexwater, theta);
         }
-        
-        // fresnel = 1.0;
 
         #define HDR_LIMIT 12.0
         float maxelem = max(reflection.r, max(reflection.g, reflection.b));

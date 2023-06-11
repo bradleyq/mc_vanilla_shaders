@@ -13,8 +13,8 @@ uniform sampler2D Sampler2;
 uniform mat4 ModelViewMat;
 uniform mat4 ProjMat;
 
-out vec4 baseColor;
 out vec4 vertexColor;
+out vec4 baseColor;
 out vec2 texCoord2;
 out vec4 glpos;
 
