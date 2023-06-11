@@ -21,6 +21,7 @@ Vibrance      [0.0, 2.0]    1.0  Color vibrance / saturation
 ## Features
 - Water Waves
 - SSAO
+- SSR
 - Revamped Skys: Approximate Atmosphereic Scattering (Overworld), Aurora (End)
 - Directional Light
 - Screen Space Shadows
@@ -31,6 +32,7 @@ Vibrance      [0.0, 2.0]    1.0  Color vibrance / saturation
 - Bloom
 - Volumetric Clouds
 - Compatible with Optifine Fabulous & Dynamic Lights
+- Tonemapping
 
 ### Comparisons
 <div>
