@@ -2,21 +2,6 @@
 <img src="images/4.png" /> 
 
 ## TIS HOT DEV BRANCH!!! STUFF MAY NOT WORK!!!
-CL:
-- Water Waves
-- SSAO
-- Approximate Atmosphereic Scattering (Overworld)
-- Directional Light
-- Screen Space Shadows
-- Java Alpha-PBR support (Emissive, Subsurface, Waving)
-- Multiplicative Transparency
-- HDR buffers
-- Aurora (End)
-- Auto Exposure
-- Parametric Rolloff Tonemap
-- Bloom
-- Volumetric Clouds
-- Compatible with Optifine Fabulous & Dynamic Lights
 
 Known issues:
 - shadow jank
@@ -26,10 +11,32 @@ Known issues:
 - hand item shading is flat
 
 ## Overview
-Basic shader that adds as much as possible from OptiFine shaders to the vanilla transparency shader available in "Fabulous" graphics setting. Due to limited material, light, time, and shadow information, most advanced features are not possible. A good number, however, are. I have ported them here. Most samples in credits are heavily modified to fit with the vanilla pipeline. Supports all FOV and render distances.
+Shader that adds as much as possible from OptiFine shaders to the vanilla transparency shader available in "Fabulous" graphics setting. Due to limited material, light, time, and shadow information, some advanced features are not possible. A good number, however, are. I have ported them here. Most samples in credits are heavily modified to fit with the vanilla pipeline. Supports all FOV and render distances.
+
+### Configuration
+Some basic settings can be toggled by editing `assets\minecraft\shaders\post\transparency.json` in `uniforms` for `preprocess0` pass and `postprocess2` pass. The following can be changed:
+```
+FOVGuess      [30.0, 110.0] 70.0 Default FOV as a fallback
+FogDistance   [0.1, 10.0]   3.0  Fog distance multiplier
+BloomAmount   [0.0, 1.0]    0.25 Bloom amount to apply
+AutoExposure  0.0 or 1.0    1.0  Auto exposure enable
+ExposurePoint [1.0, 4.0]    2.0  Target value to expose to  
+Vibrance      [0.0, 2.0]    1.0  Color vibrance / saturation
+```
 
 ### Features
-- TBD
+- Water Waves
+- SSAO
+- Revamped Skys: Approximate Atmosphereic Scattering (Overworld), Aurora (End)
+- Directional Light
+- Screen Space Shadows
+- Java Alpha-PBR support (Emissive, Subsurface, Waving)
+- Multiplicative Transparency
+- HDR Lighting
+- Auto Exposure
+- Bloom
+- Volumetric Clouds
+- Compatible with Optifine Fabulous & Dynamic Lights
 
 ### Comparisons
 <div>
@@ -68,4 +75,5 @@ See License.md for licensing. This pack requires Fabulous graphics on. Supports 
 - **BSL shaders - capttatsu** for base SSR https://bitslablab.com/bslshaders/
 - **Auroras - nimitz (twitter: @stormoid)** for base End Auroroa https://www.shadertoy.com/view/XtGGRt
 - **Non physical based atmospheric scattering - robobo1221** for base sky https://www.shadertoy.com/view/Ml2cWG
-- **Star Spheremap - peremoya2000** for base stars https://www.shadertoy.com/user/peremoya2000
+- **Star Spheremap - peremoya2000** for base stars https://www.shadertoy.com/view/styXWz
+- **SSAO - reinder** for base AO https://www.shadertoy.com/view/Ms33WB
