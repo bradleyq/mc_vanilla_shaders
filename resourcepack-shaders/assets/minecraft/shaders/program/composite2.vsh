@@ -79,7 +79,7 @@ void main() {
                             0.0, 0.0, 0.0, 1.0);
 
     near = PROJNEAR;
-    far = ProjMat[3][2] * PROJNEAR / (ProjMat[3][2] + 2.0 * PROJNEAR);
+    far = float(decodeInt(texture(DataSampler, start + 31.0 * inc).xyz));
 
     sunDir = vec3(decodeFloat(texture(DataSampler, start).xyz), 
                   decodeFloat(texture(DataSampler, start + inc).xyz), 

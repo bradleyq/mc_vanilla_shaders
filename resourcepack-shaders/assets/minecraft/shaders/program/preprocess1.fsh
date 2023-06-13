@@ -11,7 +11,7 @@ in vec2 oneTexel;
 out vec4 fragColor;
 
 // moj_import doesn't work in post-process shaders ;_; Felix pls fix
-#define NUMCONTROLS 31
+#define NUMCONTROLS 32
 #define FPRECISION 4000000.0
 #define PROJNEAR 0.05
 #define PROJFAR 1024.0
