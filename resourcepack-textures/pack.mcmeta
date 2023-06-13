@@ -1,6 +1,6 @@
 {
   "pack": {
-    "pack_format": 12,
-    "description": "Alpha PBR Textures for 1.19 BENV Shaders"
+    "pack_format": 15,
+    "description": "Alpha PBR Textures for 1.20 BENV Shaders"
   }
 }
