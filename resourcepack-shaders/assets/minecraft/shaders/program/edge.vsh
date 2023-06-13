@@ -63,7 +63,7 @@ void main() {
                             decodeFloat(texture(DataSampler, start + 13.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 14.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 15.0 * inc).xyz), 0.0);
 
     float near = PROJNEAR;
-    float far = round(ProjMat[3][2] * PROJNEAR / (ProjMat[3][2] + 2.0 * PROJNEAR) / 64.0) * 64.0;
+    float far = float(decodeInt(texture(DataSampler, start + 31.0 * inc).xyz));
 
     ProjInv = inverse(transpose(mat4(ProjMat[0][0], 0.0, 0.0, 0.0,
                            0.0, ProjMat[1][1], 0.0, 0.0,

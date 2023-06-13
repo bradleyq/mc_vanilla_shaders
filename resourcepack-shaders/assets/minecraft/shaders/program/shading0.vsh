@@ -78,7 +78,7 @@ void main() {
     sunDir = normalize(sunDir);
     
     near = PROJNEAR;
-    far = ProjMat[3][2] * PROJNEAR / (ProjMat[3][2] + 2.0 * PROJNEAR);
+    far = float(decodeInt(texture(DataSampler, start + 31.0 * inc).xyz));
     fov = atan(1.0, ProjMat[1][1]) * 114.591559;
 
 

@@ -65,14 +65,14 @@ void main() {
     texCoord = Position.xy / OutSize;
     oneTexel = 1.0 / OutSize;
 
-    //simply decoding all the control data and constructing the sunDir, ProjMat, ModelViewMat
+    //simply decoding all the control data and constructing the sunDir, RealProjMat, ModelViewMat
 
     vec2 start = getControl(0, AuxSize0);
     vec2 inc = vec2(1.0 / AuxSize0.x, 0.0);
 
 
-    // ProjMat constructed fully
-    mat4 ProjMat = mat4(tan(decodeFloat(texture(DataSampler, start + 3.0 * inc).xyz)), decodeFloat(texture(DataSampler, start + 6.0 * inc).xyz), 0.0, 0.0,
+    // RealProjMat constructed fully
+    mat4 RealProjMat = mat4(tan(decodeFloat(texture(DataSampler, start + 3.0 * inc).xyz)), decodeFloat(texture(DataSampler, start + 6.0 * inc).xyz), 0.0, 0.0,
                         decodeFloat(texture(DataSampler, start + 5.0 * inc).xyz), tan(decodeFloat(texture(DataSampler, start + 4.0 * inc).xyz)), decodeFloat(texture(DataSampler, start + 7.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 8.0 * inc).xyz),
                         decodeFloat(texture(DataSampler, start + 9.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 10.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 11.0 * inc).xyz),  decodeFloat(texture(DataSampler, start + 12.0 * inc).xyz),
                         decodeFloat(texture(DataSampler, start + 13.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 14.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 15.0 * inc).xyz), 0.0);
@@ -88,9 +88,9 @@ void main() {
     sunDir = normalize(sunDir);
 
     near = PROJNEAR;
-    far = ProjMat[3][2] * PROJNEAR / (ProjMat[3][2] + 2.0 * PROJNEAR);
+    far = float(decodeInt(texture(DataSampler, start + 31.0 * inc).xyz));
 
-    Proj = ProjMat * ModelViewMat;
+    Proj = RealProjMat * ModelViewMat;
     ProjInv = inverse(Proj);
 
     fogColor = texture(DataSampler, start + 25.0 * inc);

@@ -68,7 +68,7 @@ void main(){
                             decodeFloat(texture(DataSampler, start + 13.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 14.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 15.0 * inc).xyz), 0.0);
  
     near = PROJNEAR;
-    far = ProjMat[3][2] * PROJNEAR / (ProjMat[3][2] + 2.0 * PROJNEAR);
+    far = float(decodeInt(texture(DataSampler, start + 31.0 * inc).xyz));
     
     rain = texture(DataSampler, start + 29.0 * inc).r;
 

@@ -18,7 +18,7 @@ uniform float GameTime;
 in vec2 texCoord0;
 in vec4 vertexColor;
 in mat4 modelMat;
-in vec4 glpos;
+in vec3 pos;
 
 out vec4 fragColor;
 
@@ -151,6 +151,13 @@ void main() {
                 outColor = vec4(vec3(float(DIM_END) / 255.0), 1.0);
             }
 
+            // store FarClip
+            else if (index == 31) {
+                vec4 probe = inverse(ProjMat) * vec4(0.0, 0.0, 1.0, 1.0);
+                probe.xyz /= probe.w;
+                outColor = vec4(encodeInt(int(round(length(probe.xyz)))), 1.0);
+            }
+
             // blackout control pixels for sunDir so sun can write to them (by default, all pixels are FogColor)
             else {
                 outColor = vec4(0.0, 0.0, 0.0, 1.0);
@@ -159,7 +166,7 @@ void main() {
         else {
             outColor.a = 1.0;
 
-            vec3 dir = normalize((mat4(IViewRotMat) * inverse(ModelViewMat) * inverse(ProjMat) * glpos).xyz);
+            vec3 dir = normalize(pos);
         
             float fade = smoothstep(0.0, 0.1, abs(dir.y));
             

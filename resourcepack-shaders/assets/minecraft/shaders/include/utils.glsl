@@ -1,6 +1,6 @@
 #version 330
 
-#define NUMCONTROLS 31
+#define NUMCONTROLS 32
 #define THRESH 0.5
 #define FPRECISION 4000000.0
 #define PROJNEAR 0.05
@@ -92,6 +92,7 @@ Control Map:
 [28] Dimension
 [29] RainStrength
 [30] MiscFlags bit0:underwater
+[31] FarClip
 */
 
 /*

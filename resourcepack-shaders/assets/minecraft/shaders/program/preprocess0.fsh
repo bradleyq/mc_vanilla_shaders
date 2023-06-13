@@ -180,7 +180,7 @@ Control Map:
 [28] Dimension
 [29] RainStrength
 [30] MiscFlags bit0:underwater
-[31]
+[31] FarClip
 */
 
 /*
@@ -401,6 +401,9 @@ void main() {
             else if (dim == DIM_OVER) {
                 outColor = texture(PrevDataSampler, startData + 30.0 * incData);
             }
+        }
+        else if (index == 31) {
+            outColor = vec4(encodeInt(int(PROJFAR)), 1.0);
         }
         // base case zero
         else {
