@@ -402,6 +402,9 @@ void main() {
                 outColor = texture(PrevDataSampler, startData + 30.0 * incData);
             }
         }
+        else if (index == 31) {
+            outColor = vec4(encodeInt(int(PROJFAR)), 1.0);
+        }
         // base case zero
         else {
             outColor = vec4(0.0);
