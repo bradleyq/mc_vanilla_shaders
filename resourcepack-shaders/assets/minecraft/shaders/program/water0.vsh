@@ -87,7 +87,7 @@ void main(){
     sunDir = normalize(sunDir);
     
     near = PROJNEAR;
-    far = ProjMat[3][2] * PROJNEAR / (ProjMat[3][2] + 2.0 * PROJNEAR);
+    far = float(decodeInt(texture(DataSampler, start + 31.0 * inc).xyz));
     aspectRatio = OutSize.x / OutSize.y;
     cosFOVsq = ProjMat[1][1] * ProjMat[1][1];
     cosFOVsq = cosFOVsq / (1 + cosFOVsq);

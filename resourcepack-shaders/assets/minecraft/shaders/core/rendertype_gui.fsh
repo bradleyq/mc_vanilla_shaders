@@ -66,8 +66,8 @@ out vec4 fragColor;
 
 #define ORIGIN ivec2(25, 25)
 #define CHARSCALE 2
-#define CHARCOUNT 21
-#define STRING uint[](_V, _A, _N, _I, _L, _L, _A, _SPACE, _E, _N, _V, _SPACE, _3, _DOT, _0, _SPACE, _A, _L, _P, _H, _A)
+#define CHARCOUNT 16
+#define STRING uint[](_V, _A, _N, _I, _L, _L, _A, _SPACE, _B, _E, _N, _V, _SPACE, _3, _DOT, _0)
 
 bool getPixel(uint character, int x, int y) {
     return ((character >> (4 - x + y * 5)) & 1u) == 1u;

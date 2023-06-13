@@ -33,7 +33,9 @@ void main() {
     float a4 = 0.0;
     isWater = 0.0;
     float vertexDistance = length((ModelViewMat * vec4(Position + ChunkOffset, 1.0)).xyz);
-    float far = ProjMat[3][2] * PROJNEAR / (ProjMat[3][2] + 2.0 * PROJNEAR) / 3.0 * sqrt(3);
+    vec4 probe = inverse(ProjMat) * vec4(0.0, 0.0, 1.0, 1.0);
+    probe.xyz /= probe.w;
+    float far = length(probe.xyz);
     vec4 col = Color;
 
     if (!(col.r == col.g && col.g == col.b)) { 

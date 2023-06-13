@@ -180,7 +180,7 @@ Control Map:
 [28] Dimension
 [29] RainStrength
 [30] MiscFlags bit0:underwater
-[31]
+[31] FarClip
 */
 
 /*

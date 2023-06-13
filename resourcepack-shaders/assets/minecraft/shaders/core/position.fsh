@@ -73,6 +73,13 @@ void main() {
                     fragColor = vec4(vec3(float(DIM_OVER) / 255.0), 1.0);
                 }
 
+                // store FarClip
+                else if (index == 31) {
+                    vec4 probe = inverse(ProjMat) * vec4(0.0, 0.0, 1.0, 1.0);
+                    probe.xyz /= probe.w;
+                    fragColor = vec4(encodeInt(int(round(length(probe.xyz)))), 1.0);
+                }
+
                 // blackout control pixels for sunDir so sun can write to them (by default, all pixels are FogColor)
                 else {
                     fragColor = vec4(0.0, 0.0, 0.0, 1.0);
