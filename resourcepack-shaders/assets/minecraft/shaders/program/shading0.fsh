@@ -140,7 +140,7 @@ float spiralAO(vec2 uv, vec3 p, vec3 n, float rad)
 }
 
 #define S_PENUMBRA 0.01
-#define S_TAPS 2
+#define S_TAPS 3
 #define S_SAMPLES 16
 #define S_MAXREFINESAMPLES 1
 #define S_STEPSIZE 0.12
@@ -148,6 +148,7 @@ float spiralAO(vec2 uv, vec3 p, vec3 n, float rad)
 #define S_STEPINCREASE 1.2
 #define S_IGNORETHRESH 6.0
 #define S_BIAS 0.001
+#define S_TRANSITION 200.0
 
 int xorshift(int value) {
     // Xorshift*32
@@ -234,7 +235,7 @@ vec2 Volumetric(vec3 fragpos, vec3 sundir, float fragdepth, float rand) {
         volume = max(length(exitpos - enterpos), volume);
     }
 
-    if (enterdist > S_IGNORETHRESH || enterdepth > far * 0.5) {
+    if (enterdist > S_IGNORETHRESH + smoothstep(S_TRANSITION, S_TRANSITION * 1.1, length(enterpos)) * 128.0 || length(enterpos) > far * 0.5) {
         strength = 1.0;
     }
     return vec2(strength, volume);
