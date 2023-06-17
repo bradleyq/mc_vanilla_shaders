@@ -11,11 +11,11 @@ See License.md for licensing. This pack requires Fabulous graphics on. For best 
 Some basic settings can be toggled by editing `assets\minecraft\shaders\post\transparency.json` in `uniforms` for `preprocess0` pass and `postprocess2` pass. The following can be changed:
 ```
 FOVGuess      [30.0, 110.0] 70.0 Default FOV as a fallback
-FogDistance   [0.1, 10.0]   3.0  Fog distance multiplier
-BloomAmount   [0.0, 1.0]    0.25 Bloom amount to apply
+FogDistance   [0.1, 10.0]   4.0  Fog distance multiplier
+BloomAmount   [0.0, 1.0]    0.2  Bloom amount to apply
 AutoExposure  0.0 or 1.0    1.0  Auto exposure enable
-ExposurePoint [1.0, 4.0]    2.0  Target value to expose to  
-Vibrance      [0.0, 2.0]    1.0  Color vibrance / saturation
+ExposurePoint [1.0, 4.0]    2.2  Target value to expose to  
+Vibrance      [0.0, 2.0]    1.1  Color vibrance / saturation
 ```
 
 ## Features
