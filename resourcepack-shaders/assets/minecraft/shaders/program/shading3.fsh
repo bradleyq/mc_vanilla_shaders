@@ -29,7 +29,7 @@ out vec4 fragColor;
 
 #define EMISSMULT 6.0
 
-#define TINT_WATER vec3(0.0 / 255.0, 248.0 / 255.0, 255.0 / 255.0)
+#define TINT_WATER vec3(0.0 / 255.0, 128.0 / 255.0, 255.0 / 255.0)
 #define TINT_WATER_DISTANCE 48.0
 
 #define FLAG_UNDERWATER 1<<0
@@ -142,21 +142,21 @@ vec4 encodeHDR_0(vec4 color) {
 
 
 // tweak lighting color here
-#define NOON_CLEAR vec3(1.2, 1.1, 0.95) * 4.0
-#define NOONA_CLEAR vec3(0.55, 0.57, 0.7) * 2.5
-#define NOONM_CLEAR vec3(0.45, 0.47, 0.6) * 2.5
-#define EVENING_CLEAR vec3(1.3, 0.9, 0.5) * 2.5
-#define EVENINGA_CLEAR vec3(0.55, 0.57, 0.65) * 1.5
-#define EVENINGM_CLEAR vec3(0.4, 0.45, 0.6) * 1.5
-#define NIGHT_CLEAR vec3(0.65, 0.65, 0.7) * 0.6
-#define NIGHTA_CLEAR vec3(0.75, 0.75, 0.8) * 0.6
-#define NIGHTM_CLEAR vec3(1.2, 1.3, 1.4) * 0.7
+#define NOON_CLEAR vec3(1.1, 1.05, 1.0) * 4.0
+#define NOONA_CLEAR vec3(0.6, 0.6, 0.6) * 3.0
+#define NOONM_CLEAR vec3(0.5, 0.5, 0.5) * 3.0
+#define EVENING_CLEAR vec3(1.2, 1.0, 0.8) * 2.0
+#define EVENINGA_CLEAR vec3(0.6, 0.6, 0.6) * 1.5
+#define EVENINGM_CLEAR vec3(0.5, 0.5, 0.5) * 1.5
+#define NIGHT_CLEAR vec3(0.7, 0.7, 0.7) * 0.6
+#define NIGHTA_CLEAR vec3(0.8, 0.8, 0.8) * 0.6
+#define NIGHTM_CLEAR vec3(1.5, 1.5, 1.5) * 0.6
 
-#define NOON_OVERCAST vec3(1.0, 1.05, 1.1) * 2.2
-#define NOONA_OVERCAST vec3(0.65, 0.67, 0.7) * 2.2
+#define NOON_OVERCAST vec3(1.0, 1.0, 1.0) * 2.2
+#define NOONA_OVERCAST vec3(0.65, 0.65, 0.65) * 2.2
 #define NOONM_OVERCAST vec3(0.6, 0.6, 0.6) * 2.2
-#define EVENING_OVERCAST vec3(1.0, 0.9, 0.85) * 1.0
-#define EVENINGA_OVERCAST vec3(0.65, 0.67, 0.7) * 1.0
+#define EVENING_OVERCAST vec3(0.9, 0.9, 0.9) * 1.0
+#define EVENINGA_OVERCAST vec3(0.67, 0.67, 0.67) * 1.0
 #define EVENINGM_OVERCAST vec3(0.55, 0.55, 0.55) * 1.0
 #define NIGHT_OVERCAST vec3(0.65, 0.65, 0.65) * 0.6
 #define NIGHTA_OVERCAST vec3(0.75, 0.75, 0.75) * 0.6
@@ -193,17 +193,17 @@ vec4 backProject(vec4 vec) {
 #define invPi 1.0 / pi
 
 #define zenithOffset -0.04
-#define multiScatterPhaseClear 0.05
-#define multiScatterPhaseOvercast 0.1
+#define multiScatterPhaseClear 0.2
+#define multiScatterPhaseOvercast 0.2
 #define atmDensity 0.55
 
 #define anisotropicIntensityClear 0.1 //Higher numbers result in more anisotropic scattering
 #define anisotropicIntensityOvercast 0.3 //Higher numbers result in more anisotropic scattering
 
-#define skyColorClear vec3(0.15, 0.50, 1.0) * (1.0 + anisotropicIntensityClear) //Make sure one of the conponents is never 0.0
+#define skyColorClear vec3(0.2, 0.40, 1.0) * (1.0 + anisotropicIntensityClear) //Make sure one of the conponents is never 0.0
 #define skyColorOvercast vec3(0.5, 0.55, 0.6) * (1.0 + anisotropicIntensityOvercast) //Make sure one of the conponents is never 0.0
-#define skyColorNightClear vec3(0.075, 0.1, 0.125)
-#define skyColorNightOvercast vec3(0.07, 0.07, 0.085)
+#define skyColorNightClear vec3(0.08, 0.09, 0.125)
+#define skyColorNightOvercast vec3(0.07, 0.065, 0.08)
 
 #define smooth(x) x*x*(3.0-2.0*x)
 
@@ -223,12 +223,16 @@ vec3 getSkyAbsorption(vec3 col, float density, float lpy) {
     return absorption;
 }
 
-float getSunPoint(vec3 p, vec3 lp) {
-    return smoothstep(0.03, 0.01, distance(p, lp)) * 40.0;
+float getSunPoint(vec3 p, vec3 lp, vec3 srccol) {
+    float result = 0.0;
+    if (dot(p, lp) > 0.0) {
+        result = length(srccol) * dot(p, lp);
+    }
+    return result;
 }
 
 float getMoonPoint(vec3 p, vec3 lp) {
-    return smoothstep(0.05, 0.01, distance(p, lp)) * 1.0;
+    return smoothstep(0.07, 0.01, distance(p, lp)) * 1.0;
 }
 
 float getRayleigMultiplier(vec3 p, vec3 lp) {
@@ -294,7 +298,7 @@ vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog
     vec3 totalSky = mix(sky * absorption, sky / (sky * 0.5 + 0.5), sunPointDistMult);
     if (!fog) {
         vec3 mie = getMie(p, lp) * sunAbsorption * sunAbsorption;
-        mie += getSunPoint(p, lp) * absorption * clamp(1.2 - rain, 0.0, 1.0);
+        mie += getSunPoint(p, lp, srccol) * absorption * clamp(1.2 - rain, 0.0, 1.0);
         totalSky += mie;
     }
     
@@ -304,7 +308,7 @@ vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog
     float sdu = dot(lp, vec3(0.0, 1.0, 0.0));
     if (sdu < 0.0) {
         vec3 mlp = normalize(vec3(-lp.xy, 0.0));
-        vec3 nightSky = (1.0 - 0.8 * p.y) * mix(skyColorNightClear, skyColorNightOvercast, rain);
+        vec3 nightSky = (1.0 - 0.8 * smoothstep(0.0, 0.5, p.y)) * mix(skyColorNightClear, skyColorNightOvercast, rain);
         if (!fog) {
             nightSky += srccol + (1.0 - rain) * starField(vec3(dot(p, mlp), dot(p, vec3(0.0, 0.0, 1.0)), dot(p, normalize(cross(mlp, vec3(0.0, 0.0, 1.0))))));
         }

@@ -32,7 +32,7 @@ out vec4 fragColor;
 
 #define EMISSMULT 6.0
 
-#define TINT_WATER vec3(0.0 / 255.0, 248.0 / 255.0, 255.0 / 255.0)
+#define TINT_WATER vec3(0.0 / 255.0, 128.0 / 255.0, 255.0 / 255.0)
 #define TINT_WATER_DISTANCE 48.0
 
 #define DIM_UNKNOWN 0
@@ -49,6 +49,19 @@ const vec2 poissonDisk[64] = vec2[64](
     vec2(-0.440840, 0.137486), vec2(0.364483, 0.511704), vec2(0.034028, 0.325968), vec2(0.099094, -0.308023), vec2(0.693960, -0.366253), vec2(0.678884, -0.204688), vec2(0.001801, 0.780328), vec2(0.145177, -0.898984),
     vec2(0.062655, -0.611866), vec2(0.315226, -0.604297), vec2(-0.780145, 0.486251), vec2(-0.371868, 0.882138), vec2(0.200476, 0.494430), vec2(-0.494552, -0.711051), vec2(0.612476, 0.705252), vec2(-0.578845, -0.768792),
     vec2(-0.772454, -0.090976), vec2(0.504440, 0.372295), vec2(0.155736, 0.065157), vec2(0.391522, 0.849605), vec2(-0.620106, -0.328104), vec2(0.789239, -0.419965), vec2(-0.545396, 0.538133), vec2(-0.178564, -0.596057));
+
+float hash21(vec2 p) {
+	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+}
+
+vec3 hash33(vec3 p3) {
+	p3 = fract(p3 * vec3(0.1031, 0.1030, 0.0973));
+    p3 += dot(p3, p3.yxz + 33.33);
+    return fract((p3.xxy + p3.yxx) * p3.zyx);
+
+}
 
 vec4 decodeHDR_0(vec4 color) {
     int alpha = int(color.a * 255.0);
@@ -86,17 +99,17 @@ vec4 backProject(vec4 vec) {
 #define invPi 1.0 / pi
 
 #define zenithOffset -0.04
-#define multiScatterPhaseClear 0.05
-#define multiScatterPhaseOvercast 0.1
+#define multiScatterPhaseClear 0.2
+#define multiScatterPhaseOvercast 0.2
 #define atmDensity 0.55
 
 #define anisotropicIntensityClear 0.1 //Higher numbers result in more anisotropic scattering
 #define anisotropicIntensityOvercast 0.3 //Higher numbers result in more anisotropic scattering
 
-#define skyColorClear vec3(0.15, 0.50, 1.0) * (1.0 + anisotropicIntensityClear) //Make sure one of the conponents is never 0.0
+#define skyColorClear vec3(0.2, 0.40, 1.0) * (1.0 + anisotropicIntensityClear) //Make sure one of the conponents is never 0.0
 #define skyColorOvercast vec3(0.5, 0.55, 0.6) * (1.0 + anisotropicIntensityOvercast) //Make sure one of the conponents is never 0.0
-#define skyColorNightClear vec3(0.075, 0.1, 0.125)
-#define skyColorNightOvercast vec3(0.07, 0.07, 0.085)
+#define skyColorNightClear vec3(0.08, 0.09, 0.125)
+#define skyColorNightOvercast vec3(0.07, 0.065, 0.08)
 
 #define smooth(x) x*x*(3.0-2.0*x)
 
@@ -116,12 +129,12 @@ vec3 getSkyAbsorption(vec3 col, float density, float lpy) {
     return absorption;
 }
 
-float getSunPoint(vec3 p, vec3 lp) {
-    return smoothstep(0.03, 0.01, distance(p, lp)) * 40.0;
+float getSunPoint(vec3 p, vec3 lp, vec3 srccol) {
+    return smoothstep(0.08, 0.01, max(abs(p.x - lp.x), max(abs(p.y - lp.y), abs(p.z - lp.z)))) * 20.0;
 }
 
 float getMoonPoint(vec3 p, vec3 lp) {
-    return smoothstep(0.05, 0.01, distance(p, lp)) * 1.0;
+    return smoothstep(0.07, 0.01, distance(p, lp)) * 1.0;
 }
 
 float getRayleigMultiplier(vec3 p, vec3 lp) {
@@ -132,19 +145,6 @@ float getMie(vec3 p, vec3 lp) {
     float disk = clamp(1.0 - pow(max(distance(p, lp), 0.02), 0.08 / 1.718281828), 0.0, 1.0);
     
     return disk*disk*(3.0 - 2.0 * disk) * pi * 2.0;
-}
-
-float hash21(vec2 p) {
-	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
-    p3 += dot(p3, p3.yzx + 33.33);
-    return fract((p3.x + p3.y) * p3.z);
-}
-
-vec3 hash33(vec3 p3) {
-	p3 = fract(p3 * vec3(0.1031, 0.1030, 0.0973));
-    p3 += dot(p3, p3.yxz + 33.33);
-    return fract((p3.xxy + p3.yxx) * p3.zyx);
-
 }
 
 float valNoise( vec2 p ){
@@ -200,17 +200,17 @@ vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog
     vec3 totalSky = mix(sky * absorption, sky / (sky * 0.5 + 0.5), sunPointDistMult);
     if (!fog) {
         vec3 mie = getMie(p, lp) * sunAbsorption * sunAbsorption;
-        mie += getSunPoint(p, lp) * absorption * clamp(1.2 - rain, 0.0, 1.0);
+        mie += getSunPoint(p, lp, srccol) * absorption * clamp(1.2 - rain, 0.0, 1.0);
         totalSky += mie;
     }
     
     totalSky *= sunAbsorption * 0.5 + 0.5 * length(sunAbsorption);
     totalSky += srccol;
-    
+
     float sdu = dot(lp, vec3(0.0, 1.0, 0.0));
     if (sdu < 0.0) {
         vec3 mlp = normalize(vec3(-lp.xy, 0.0));
-        vec3 nightSky = (1.0 - 0.8 * p.y) * mix(skyColorNightClear, skyColorNightOvercast, rain);
+        vec3 nightSky = (1.0 - 0.8 * smoothstep(0.0, 0.5, p.y)) * mix(skyColorNightClear, skyColorNightOvercast, rain);
         if (!fog) {
             nightSky += srccol + (1.0 - rain) * starField(vec3(dot(p, mlp), dot(p, vec3(0.0, 0.0, 1.0)), dot(p, normalize(cross(mlp, vec3(0.0, 0.0, 1.0))))));
         }

@@ -1,8 +1,8 @@
-# Better Environment Shaders for vanilla 1.19
-<img src="images/4.png" /> 
+# Better Environment Shaders for vanilla 1.19 (Vanilla Tuning)
+<img src="images/7.png" /> 
 
 ## Overview
-Shader that adds as much as possible from OptiFine shaders to the vanilla transparency shader available in "Fabulous" graphics setting. Due to limited material, light, time, and shadow information, some advanced features are not possible. A good number, however, are. I have ported them here. Most samples in credits are heavily modified to fit with the vanilla pipeline. Supports all FOV and render distances.
+This shader is Better Environment 3.0 tuned to be more vanilla-like.
 
 ### Usage
 See License.md for licensing. This pack requires Fabulous graphics on. For best experience, use FOV 70 with render distance 16!
@@ -39,26 +39,58 @@ Vibrance      [0.0, 2.0]    1.0  Color vibrance / saturation
     <table style="width:100%">
         <tr>
             <td align="middle">
-              <img src="images/0.png"/>
+              <img src="images/6.png"/>
               <figcaption align="middle">vanilla</figcaption>
             </td>
-        </tr>
-        <tr>
             <td align="middle">
-              <img src="images/1.png"/> 
-              <figcaption align="middle">shader v1</figcaption>
+              <img src="images/7.png"/>
+              <figcaption align="middle">V-Tune</figcaption>
+            </td>
+            <td align="middle">
+              <img src="images/8.png"/>
+              <figcaption align="middle">BENV 3.0</figcaption>
             </td>
         </tr>
         <tr>
             <td align="middle">
-              <img src="images/2.png"/> 
-              <figcaption align="middle">shader v2</figcaption>
+              <img src="images/9.png"/>
+              <figcaption align="middle">vanilla</figcaption>
+            </td>
+            <td align="middle">
+              <img src="images/10.png"/>
+              <figcaption align="middle">V-Tune</figcaption>
+            </td>
+            <td align="middle">
+              <img src="images/11.png"/>
+              <figcaption align="middle">BENV 3.0</figcaption>
             </td>
         </tr>
         <tr>
             <td align="middle">
-              <img src="images/5.png"/> 
-              <figcaption align="middle">shader v3</figcaption>
+              <img src="images/12.png"/>
+              <figcaption align="middle">vanilla</figcaption>
+            </td>
+            <td align="middle">
+              <img src="images/13.png"/>
+              <figcaption align="middle">V-Tune</figcaption>
+            </td>
+            <td align="middle">
+              <img src="images/14.png"/>
+              <figcaption align="middle">BENV 3.0</figcaption>
+            </td>
+        </tr>
+        <tr>
+            <td align="middle">
+              <img src="images/15.png"/>
+              <figcaption align="middle">vanilla</figcaption>
+            </td>
+            <td align="middle">
+              <img src="images/16.png"/>
+              <figcaption align="middle">V-Tune</figcaption>
+            </td>
+            <td align="middle">
+              <img src="images/17.png"/>
+              <figcaption align="middle">BENV 3.0</figcaption>
             </td>
         </tr>
     </table>

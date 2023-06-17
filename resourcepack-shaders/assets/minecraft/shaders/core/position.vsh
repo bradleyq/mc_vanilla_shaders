@@ -41,6 +41,10 @@ void main() {
         // ignore model view so the cone follows the camera angle.
         gl_Position = ProjMat * vec4(scaledPos, 1.0);
     } 
+    // stars are between 100 and 110. remove them.
+    else if (length(scaledPos) > 100.0 && length(scaledPos) < 110.0) {
+        gl_Position = vec4(-10.0, -10.0, -10.0, 1.0);
+    }
     else {
         gl_Position = ProjMat * ModelViewMat * vec4(scaledPos, 1.0);
     }

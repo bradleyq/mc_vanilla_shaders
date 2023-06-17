@@ -47,7 +47,7 @@
                 },
                 {
                     "name":"FogDistance",
-                    "values": [ 3.0 ]
+                    "values": [ 4.0 ]
                 }
             ]
         },
@@ -380,38 +380,6 @@
             ]
         },
         {
-            "name": "postprocess0",
-            "intarget": "swap5",
-            "outtarget": "swap6",
-            "auxtargets": [
-                {
-                    "name": "DataSampler",
-                    "id": "temporals1"
-                },
-                {
-                    "name": "FullResSampler",
-                    "id": "temporalFrame"
-                }
-            ],
-            "uniforms": [
-                {
-                    "name":"Level",
-                    "values": [ 3.0 ]
-                }
-            ]
-        },
-        {
-            "name": "postprocess1",
-            "intarget": "swap6",
-            "outtarget": "swap5",
-            "uniforms": [
-                {
-                    "name":"Level",
-                    "values": [ 3.0 ]
-                }
-            ]
-        },
-        {
             "name": "postprocess1",
             "intarget": "swap5",
             "outtarget": "swap6",
@@ -450,7 +418,7 @@
             "uniforms": [
                 {
                     "name":"BloomAmount",
-                    "values": [ 0.25 ]
+                    "values": [ 0.2 ]
                 },
                 {
                     "name":"AutoExposure",
@@ -458,11 +426,11 @@
                 },
                 {
                     "name":"ExposurePoint",
-                    "values": [ 2.0 ]
+                    "values": [ 2.2 ]
                 },
                 {
                     "name":"Vibrance",
-                    "values": [ 1.0 ]
+                    "values": [ 1.1 ]
                 }
             ]
         }

@@ -175,7 +175,7 @@ vec3 blend(vec3 dst, vec4 src) {
     return mix(dst.rgb, src.rgb, src.a);
 }
 
-#define BLENDMULT_FACTOR 0.5
+#define BLENDMULT_FACTOR 0.25
 
 vec3 blendmult(vec3 dst, vec4 src) {
     return BLENDMULT_FACTOR * dst * mix(vec3(1.0), src.rgb, src.a) + (1.0 - BLENDMULT_FACTOR) * mix(dst.rgb, src.rgb, src.a);
@@ -185,17 +185,17 @@ vec3 blendmult(vec3 dst, vec4 src) {
 #define invPi 1.0 / pi
 
 #define zenithOffset -0.04
-#define multiScatterPhaseClear 0.05
-#define multiScatterPhaseOvercast 0.1
+#define multiScatterPhaseClear 0.2
+#define multiScatterPhaseOvercast 0.2
 #define atmDensity 0.55
 
 #define anisotropicIntensityClear 0.1 //Higher numbers result in more anisotropic scattering
 #define anisotropicIntensityOvercast 0.3 //Higher numbers result in more anisotropic scattering
 
-#define skyColorClear vec3(0.15, 0.50, 1.0) * (1.0 + anisotropicIntensityClear) //Make sure one of the conponents is never 0.0
+#define skyColorClear vec3(0.2, 0.40, 1.0) * (1.0 + anisotropicIntensityClear) //Make sure one of the conponents is never 0.0
 #define skyColorOvercast vec3(0.5, 0.55, 0.6) * (1.0 + anisotropicIntensityOvercast) //Make sure one of the conponents is never 0.0
-#define skyColorNightClear vec3(0.075, 0.1, 0.125)
-#define skyColorNightOvercast vec3(0.07, 0.07, 0.085)
+#define skyColorNightClear vec3(0.08, 0.09, 0.125)
+#define skyColorNightOvercast vec3(0.07, 0.065, 0.08)
 
 #define smooth(x) x*x*(3.0-2.0*x)
 
@@ -215,12 +215,12 @@ vec3 getSkyAbsorption(vec3 col, float density, float lpy) {
     return absorption;
 }
 
-float getSunPoint(vec3 p, vec3 lp) {
-    return smoothstep(0.03, 0.01, distance(p, lp)) * 40.0;
+float getSunPoint(vec3 p, vec3 lp, vec3 srccol) {
+    return smoothstep(0.08, 0.01, max(abs(p.x - lp.x), max(abs(p.y - lp.y), abs(p.z - lp.z)))) * 20.0;
 }
 
 float getMoonPoint(vec3 p, vec3 lp) {
-    return smoothstep(0.05, 0.01, distance(p, lp)) * 1.0;
+    return smoothstep(0.07, 0.01, distance(p, lp)) * 1.0;
 }
 
 float getRayleigMultiplier(vec3 p, vec3 lp) {
@@ -286,17 +286,17 @@ vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog
     vec3 totalSky = mix(sky * absorption, sky / (sky * 0.5 + 0.5), sunPointDistMult);
     if (!fog) {
         vec3 mie = getMie(p, lp) * sunAbsorption * sunAbsorption;
-        mie += getSunPoint(p, lp) * absorption * clamp(1.2 - rain, 0.0, 1.0);
+        mie += getSunPoint(p, lp, srccol) * absorption * clamp(1.2 - rain, 0.0, 1.0);
         totalSky += mie;
     }
     
     totalSky *= sunAbsorption * 0.5 + 0.5 * length(sunAbsorption);
     totalSky += srccol;
-    
+
     float sdu = dot(lp, vec3(0.0, 1.0, 0.0));
     if (sdu < 0.0) {
         vec3 mlp = normalize(vec3(-lp.xy, 0.0));
-        vec3 nightSky = (1.0 - 0.8 * p.y) * mix(skyColorNightClear, skyColorNightOvercast, rain);
+        vec3 nightSky = (1.0 - 0.8 * smoothstep(0.0, 0.5, p.y)) * mix(skyColorNightClear, skyColorNightOvercast, rain);
         if (!fog) {
             nightSky += srccol + (1.0 - rain) * starField(vec3(dot(p, mlp), dot(p, vec3(0.0, 0.0, 1.0)), dot(p, normalize(cross(mlp, vec3(0.0, 0.0, 1.0))))));
         }
@@ -351,7 +351,7 @@ void main() {
         cloudcolor.a *= 1.0 - rain;
         if (abs(dim - DIM_OVER) < 0.01 && fogColor.a == 1.0) {
             cloudcolor.rgb = mix(getAtmosphericScattering(vec3(0.0), vec3(fragpos.x, -fragpos.y, fragpos.z), sunDir, rain, true), 
-                                getAtmosphericScattering(vec3(0.0), sunDir, sunDir, rain, false) / 20.0 + vec3(0.2), cloudcolor.r);
+                                getAtmosphericScattering(vec3(0.0), sunDir, sunDir, rain, false) / 15.0 + vec3(0.2), cloudcolor.r);
         }
         else {
             cloudcolor.rgb = fogColor.rgb;

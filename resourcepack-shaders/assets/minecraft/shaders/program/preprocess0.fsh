@@ -30,8 +30,8 @@ out vec4 fragColor;
 #define FOG_NETHER_GAIN vec3(0.14, 0.08, 0.02)
 #define FOG_CAVE vec3(38.0 / 255.0, 38.0 / 255.0, 51.0 / 255.0)
 #define FOG_DEFAULT_WATER vec3(25.0 / 255.0, 25.0 / 255.0, 255.0 / 255.0)
-#define TINT_WATER vec3(0.0 / 255.0, 248.0 / 255.0, 255.0 / 255.0)
-#define FOG_WATER vec3(0.0 / 255.0, 42.0 / 255.0, 42.0 / 255.0)
+#define TINT_WATER vec3(0.0 / 255.0, 128.0 / 255.0, 255.0 / 255.0)
+#define FOG_WATER vec3(0.0 / 255.0, 24.0 / 255.0, 42.0 / 255.0)
 #define FOG_WATER_FAR 72.0
 #define FOG_END vec3(19.0 / 255.0, 16.0 / 255.0, 19.0 / 255.0)
 #define FOG_LAVA vec3(153.0 / 255.0, 25.0 / 255.0, 0.0)
