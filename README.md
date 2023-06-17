@@ -39,10 +39,6 @@ Vibrance      [0.0, 2.0]    1.1  Color vibrance / saturation
     <table style="width:100%">
         <tr>
             <td align="middle">
-              <img src="images/6.png"/>
-              <figcaption align="middle">vanilla</figcaption>
-            </td>
-            <td align="middle">
               <img src="images/7.png"/>
               <figcaption align="middle">V-Tune</figcaption>
             </td>
@@ -52,10 +48,6 @@ Vibrance      [0.0, 2.0]    1.1  Color vibrance / saturation
             </td>
         </tr>
         <tr>
-            <td align="middle">
-              <img src="images/9.png"/>
-              <figcaption align="middle">vanilla</figcaption>
-            </td>
             <td align="middle">
               <img src="images/10.png"/>
               <figcaption align="middle">V-Tune</figcaption>
@@ -67,10 +59,6 @@ Vibrance      [0.0, 2.0]    1.1  Color vibrance / saturation
         </tr>
         <tr>
             <td align="middle">
-              <img src="images/12.png"/>
-              <figcaption align="middle">vanilla</figcaption>
-            </td>
-            <td align="middle">
               <img src="images/13.png"/>
               <figcaption align="middle">V-Tune</figcaption>
             </td>
@@ -80,10 +68,6 @@ Vibrance      [0.0, 2.0]    1.1  Color vibrance / saturation
             </td>
         </tr>
         <tr>
-            <td align="middle">
-              <img src="images/15.png"/>
-              <figcaption align="middle">vanilla</figcaption>
-            </td>
             <td align="middle">
               <img src="images/16.png"/>
               <figcaption align="middle">V-Tune</figcaption>
