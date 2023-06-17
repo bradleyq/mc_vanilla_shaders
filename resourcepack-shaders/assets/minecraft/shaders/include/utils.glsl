@@ -41,8 +41,8 @@
 #define DIM_NETHER 3
 
 #define TINT_WATER vec3(0.0 / 255.0, 248.0 / 255.0, 255.0 / 255.0)
-#define FOG_WATER vec3(0.0 / 255.0, 37.0 / 255.0, 38.0 / 255.0)
-#define FOG_END vec3(21.0 / 255.0, 17.0 / 255.0, 21.0 / 255.0)
+#define FOG_WATER vec3(0.0 / 255.0, 42.0 / 255.0, 42.0 / 255.0)
+#define FOG_END vec3(19.0 / 255.0, 16.0 / 255.0, 19.0 / 255.0)
 #define FOG_LAVA vec3(153.0 / 255.0, 25.0 / 255.0, 0.0)
 #define FOG_LAVA_END 2.0
 #define FOG_LAVA_START 0.0
@@ -55,6 +55,8 @@
 #define FOG_DARKNESS vec3(0.0)
 #define FOG_DARKNESS_START 11.25
 #define FOG_DARKNESS_END 15.0
+
+#define VSH_DISCARD vec4(-10.0, -10.0, -10.0, 1.0)
 
 #define FLAG_UNDERWATER 1<<0
 

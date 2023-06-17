@@ -1,12 +1,16 @@
 #version 330
 #define VSH
 
+#moj_import <utils.glsl>
+
 in vec3 Position;
 in vec2 UV0;
 
 uniform sampler2D Sampler0;
 uniform mat4 ModelViewMat;
 uniform mat4 ProjMat;
+uniform float FogStart;
+uniform float FogEnd;
 
 out mat4 ProjInv;
 out vec3 cscale;
@@ -21,6 +25,9 @@ out float isSun;
 #define OVERLAYSCALE 2.0
 
 void main() {
+    bool gui = isGUI(ProjMat);
+    bool hand = isHand(FogStart, FogEnd);
+    
     vec4 candidate = ProjMat * ModelViewMat * vec4(Position, 1.0);
     ProjInv = mat4(0.0);
     cscale = vec3(0.0);
@@ -30,8 +37,11 @@ void main() {
     isSun = 0.0;
     vec2 tsize = textureSize(Sampler0, 0);
 
+    if (!gui && hand) {
+        candidate = VSH_DISCARD;
+    }
     // test if sun or moon. Position.y limit excludes worldborder.
-    if (Position.y < SUNDIST  && Position.y > -SUNDIST && (ModelViewMat * vec4(Position, 1.0)).z > -SUNDIST) {
+    else if (!gui && !hand && Position.y < SUNDIST  && Position.y > -SUNDIST && (ModelViewMat * vec4(Position, 1.0)).z > -SUNDIST) {
 
         // only the sun has a square texture
         if (tsize.x == tsize.y) {

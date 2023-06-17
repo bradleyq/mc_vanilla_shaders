@@ -1,6 +1,8 @@
 #version 330
 #define VSH
 
+#moj_import <utils.glsl>
+
 in vec3 Position;
 
 uniform mat4 ModelViewMat;
@@ -41,6 +43,10 @@ void main() {
         // ignore model view so the cone follows the camera angle.
         gl_Position = ProjMat * vec4(scaledPos, 1.0);
     } 
+    // stars are between 100 and 110. remove them.
+    else if (length(scaledPos) > 100.0 && length(scaledPos) < 110.0) {
+        gl_Position = VSH_DISCARD;
+    }
     else {
         gl_Position = ProjMat * ModelViewMat * vec4(scaledPos, 1.0);
     }

@@ -9,6 +9,8 @@ uniform vec2 ScreenSize;
 uniform mat4 ModelViewMat;
 uniform mat4 ProjMat;
 uniform mat3 IViewRotMat;
+uniform float FogStart;
+uniform float FogEnd;
 
 in mat4 ProjInv;
 in vec3 cscale;
@@ -26,11 +28,12 @@ out vec4 fragColor;
 
 void main() {
     bool gui = isGUI(ProjMat);
+    bool hand = isHand(FogStart, FogEnd);
     vec4 color = vec4(0.0);
 
     color = textureLod(Sampler0, texCoord0, -4) * ColorModulator;
 
-    if (!gui) {
+    if (!gui && !hand) {
         int index = inControl(gl_FragCoord.xy, ScreenSize.x);
         
         // currently in a control/message pixel
@@ -65,12 +68,25 @@ void main() {
             // float lookingat = dot(planepos, center);
             // planepos = planepos / lookingat;
             // vec2 uv = vec2(dot(p2 - p1, planepos - center), dot(p3 - p2, planepos - center));
-            // uv = uv / PRECISIONSCALE * MAGICSUNSIZE + vec2(0.5) + vec2(-OFFSET / 80, 0.0);
+            // uv = uv / PRECISIONSCALE * MAGICSUNSIZE + vec2(0.5) + vec2(-OFFSET / 125, 0.0);
 
             // // only draw one sun lol
             // if (lookingat > 0.0 && all(greaterThanEqual(uv, vec2(0.0))) && all(lessThanEqual(uv, vec2(1.0)))) {
             //     color = texture(Sampler0, uv) * ColorModulator;
             // } 
+
+            // only draw one sun lol
+            // if (lookingat > 0.0 && all(greaterThanEqual(uv, vec2(0.0))) && all(lessThanEqual(uv, vec2(1.0)))) {
+            //     color = getOutColorSTDALock(texture(Sampler0, uv) * ColorModulator, vec4(1.0), vec2(0.0), gl_FragCoord.xy);
+
+            //     // additive sun means grayscale only. Also add 0 to data component b.
+            //     color.g = 0.0;
+            //     color.b = 0.0;
+            //     color.a *= max((dot(IViewRotMat * normalize(center), vec3(0.0, 1.0, 0.0)) + 0.3) * 10.0, 0.0);
+            // } 
+            // else {
+            //     discard;
+            // }
             discard;
         } 
         else if (isSun > 0.25) {

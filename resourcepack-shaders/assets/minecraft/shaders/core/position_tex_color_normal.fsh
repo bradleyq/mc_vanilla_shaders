@@ -15,10 +15,10 @@ out vec4 fragColor;
 
 #define CLOUD_W 12.0
 #define CLOUD_H 8.0
-#define ABSORPTION 0.1
-#define SCATTER 0.1
+#define ABSORPTION 0.3
+#define SCATTER 0.05
 #define ATTENUATION (ABSORPTION + SCATTER)
-#define MAX_VOXELS 4
+#define MAX_VOXELS 6
 #define FUDGE 0.000001
 #define WRAP_RADIUS (CLOUD_W * 0.1)
 #define WRAP_AMOUNT 0.1
@@ -104,45 +104,45 @@ void main() {
         }
 
         distatt = dist;
-        float edgedist = 0.0;
+        // float edgedist = 0.0;
 
-        if (dot(normal, vec3(0.0, 1.0, 0.0)) < -0.99) {
-            float edgedistx = CLOUD_W * 0.5;
-            float edgedistz = CLOUD_W * 0.5;
+        // if (dot(normal, vec3(0.0, 1.0, 0.0)) < -0.99) {
+        //     float edgedistx = CLOUD_W * 0.5;
+        //     float edgedistz = CLOUD_W * 0.5;
 
-            if (CLOUD_W - lpos.x < edgedistx && texture(Sampler0, texCoord0 + vec2(oneTexel.x, 0.0)).a < 0.1) {
-                edgedistx = CLOUD_W - lpos.x;
-            }
-            else if (lpos.x < edgedistx && texture(Sampler0, texCoord0 + vec2(-oneTexel.x, 0.0)).a < 0.1) {
-                edgedistx = lpos.x;
-            }
+        //     if (CLOUD_W - lpos.x < edgedistx && texture(Sampler0, texCoord0 + vec2(oneTexel.x, 0.0)).a < 0.1) {
+        //         edgedistx = CLOUD_W - lpos.x;
+        //     }
+        //     else if (lpos.x < edgedistx && texture(Sampler0, texCoord0 + vec2(-oneTexel.x, 0.0)).a < 0.1) {
+        //         edgedistx = lpos.x;
+        //     }
 
-            if (CLOUD_W - lpos.z < edgedistz && texture(Sampler0, texCoord0 + vec2(0.0, oneTexel.y)).a < 0.1) {
-                edgedistz = CLOUD_W - lpos.z;
-            }
-            else if (lpos.z < edgedistz && texture(Sampler0, texCoord0 + vec2(0.0, -oneTexel.y)).a < 0.1) {
-                edgedistz = lpos.z;
-            }
-            if (edgedistx < WRAP_RADIUS && edgedistz < WRAP_RADIUS) {
-                edgedist = max(WRAP_RADIUS - length(vec2(edgedistx, edgedistz) - vec2(WRAP_RADIUS)), 0.0);
-            }
-            else {
-                edgedist = min(edgedistx, edgedistz);
-            }
+        //     if (CLOUD_W - lpos.z < edgedistz && texture(Sampler0, texCoord0 + vec2(0.0, oneTexel.y)).a < 0.1) {
+        //         edgedistz = CLOUD_W - lpos.z;
+        //     }
+        //     else if (lpos.z < edgedistz && texture(Sampler0, texCoord0 + vec2(0.0, -oneTexel.y)).a < 0.1) {
+        //         edgedistz = lpos.z;
+        //     }
+        //     if (edgedistx < WRAP_RADIUS && edgedistz < WRAP_RADIUS) {
+        //         edgedist = max(WRAP_RADIUS - length(vec2(edgedistx, edgedistz) - vec2(WRAP_RADIUS)), 0.0);
+        //     }
+        //     else {
+        //         edgedist = min(edgedistx, edgedistz);
+        //     }
 
-            if (length(lpos.xz) < edgedist && texture(Sampler0, texCoord0 + vec2(-oneTexel.x, -oneTexel.y)).a < 0.1) {
-                edgedist = length(lpos.xz);
-            }
-            else if (length(vec2(lpos.x, CLOUD_W - lpos.z)) < edgedist && texture(Sampler0, texCoord0 + vec2(-oneTexel.x, oneTexel.y)).a < 0.1) {
-                edgedist = length(vec2(lpos.x, CLOUD_W - lpos.z));
-            }
-            else if (length(vec2(CLOUD_W - lpos.x, lpos.z)) < edgedist && texture(Sampler0, texCoord0 + vec2(oneTexel.x, -oneTexel.y)).a < 0.1) {
-                edgedist = length(vec2(CLOUD_W - lpos.x, lpos.z));
-            }
-            else if (length(vec2(CLOUD_W - lpos.x, CLOUD_W - lpos.z)) < edgedist && texture(Sampler0, texCoord0 + vec2(oneTexel.x, oneTexel.y)).a < 0.1) {
-                edgedist = length(vec2(CLOUD_W - lpos.x, CLOUD_W - lpos.z));
-            }
-        }
+        //     if (length(lpos.xz) < edgedist && texture(Sampler0, texCoord0 + vec2(-oneTexel.x, -oneTexel.y)).a < 0.1) {
+        //         edgedist = length(lpos.xz);
+        //     }
+        //     else if (length(vec2(lpos.x, CLOUD_W - lpos.z)) < edgedist && texture(Sampler0, texCoord0 + vec2(-oneTexel.x, oneTexel.y)).a < 0.1) {
+        //         edgedist = length(vec2(lpos.x, CLOUD_W - lpos.z));
+        //     }
+        //     else if (length(vec2(CLOUD_W - lpos.x, lpos.z)) < edgedist && texture(Sampler0, texCoord0 + vec2(oneTexel.x, -oneTexel.y)).a < 0.1) {
+        //         edgedist = length(vec2(CLOUD_W - lpos.x, lpos.z));
+        //     }
+        //     else if (length(vec2(CLOUD_W - lpos.x, CLOUD_W - lpos.z)) < edgedist && texture(Sampler0, texCoord0 + vec2(oneTexel.x, oneTexel.y)).a < 0.1) {
+        //         edgedist = length(vec2(CLOUD_W - lpos.x, CLOUD_W - lpos.z));
+        //     }
+        // }
 
         if (trace) {
 
@@ -213,11 +213,11 @@ void main() {
         float hd = he - hs;
         float ld = sqrt(hd * hd + dist * dist);
         float m = hd / ld;
-        float scatter = SCATTER / (-ATTENUATION * (m + 1)) * (exp(-ATTENUATION * ((m + 1) * dist + hs)) - exp(-ATTENUATION * hs));
-        if (!incloud) {
-            scatter = (1.0 - WRAP_AMOUNT) * yval + WRAP_AMOUNT * smoothstep(WRAP_RADIUS, 0.0, edgedist);
-        }
-        vec4 noise = 2 * vec4(vec3(hash21(gl_FragCoord.xy * 1.1 + 0.1)) - 0.5, hash21(gl_FragCoord.xy * 1.12 + 0.12) - 0.5) / 255.0;
+        float scatter = SCATTER / (-ATTENUATION * (m + 1)) * (exp(-ATTENUATION * ((m + 1) * distatt + hs)) - exp(-ATTENUATION * hs));
+        // if (!incloud) {
+        //     scatter = (1.0 - WRAP_AMOUNT) * yval + WRAP_AMOUNT * smoothstep(WRAP_RADIUS, 0.0, edgedist);
+        // }
+        vec4 noise = vec4(vec3(hash21(gl_FragCoord.xy * 1.1 + 0.1)) - 0.5, hash21(gl_FragCoord.xy * 1.12 + 0.12) - 0.5) / 255.0;
 
         fragColor = vec4(vec3(scatter), 1.0 - exp(-ATTENUATION * distatt)) + noise;
     }

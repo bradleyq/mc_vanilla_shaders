@@ -19,7 +19,7 @@ void main() {
     bool gui = isGUI(ProjMat);
 
     if (!gui && length((IViewRotMat * Position).xz) > HORIZON_DISTANCE - FUDGE) {
-        gl_Position = vec4(-10.0);
+        gl_Position = VSH_DISCARD;
     }
     else {
         gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);

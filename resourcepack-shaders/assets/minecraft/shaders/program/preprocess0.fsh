@@ -419,7 +419,7 @@ void main() {
                                    decodeFloat(texture(DiffuseSampler, start + 2.0 * inc).xyz));
                 sunDir = normalize(sunDir);
                 outColor = vec4(FOG_WATER, 1.0);
-                outColor *= 1.0 - 0.5 * smoothstep(0.2, -0.2, dot(normalize(vec3(sunDir.xy, 0.0)), vec3(0.0, 1.0, 0.0)));
+                outColor.rgb *= 1.0 - 0.5 * smoothstep(0.2, -0.2, dot(normalize(vec3(sunDir.xy, 0.0)), vec3(0.0, 1.0, 0.0)));
             }             
             else {
                 outColor = vec4(mix(temp.rgb, FOG_CAVE, decodeFloat(texture(PrevDataSampler, startData + 48.0 * incData).rgb)), 1.0);

@@ -296,7 +296,7 @@ vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog
     float sdu = dot(lp, vec3(0.0, 1.0, 0.0));
     if (sdu < 0.0) {
         vec3 mlp = normalize(vec3(-lp.xy, 0.0));
-        vec3 nightSky = (1.0 - 0.8 * p.y) * mix(skyColorNightClear, skyColorNightOvercast, rain);
+        vec3 nightSky = (1.0 - 0.8 * abs(p.y < 0.0 ? -p.y * 0.25 : p.y)) * mix(skyColorNightClear, skyColorNightOvercast, rain);
         if (!fog) {
             nightSky += srccol + (1.0 - rain) * starField(vec3(dot(p, mlp), dot(p, vec3(0.0, 0.0, 1.0)), dot(p, normalize(cross(mlp, vec3(0.0, 0.0, 1.0))))));
         }
@@ -351,7 +351,7 @@ void main() {
         cloudcolor.a *= 1.0 - rain;
         if (abs(dim - DIM_OVER) < 0.01 && fogColor.a == 1.0) {
             cloudcolor.rgb = mix(getAtmosphericScattering(vec3(0.0), vec3(fragpos.x, -fragpos.y, fragpos.z), sunDir, rain, true), 
-                                getAtmosphericScattering(vec3(0.0), sunDir, sunDir, rain, false) / 20.0 + vec3(0.2), cloudcolor.r);
+                                getAtmosphericScattering(vec3(0.0), sunDir, sunDir, rain, false) / 4.0 + vec3(0.2), cloudcolor.r);
         }
         else {
             cloudcolor.rgb = fogColor.rgb;
@@ -373,11 +373,10 @@ void main() {
         int index = index_layers[ii];
         uint flags = op_layers[index];
         float dist = euclidianDistance(vec4(scaledCoord, depth_layers[index], 1.0));
-        // if (!sky || underWater > 0.5) texelAccum = exponential_fog(texelAccum, calculatedFog, currdist - dist, fogLambda); // sky will be shaded by water fog
         if (!sky) texelAccum = exponential_fog(texelAccum, calculatedFog, currdist - dist, fogLambda);
+        currdist = dist;
         if ((flags & FOGFADE) == 0u) {
             sky = false;
-            currdist = dist;
         }
         if ((flags & BLENDMULT) > 0u) {
             texelAccum.rgb = blendmult( texelAccum.rgb, color_layers[index]);

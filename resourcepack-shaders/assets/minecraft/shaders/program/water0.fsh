@@ -210,7 +210,7 @@ vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog
     float sdu = dot(lp, vec3(0.0, 1.0, 0.0));
     if (sdu < 0.0) {
         vec3 mlp = normalize(vec3(-lp.xy, 0.0));
-        vec3 nightSky = (1.0 - 0.8 * p.y) * mix(skyColorNightClear, skyColorNightOvercast, rain);
+        vec3 nightSky = (1.0 - 0.8 * abs(p.y < 0.0 ? -p.y * 0.25 : p.y)) * mix(skyColorNightClear, skyColorNightOvercast, rain);
         if (!fog) {
             nightSky += srccol + (1.0 - rain) * starField(vec3(dot(p, mlp), dot(p, vec3(0.0, 0.0, 1.0)), dot(p, normalize(cross(mlp, vec3(0.0, 0.0, 1.0))))));
         }
