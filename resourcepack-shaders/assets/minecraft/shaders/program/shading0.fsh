@@ -299,7 +299,7 @@ void main() {
             else {
                 vec3 dir = sunDir; 
                 float ldu = dot(vec3(0.0, 1.0, 0.0), dir);
-                if (ldu < 0.0) {
+                if (ldu <= 0.0) {
                     dir = normalize(vec3(-sunDir.xy, 0.0));
                     ldu = dot(vec3(0.0, 1.0, 0.0), dir);
                 }

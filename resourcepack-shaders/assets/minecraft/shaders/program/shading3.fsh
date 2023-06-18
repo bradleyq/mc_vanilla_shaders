@@ -304,7 +304,7 @@ vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog
     float sdu = dot(lp, vec3(0.0, 1.0, 0.0));
     if (sdu < 0.0) {
         vec3 mlp = normalize(vec3(-lp.xy, 0.0));
-        vec3 nightSky = (1.0 - 0.8 * abs(p.y < 0.0 ? -p.y * 0.25 : p.y)) * mix(skyColorNightClear, skyColorNightOvercast, rain);
+        vec3 nightSky = (1.0 - 0.8 * abs(p.y < 0.0 ? -p.y * 0.5 : p.y)) * mix(skyColorNightClear, skyColorNightOvercast, rain);
         if (!fog) {
             nightSky += srccol + (1.0 - rain) * starField(vec3(dot(p, mlp), dot(p, vec3(0.0, 0.0, 1.0)), dot(p, normalize(cross(mlp, vec3(0.0, 0.0, 1.0))))));
         }
@@ -502,6 +502,8 @@ void main() {
 
             // get shadow / subsurface volume
             vec3 shade = vec3(texture(ShadingSampler, texCoord).r);
+            vec3 shade_s = vec3(1.0);
+            vec3 shade_m = vec3(1.0);
 
             vec3 eyedir = normalize(fragpos);
             float comp_bp_s = max(pow(dot(reflect(sunDir, normal), eyedir), 8.0), 0.0);
@@ -518,16 +520,24 @@ void main() {
                 float comp_sss_m = 0.0;
                 if (sdu > 0.0) {
                     comp_sss_s = max(mix(pow(1.0 - volume, 2.0) - pow(length(scaledCoord), 4.0), comp_diff_s, 0.25), comp_diff_s);
+                    shade_s = shade;
                 }
                 else {
                     comp_sss_m = max(mix(pow(1.0 - volume, 2.0) - pow(length(scaledCoord), 4.0), comp_diff_m, 0.25), comp_diff_m);
+                    shade_m = shade;
                 }
-                lightColor += (direct - ambient) * clamp((comp_bp_s * 0.25 + comp_sss_s + 0.05) * shade, 0.0, 1.0); 
-                lightColor += (backside - ambient) * clamp((comp_bp_m * 0.25 + comp_sss_m + 0.05) * shade, 0.0, 1.0); 
+                lightColor += (direct - ambient) * clamp((comp_bp_s * 0.25 + comp_sss_s + 0.05) * shade_s, 0.0, 1.0); 
+                lightColor += (backside - ambient) * clamp((comp_bp_m * 0.25 + comp_sss_m + 0.05) * shade_m, 0.0, 1.0); 
             }
             else {
-                lightColor += (direct - ambient) * clamp((comp_bp_s * 0.25 + comp_diff_s + 0.05) * shade, 0.0, 1.0); 
-                lightColor += (backside - ambient) * clamp((comp_bp_m * 0.25 + comp_diff_m + 0.05) * shade, 0.0, 1.0); 
+                if (sdu > 0.0) {
+                    shade_s = shade;
+                }
+                else {
+                    shade_m = shade;
+                }
+                lightColor += (direct - ambient) * clamp((comp_bp_s * 0.25 + comp_diff_s + 0.05) * shade_s, 0.0, 1.0); 
+                lightColor += (backside - ambient) * clamp((comp_bp_m * 0.25 + comp_diff_m + 0.05) * shade_m, 0.0, 1.0); 
             }
 
             // calculate emissive value
