@@ -149,6 +149,7 @@ float spiralAO(vec2 uv, vec3 p, vec3 n, float rad)
 #define S_IGNORETHRESH 6.0
 #define S_BIAS 0.001
 #define S_TRANSITION 200.0
+#define S_FLIP_BIAS -0.2
 
 int xorshift(int value) {
     // Xorshift*32
@@ -299,7 +300,8 @@ void main() {
             else {
                 vec3 dir = sunDir; 
                 float ldu = dot(vec3(0.0, 1.0, 0.0), dir);
-                if (ldu <= 0.0) {
+                float lduo = ldu;
+                if (ldu <= S_FLIP_BIAS) {
                     dir = normalize(vec3(-sunDir.xy, 0.0));
                     ldu = dot(vec3(0.0, 1.0, 0.0), dir);
                 }
@@ -314,7 +316,8 @@ void main() {
                 }
                 shade /= S_TAPS;
                 shade.x = shade.x * shade.x * shade.x;
-                shade.x = mix(1.0, shade.x, pow(max(ldu, 0.0), 0.25));
+                shade.x = mix(1.0, shade.x, pow(min(abs(lduo - S_FLIP_BIAS), 1.0), 0.25));
+                shade.y = mix(1.0, shade.y, smoothstep(0.0, 0.05, min(abs(lduo - S_FLIP_BIAS), 1.0)));
                 outColor.rg = shade;
             }
 

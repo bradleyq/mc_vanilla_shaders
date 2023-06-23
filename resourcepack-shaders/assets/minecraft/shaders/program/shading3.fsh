@@ -176,6 +176,8 @@ vec4 encodeHDR_0(vec4 color) {
 
 #define SNAPRANGE 100.0
 
+#define S_FLIP_BIAS -0.2
+
 float linearizeDepth(float depth) {
     return (2.0 * near * far) / (far + near - depth * (far - near));    
 }
@@ -495,30 +497,31 @@ void main() {
                 backside = UNKNOWNM_CLEAR;
             }
 
+            vec3 shading = texture(ShadingSampler, texCoord).rgb;
 
             // get ambient occlusion.
-            vec3 ao = vec3(texture(ShadingSampler, texCoord).b);
+            vec3 ao = vec3(shading.b);
             ao.rgb += vec3(hash21(gl_FragCoord.xy)) / 255.0;
 
             // get shadow / subsurface volume
-            vec3 shade = vec3(texture(ShadingSampler, texCoord).r);
+            vec3 shade = vec3(shading.r);
             vec3 shade_s = vec3(1.0);
             vec3 shade_m = vec3(1.0);
 
             vec3 eyedir = normalize(fragpos);
             float comp_bp_s = max(pow(dot(reflect(sunDir, normal), eyedir), 8.0), 0.0);
             float comp_bp_m = max(pow(dot(reflect(moonDir, normal), eyedir), 8.0), 0.0);
-            float comp_diff_s = dot(normal, sunDir);
-            float comp_diff_m = dot(normal, moonDir);
+            float comp_diff_s = max(dot(normal, sunDir), 0.0);
+            float comp_diff_m = max(dot(normal, moonDir), 0.0);
 
             // calculate final lighting color
             vec3 lightColor = ambient;
 
             if (face == FACETYPE_S && stype == PBRTYPE_SUBSURFACE) {
-                float volume = texture(ShadingSampler, texCoord).g;
-                float comp_sss_s = 0.0;
-                float comp_sss_m = 0.0;
-                if (sdu > 0.0) {
+                float volume = shading.g;
+                float comp_sss_s = comp_diff_s;
+                float comp_sss_m = comp_diff_m;
+                if (sdu > S_FLIP_BIAS) {
                     comp_sss_s = max(mix(pow(1.0 - volume, 2.0) - pow(length(scaledCoord), 4.0), comp_diff_s, 0.25), comp_diff_s);
                     shade_s = shade;
                 }
@@ -530,7 +533,7 @@ void main() {
                 lightColor += (backside - ambient) * clamp((comp_bp_m * 0.25 + comp_sss_m + 0.05) * shade_m, 0.0, 1.0); 
             }
             else {
-                if (sdu > 0.0) {
+                if (sdu > S_FLIP_BIAS) {
                     shade_s = shade;
                 }
                 else {
