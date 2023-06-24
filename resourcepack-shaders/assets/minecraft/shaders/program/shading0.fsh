@@ -96,6 +96,7 @@ vec4 backProject(vec4 vec) {
 #define AO_BIAS 0.008
 #define AO_SAMPLE_RAD 0.5
 #define AO_MAX_DISTANCE 3.0
+#define AO_GOLDEN_ANGLE 2.4
 
 float hash21(vec2 p) {
 	vec3 p3  = fract(vec3(p.xyx) * 0.1031);
@@ -107,33 +108,31 @@ float doAmbientOcclusion(vec2 tcoord, vec2 uv, vec3 p, vec3 cnorm)
 {
     vec3 diff = backProject(vec4(2.0 * (tcoord + uv - vec2(0.5)), decodeDepth(texture(DiffuseDepthSampler, tcoord + uv)), 1.0)).xyz - p;
     float l = length(diff);
-    vec3 v = diff/(l + 0.0000001);
-    float d = l*AO_SCALE;
-    float ao = max(0.0,dot(cnorm,v))*(1.0/(1.0+d));
-    ao *= smoothstep(AO_MAX_DISTANCE,AO_MAX_DISTANCE * 0.5, l);
+    vec3 v = diff / (l + 0.0000001);
+    float d = l * AO_SCALE;
+    float ao = max(0.0, dot(cnorm, v)) * (1.0 / (1.0 + d));
+    ao *= smoothstep(AO_MAX_DISTANCE, AO_MAX_DISTANCE * 0.5, l);
     return ao;
 
 }
 
 float spiralAO(vec2 uv, vec3 p, vec3 n, float rad)
 {
-    float goldenAngle = 2.4;
     float ao = 0.;
     float inv = 1. / float(AO_SAMPLES);
     float radius = 0.;
 
     float rotatePhase = hash21( uv*101. + Time * 69. ) * 6.28;
     float rStep = inv * rad;
-    vec2 spiralUV;
+    vec2 spiralUV = vec2(sin(rotatePhase), cos(rotatePhase));
+    mat2 goldenRot = mat2(cos(AO_GOLDEN_ANGLE), -sin(AO_GOLDEN_ANGLE), sin(AO_GOLDEN_ANGLE), cos(AO_GOLDEN_ANGLE));
 
     p *= 1.0 - AO_BIAS;
 
     for (int i = 0; i < AO_SAMPLES; i++) {
-        spiralUV.x = int(sin(rotatePhase) * OutSize.y) / OutSize.x;
-        spiralUV.y = int(cos(rotatePhase) * OutSize.y) / OutSize.y;
         radius += rStep;
-        ao += doAmbientOcclusion(uv, spiralUV * radius, p, n);
-        rotatePhase += goldenAngle;
+        ao += doAmbientOcclusion(uv, floor(spiralUV * OutSize.y * radius) / OutSize, p, n);
+        spiralUV *= goldenRot;
     }
     ao *= inv;
     return ao * AO_INTENSITY;
