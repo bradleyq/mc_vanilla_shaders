@@ -25,6 +25,7 @@ in float underWater;
 in float rain;
 in float cave;
 in float dim;
+in float sdu;
 
 #define FPRECISION 4000000.0
 
@@ -299,11 +300,11 @@ vec3 starField(vec3 pos)
     return col * smoothstep(0.5, 0.6, 1.5 * gNoise(128.0 * pos));
 }
 
-vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog) {
+vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float sdu, float rain, bool fog) {
     float zenith = zenithDensity(p.y, lp.y);
     float ly = lp.y < 0.0 ? lp.y * 0.3 : lp.y;
     float multiScatterPhase = mix(multiScatterPhaseClear, multiScatterPhaseOvercast, rain);
-    float sunPointDistMult =  clamp(length(max(ly + multiScatterPhase - zenithOffset, 0.0)), 0.0, 1.0);
+    float sunPointDistMult = clamp(length(max(ly + multiScatterPhase - zenithOffset, 0.0)), 0.0, 1.0);
     
     float rayleighMult = getRayleigMultiplier(p, lp);
     vec3 sky = mix(skyColorClear, skyColorOvercast, rain);
@@ -322,7 +323,6 @@ vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog
     totalSky *= sunAbsorption * 0.5 + 0.5 * length(sunAbsorption);
     totalSky += srccol;
     
-    float sdu = dot(lp, vec3(0.0, 1.0, 0.0));
     if (sdu < 0.0) {
         vec3 mlp = normalize(vec3(-lp.xy, 0.0));
         vec3 nightSky = (1.0 - 0.8 * abs(p.y < 0.0 ? -p.y * 0.5 : p.y)) * mix(skyColorNightClear, skyColorNightOvercast, rain);
@@ -337,7 +337,6 @@ vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog
 
 void main() {
     vec3 fragpos = backProject(vec4(scaledCoord, 1.0, 1.0)).xyz;
-    float sdu = dot(vec3(0.0, 1.0, 0.0), sunDir);
 
     fragpos = normalize(fragpos);
     fragpos.y = abs(fragpos.y * 0.5);
@@ -347,7 +346,7 @@ void main() {
 
     vec3 color = fogColor.rgb;
     if (abs(dim - DIM_OVER) < 0.01 && fogColor.a == 1.0) {
-        color = getAtmosphericScattering(vec3(0.0), fragpos, sunDir, rain, true);
+        color = getAtmosphericScattering(vec3(0.0), fragpos, sunDir, sdu, rain, true);
     }
     if (underWater > 0.5) {
         calculatedFog.rgb = fogColor.rgb;
@@ -380,8 +379,8 @@ void main() {
     if( cloudcolor.a > 0.0) {
         cloudcolor.a *= 1.0 - rain;
         if (abs(dim - DIM_OVER) < 0.01 && fogColor.a == 1.0) {
-            cloudcolor.rgb = mix(getAtmosphericScattering(vec3(0.0), vec3(fragpos.x, -fragpos.y, fragpos.z), sunDir, rain, true), 
-                                getAtmosphericScattering(vec3(0.0), sunDir, sunDir, rain, false) + vec3(2.0), cloudcolor.r);
+            cloudcolor.rgb = mix(getAtmosphericScattering(vec3(0.0), vec3(fragpos.x, -fragpos.y, fragpos.z), sunDir, sdu, rain, true), 
+                                getAtmosphericScattering(vec3(0.0), sunDir, sunDir, sdu, rain, false) + vec3(2.0), cloudcolor.r);
         }
         else {
             cloudcolor.rgb = fogColor.rgb;

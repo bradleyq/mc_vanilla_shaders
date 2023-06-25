@@ -20,6 +20,7 @@ out float rain;
 out float cave;
 out float cosFOVsq;
 out float aspectRatio;
+out float sdu;
 out mat4 Proj;
 out mat4 ProjInv;
 
@@ -106,4 +107,6 @@ void main(){
     underWater = float((flags & FLAG_UNDERWATER) > 0);
 
     cave = smoothstep(0.2, 0.07, decodeFloat(texture(DataSampler, start + 41.0 * inc).rgb) + 2.0) * decodeFloat(texture(DataSampler, start + 48.0 * inc).rgb);
+
+    sdu = dot(vec3(0.0, 1.0, 0.0), sunDir);
 }

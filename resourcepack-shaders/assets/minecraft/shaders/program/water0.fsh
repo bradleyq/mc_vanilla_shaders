@@ -19,6 +19,7 @@ in float rain;
 in float cave;
 in float cosFOVsq;
 in float aspectRatio;
+in float sdu;
 in mat4 Proj;
 in mat4 ProjInv;
 
@@ -184,11 +185,11 @@ vec3 starField(vec3 pos)
     return col * smoothstep(0.5, 0.6, 1.5 * gNoise(128.0 * pos));
 }
 
-vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog) {
+vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float sdu, float rain, bool fog) {
     float zenith = zenithDensity(p.y, lp.y);
     float ly = lp.y < 0.0 ? lp.y * 0.3 : lp.y;
     float multiScatterPhase = mix(multiScatterPhaseClear, multiScatterPhaseOvercast, rain);
-    float sunPointDistMult =  clamp(length(max(ly + multiScatterPhase - zenithOffset, 0.0)), 0.0, 1.0);
+    float sunPointDistMult = clamp(length(max(ly + multiScatterPhase - zenithOffset, 0.0)), 0.0, 1.0);
     
     float rayleighMult = getRayleigMultiplier(p, lp);
     vec3 sky = mix(skyColorClear, skyColorOvercast, rain);
@@ -207,7 +208,6 @@ vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog
     totalSky *= sunAbsorption * 0.5 + 0.5 * length(sunAbsorption);
     totalSky += srccol;
     
-    float sdu = dot(lp, vec3(0.0, 1.0, 0.0));
     if (sdu < 0.0) {
         vec3 mlp = normalize(vec3(-lp.xy, 0.0));
         vec3 nightSky = (1.0 - 0.8 * abs(p.y < 0.0 ? -p.y * 0.5 : p.y)) * mix(skyColorNightClear, skyColorNightOvercast, rain);
@@ -294,11 +294,10 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec2 randsam
 
     }
 
-    float sdu = dot(vec3(0.0, 1.0, 0.0), sunDir);
     vec3 skycol = fogColor.rgb;
     if (underWater < 0.5 && abs(dim - DIM_OVER) < 0.01) {
         vec3 moonDir = normalize(vec3(-sunDir.xy, 0.0));
-        skycol = getAtmosphericScattering(vec3(getMoonPoint(rayDir, moonDir)) * (1.0 - rain), rayDir, sunDir, rain, false);
+        skycol = getAtmosphericScattering(vec3(getMoonPoint(rayDir, moonDir)) * (1.0 - rain), rayDir, sunDir, sdu, rain, false);
         skycol = mix(skycol, fogColor.rgb, cave);
     }
     
@@ -328,7 +327,7 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec2 randsam
             if (underWater < 0.5 && abs(dim - DIM_OVER) < 0.01) {
                 rayDir.y = abs(rayDir.y * 0.5);
                 rayDir = normalize(rayDir);
-                fogcol = getAtmosphericScattering(vec3(0.0), rayDir, sunDir, rain, true);
+                fogcol = getAtmosphericScattering(vec3(0.0), rayDir, sunDir, sdu, rain, true);
                 fogcol = mix(fogcol, fogColor.rgb, cave);
             }
             candidate = exponential_fog(candidate, vec4(fogcol, 1.0), length(backProject(vec4(pos.xy, dtmp_nolin, 1.0)).xyz - fragpos), fogLambda);

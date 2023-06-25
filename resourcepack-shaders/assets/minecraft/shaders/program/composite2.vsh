@@ -19,6 +19,7 @@ out float underWater;
 out float rain;
 out float cave;
 out float dim;
+out float sdu;
 
 // moj_import doesn't work in post-process shaders ;_; Felix pls fix
 #define FPRECISION 4000000.0
@@ -99,4 +100,6 @@ void main() {
     cave = decodeFloat(texture(DataSampler, start + 48.0 * inc).rgb);
 
     dim = texture(DataSampler, start + 28.0 * inc).r * 255.0;
+
+    sdu = dot(vec3(0.0, 1.0, 0.0), sunDir);
 }

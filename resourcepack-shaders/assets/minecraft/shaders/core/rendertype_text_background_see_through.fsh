@@ -3,8 +3,6 @@
 
 #moj_import <utils.glsl>
 
-uniform sampler2D Sampler0;
-
 uniform vec4 ColorModulator;
 
 in vec4 baseColor;

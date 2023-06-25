@@ -15,6 +15,8 @@ in float isBlock;
 
 out vec4 fragColor;
 
+#define MIN_BLOCK_ALPHA 0.75
+
 void main() {
     vec4 color = textureLod(Sampler0, texCoord0, -4);
 
@@ -27,6 +29,7 @@ void main() {
     int pbr = PBRTYPE_EMISSIVE;
     if (isBlock > 0.0001) {
         pbr = PBRTYPE_STANDARD;
+        color.a = max(color.a, MIN_BLOCK_ALPHA);
     }
 
     color = getOutColorPtclRGBLock(color, vertexColor, texCoord2, pbr);
