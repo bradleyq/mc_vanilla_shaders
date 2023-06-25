@@ -230,10 +230,10 @@ vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float sdu, float rai
 #define NORMRAD 5
 
 #define SSR_TAPS 2
-#define SSR_SAMPLES 40
-#define SSR_MAXREFINESAMPLES 5
+#define SSR_SAMPLES 48
+#define SSR_MAXREFINESAMPLES 8
 #define SSR_STEPSIZE 0.7
-#define SSR_STEPREFINE 0.2
+#define SSR_STEPREFINE 0.25
 #define SSR_STEPINCREASE 1.25
 #define SSR_IGNORETHRESH 2.0
 #define SSR_INVALIDTHRESH 30.0
