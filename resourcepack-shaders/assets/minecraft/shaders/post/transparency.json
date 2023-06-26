@@ -7,7 +7,6 @@
         "swap5",
         "swap6",
         "swap7",
-        "test",
         "translucent",
         "itemEntity",
         "particles",
@@ -15,7 +14,8 @@
         "weather",
         "temporalFrame",
         { "name": "temporals1", "width": 64, "height": 1, "bilinear": false },
-        { "name": "temporals2", "width": 64, "height": 1, "bilinear": false }
+        { "name": "temporals2", "width": 64, "height": 1, "bilinear": false },
+        { "name": "voxelmap", "width": 512, "height": 512, "bilinear": false }
     ],
     "passes": [
         {

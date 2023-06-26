@@ -97,6 +97,40 @@ Control Map:
 [31] FarClip
 */
 
+// Control Map:
+#define CTL_SUNDIRX         0
+#define CTL_SUNDIRY         1
+#define CTL_SUNDIRZ         2
+#define CTL_ATAN_PMAT00     3
+#define CTL_ATAN_PMAT11     4
+#define CTL_PMAT10          5
+#define CTL_PMAT01          6
+#define CTL_PMAT12          7
+#define CTL_PMAT13          8
+#define CTL_PMAT20          9
+#define CTL_PMAT21          10
+#define CTL_PMAT22          11
+#define CTL_PMAT23          12
+#define CTL_PMAT30          13
+#define CTL_PMAT31          14
+#define CTL_PMAT32          15
+#define CTL_MVMAT00         16
+#define CTL_MVMAT01         17
+#define CTL_MVMAT02         18
+#define CTL_MVMAT10         19
+#define CTL_MVMAT11         20
+#define CTL_MVMAT12         21
+#define CTL_MVMAT20         22
+#define CTL_MVMAT21         23
+#define CTL_MVMAT22         24
+#define CTL_FOGCOLOR        25
+#define CTL_FOGSTART        26
+#define CTL_FOGEND          27 // also FogLambda
+#define CTL_DIM             28
+#define CTL_RAINSTRENGTH    29
+#define CTL_MISCFLAGS       30 // bit0:underwater
+#define CTL_FARCLIP         31
+
 /*
 BA Map:
 

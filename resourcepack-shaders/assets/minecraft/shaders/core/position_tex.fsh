@@ -40,7 +40,7 @@ void main() {
         if(index != -1) {
             
             // store the sun position in eye space indices [0,2]
-            if (isSun > 0.75 && index >= 0 && index <= 2) {
+            if (isSun > 0.75 && index >= CTL_SUNDIRX && index <= CTL_SUNDIRZ) {
                 vec3 p1 = c1 / cscale.x;
                 vec3 p2 = c2 / cscale.y;
                 vec3 p3 = c3 / cscale.z;
@@ -48,7 +48,7 @@ void main() {
                 color = vec4(encodeFloat(sunDir[index]), 1.0);
             }
             // store sun alpha (RainStrength)
-            else if (index == 29) {
+            else if (index == CTL_RAINSTRENGTH) {
                 color = vec4(1.0 - color.a, 0.0, 0.0, 1.0);
             } 
             else {
