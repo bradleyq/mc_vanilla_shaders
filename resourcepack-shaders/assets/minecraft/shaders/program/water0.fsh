@@ -369,7 +369,6 @@ void main() {
         float gdepth4 = (texture(DiffuseDepthSampler, texCoord - vec2(0.0, oneTexel.y)).r);
         float gdepth5 = (texture(DiffuseDepthSampler, texCoord - vec2(oneTexel.x, 0.0)).r);
 
-
         vec2 scaledCoord = 2.0 * (texCoord - vec2(0.5));
         vec3 fragpos = backProject(vec4(scaledCoord, ldepth, 1.0)).xyz;
 
@@ -406,6 +405,10 @@ void main() {
             float gdepth7 = (texture(DiffuseDepthSampler, texCoord + vec2(alignedSmoothing.x, 0.0)).r);
             float gdepth8 = (texture(DiffuseDepthSampler, texCoord - vec2(0.0, smoothingNY)).r);
             float gdepth9 = (texture(DiffuseDepthSampler, texCoord - vec2(alignedSmoothing.x, 0.0)).r);
+            float color6 = (texture(TranslucentSampler, texCoord + vec2(0.0, smoothingPY)).a);
+            float color7 = (texture(TranslucentSampler, texCoord + vec2(alignedSmoothing.x, 0.0)).a);
+            float color8 = (texture(TranslucentSampler, texCoord - vec2(0.0, smoothingNY)).a);
+            float color9 = (texture(TranslucentSampler, texCoord - vec2(alignedSmoothing.x, 0.0)).a);
 
             vec3 p6 = backProject(vec4(scaledCoord + 2.0 * vec2(0.0, smoothingPY), ldepth6, 1.0)).xyz;
             p6 = p6 - fragpos;
@@ -416,10 +419,10 @@ void main() {
             vec3 p9 = backProject(vec4(scaledCoord - 2.0 * vec2(alignedSmoothing.x, 0.0), ldepth9, 1.0)).xyz;
             p9 = p9 - fragpos;
 
-            bool p6v = ldepth6 < gdepth6 && length(p6) < length(NORMAL_DEPTH_REJECT * fragpos) && length(p6) > length(NORMAL_DEPTH_REJECT_L * fragpos);
-            bool p7v = ldepth7 < gdepth7 && length(p7) < length(NORMAL_DEPTH_REJECT * fragpos) && length(p7) > length(NORMAL_DEPTH_REJECT_L * fragpos);
-            bool p8v = ldepth8 < gdepth8 && length(p8) < length(NORMAL_DEPTH_REJECT * fragpos) && length(p8) > length(NORMAL_DEPTH_REJECT_L * fragpos);
-            bool p9v = ldepth9 < gdepth9 && length(p9) < length(NORMAL_DEPTH_REJECT * fragpos) && length(p9) > length(NORMAL_DEPTH_REJECT_L * fragpos);
+            bool p6v = int(color6 * 255.0) % 2 == 0 && ldepth6 < gdepth6 && length(p6) < length(NORMAL_DEPTH_REJECT * fragpos) && length(p6) > length(NORMAL_DEPTH_REJECT_L * fragpos);
+            bool p7v = int(color7 * 255.0) % 2 == 0 && ldepth7 < gdepth7 && length(p7) < length(NORMAL_DEPTH_REJECT * fragpos) && length(p7) > length(NORMAL_DEPTH_REJECT_L * fragpos);
+            bool p8v = int(color8 * 255.0) % 2 == 0 && ldepth8 < gdepth8 && length(p8) < length(NORMAL_DEPTH_REJECT * fragpos) && length(p8) > length(NORMAL_DEPTH_REJECT_L * fragpos);
+            bool p9v = int(color9 * 255.0) % 2 == 0 && ldepth9 < gdepth9 && length(p9) < length(NORMAL_DEPTH_REJECT * fragpos) && length(p9) > length(NORMAL_DEPTH_REJECT_L * fragpos);
 
             vec3 normalsmooth = normalize(cross(p6, p7)) * float(p6v && p7v) 
                               + normalize(cross(-p8, p7)) * float(p8v && p7v) 
@@ -429,6 +432,7 @@ void main() {
             if (normalsmooth != vec3(0.0)) {
                 normalsmooth = normalize(-normalsmooth);
                 normal = mix(normal, normalsmooth, clamp(smoothstep(0.7, 0.9, dot(normal, normalsmooth)) + smoothstep(0.0, 0.1, dot(-normalize(fragpos), normal)), 0.0, 1.0));
+                normal = normalize(normal);
             }
         }
 
@@ -443,7 +447,7 @@ void main() {
         float fresnel = 0.0;
         float indexair = 1.0;
         float indexwater = 1.333;
-        float theta = acos(dot(normalize(fragpos), -normal));
+        float theta = acos(clamp(dot(normalize(fragpos), -normal), -1.0, 1.0));
         if (underWater > 0.5) {
             fresnel = getFresnel(indexwater, indexair, theta);
         }

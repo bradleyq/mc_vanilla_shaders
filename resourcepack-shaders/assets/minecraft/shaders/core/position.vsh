@@ -21,11 +21,12 @@ out float vertexDistance;
 
 void main() {
     vec3 scaledPos = Position;
+    bool gui = isGUI(ProjMat);
     isSky = 0.0;
 
     // the sky is transformed so that it always covers the entire camera view. Guarantees that we can write to control pixels in fsh.
     // sky disk is by default 16.0 units above with radius of 512.0 around the camera at all times.
-    if (abs(scaledPos.y  - SKYHEIGHT) < FUDGE && (length(scaledPos.xz) <= FUDGE || abs(length(scaledPos.xz) - SKYRADIUS) < FUDGE)) {
+    if (!gui && abs(scaledPos.y  - SKYHEIGHT) < FUDGE && (length(scaledPos.xz) <= FUDGE || abs(length(scaledPos.xz) - SKYRADIUS) < FUDGE)) {
         isSky = 1.0;
 
         // Make sky into a cone by bringing down edges of the disk.
@@ -44,7 +45,7 @@ void main() {
         gl_Position = ProjMat * vec4(scaledPos, 1.0);
     } 
     // stars are between 100 and 110. remove them.
-    else if (length(scaledPos) > 100.0 && length(scaledPos) < 110.0) {
+    else if (!gui && length(scaledPos) > 100.0 && length(scaledPos) < 110.0) {
         gl_Position = VSH_DISCARD;
     }
     else {

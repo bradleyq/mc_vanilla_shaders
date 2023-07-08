@@ -357,7 +357,7 @@ vec4 getOutColorPtclRGBLock(vec4 color, vec4 light, vec2 lightmask, int type) {
 }
 
 bool isHand(float fogs, float foge) { // also includes panorama
-    return fogs >= foge;
+    return fogs > foge;
 }
 
 bool notPickup(mat4 mvm) {
