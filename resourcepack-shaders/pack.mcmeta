@@ -1,6 +1,7 @@
 {
    "pack": {
       "pack_format": 15,
-      "description": "1.20 BENV 3.1 Alpha Shaders"
+      "description": "1.20 BENV 3.1 Alpha Shaders",
+      "pack_formats":{"min_inclusive": 15, "max_inclusive": 22}
    }
 }

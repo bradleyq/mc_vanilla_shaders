@@ -23,7 +23,10 @@ out vec2 texCoord0;
 out vec4 glpos;
 
 void main() {
-    gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
+    vec3 pos = Position;
+    // prevent z fighting with underlying texture
+    pos.xyz *= 0.9999;
+    gl_Position = ProjMat * ModelViewMat * vec4(pos, 1.0);
 
     vertexColor = minecraft_mix_light(Light0_Direction, Light1_Direction, Normal, Color);
     overlayColor = texelFetch(Sampler1, UV1, 0);

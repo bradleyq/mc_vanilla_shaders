@@ -38,7 +38,7 @@ void main() {
     // test if current particle is a block particle vs sprite particle
     ivec2 atlasdim = textureSize(Sampler0, 0);
     vec2 scaleduv = UV0 * vec2(atlasdim);
-    if (scaleduv != floor(scaleduv) && atlasdim.x * 4 < atlasdim.y) {
+    if (scaleduv != floor(scaleduv)) {
         isBlock = 1.0;
     }
     else {
