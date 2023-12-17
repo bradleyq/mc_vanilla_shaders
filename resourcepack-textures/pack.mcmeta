@@ -1,6 +1,10 @@
 {
   "pack": {
     "pack_format": 15,
-    "description": "AlphaPBR Textures for 1.20 BENV 3.1 Alpha Shaders"
+    "description": "AlphaPBR Textures for 1.20 BENV 3.1 Alpha Shaders",
+    "supported_formats": {
+      "min_inclusive": 15,
+      "max_inclusive": 22
+    }
   }
 }
