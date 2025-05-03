@@ -1,4 +1,4 @@
-# Shaders for vanilla 1.20 DEV BRANCH!!!!!
+# Shaders for vanilla 1.20
 <img src="images/4.png" /> 
 
 Known issues:
