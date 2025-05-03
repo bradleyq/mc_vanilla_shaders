@@ -133,6 +133,7 @@ void main() {
     far = float(decodeInt(texture(DataSampler, start + CTL_FARCLIP * inc).xyz));
     fov = atan(1.0, RealProjMat[1][1]) * 114.591559;
 
+
     Proj = RealProjMat * ModelViewMat;
     ProjInv = inverse(Proj);
 }

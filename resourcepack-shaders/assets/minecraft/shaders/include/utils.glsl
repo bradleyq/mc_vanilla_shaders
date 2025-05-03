@@ -356,6 +356,22 @@ vec4 getOutColorPtclRGBLock(vec4 color, vec4 light, vec2 lightmask, int type) {
     return outCol;
 }
 
+vec4 getOutColorPickupRGBLock(vec4 color, vec4 light, vec2 lightmask) {
+    int alpha255 = int(round(color.a * 255.0));
+
+    // get material type based on alpha
+    int type = PBRTYPE_EMISSIVE * int(alpha255 >= EMISSMIN && alpha255 <= EMISSMAX);
+
+    color.a = float(color.a > ALPHACUTOFF);
+
+    if (type == PBRTYPE_EMISSIVE) { // emissive
+        float strength = float(alpha255 - EMISSMIN) / float(EMISSMAX - EMISSMIN);
+        light = vec4(mix(light.rgb / (1.0 + strength * (EMISSMULT - 1.0)), vec3(1.0), strength), 1.0);
+    }
+
+    return getOutColorPtclRGBLock(color, light, lightmask, type);
+}
+
 bool isHand(float fogs, float foge) { // also includes panorama
     return fogs > foge;
 }

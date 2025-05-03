@@ -25,6 +25,7 @@ void main() {
     bool gui = isGUI(ProjMat);
     bool hand = isHand(FogStart, FogEnd);
     bool guardian = !notPickup2(ModelViewMat);
+    bool notpickup = notPickup(ModelViewMat);
     
     if (!gui && !hand && !guardian) {
         discardControlGLPos(gl_FragCoord.xy, glpos);
@@ -49,6 +50,9 @@ void main() {
             outColor = getOutColorSTDALock(outColor, vertexColor, texCoord2, gl_FragCoord.xy);
         }
     }
+    // else if (!gui && !hand && !guardian && !notpickup) { // picked up player heads still bright. rippo. Also can't separate guardian from pickup. yuck.
+    //     outColor = getOutColorPtclRGBLock(outColor, vertexColor, texCoord2, PBRTYPE_STANDARD);
+    // }
     else {
         outColor *= vertexColor;
     }

@@ -356,7 +356,7 @@ void main() {
     }
 
     op_layers[0] = DEFAULT;
-    // crumbling, beacon_beam, leash, entity_translucent_emissive(warden glow), chunk border lines
+    // blocks, mobs, block entities, crumbling, beacon_beam, leash, entity_translucent_emissive(warden glow), chunk border lines, energy swirl, wind
     depth_layers[0] = decodeDepth(texture(DiffuseDepthSampler, texCoord));
     vec4 diffusecolor = vec4(decodeHDR_0(texture(DiffuseSampler, texCoord)).rgb, 1.0);
     float currdist = euclidianDistance(vec4(scaledCoord, depth_layers[0], 1.0));
@@ -399,7 +399,7 @@ void main() {
     try_insert( translucentcolor, texture(TranslucentDepthSampler, texCoord).r, flags); 
     // rain, snow, tripwire
     try_insert( decodeHDR_1(texture(ParticlesWeatherSampler, texCoord)), decodeDepth(texture(ParticlesWeatherDepthSampler, texCoord)), DEFAULT);
-    // translucent_moving_block, lines, item_entity_translucent_cull
+    // translucent_moving_block, lines, item_entity_translucent_cull, translucent items on ground, xp orbs
     try_insert( texture(ItemEntitySampler, texCoord), texture(ItemEntityDepthSampler, texCoord).r, DEFAULT);
 
     vec4 texelAccum = vec4(color_layers[index_layers[0]].rgb, 1.0);

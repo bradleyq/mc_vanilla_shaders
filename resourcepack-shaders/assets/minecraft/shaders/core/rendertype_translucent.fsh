@@ -15,6 +15,9 @@ out vec4 fragColor;
 
 void main() {
     vec4 outColor = textureLod(Sampler0, texCoord0, -4) * vertexColor * ColorModulator;
+    
+    if (outColor.a < 0.5 / 255.0) discard;
+
     outColor.a = pow(outColor.a, 0.25);
     if (isWater > 0.5) {
         outColor.a = float(int(outColor.a * 255.0) / 2 * 2) / 255.0; 

@@ -35,6 +35,10 @@ void main() {
         outColor.a = 1.0;
         outColor = getOutColorSTDALock(outColor, vertexColor, texCoord2, gl_FragCoord.xy);
     }
+    else if (!gui && !hand && !notpickup) {
+        outColor.a = 1.0;
+        outColor = getOutColorPickupRGBLock(outColor, vertexColor, texCoord2);
+    }
     else {
         outColor *= vertexColor;
     }

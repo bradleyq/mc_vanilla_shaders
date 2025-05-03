@@ -42,6 +42,9 @@ void main() {
     if (!gui && !hand && notpickup) {
         outColor = getOutColor(outColor, vertexColor, texCoord2, gl_FragCoord.xy, getDirE(normal));
     }
+    else if (!gui && !hand && !notpickup) {
+        outColor = getOutColorPickupRGBLock(outColor, vertexColor, texCoord2);
+    }
     else {
         outColor *= vertexColor;
     }

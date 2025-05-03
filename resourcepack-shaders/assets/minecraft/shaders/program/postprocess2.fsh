@@ -147,7 +147,7 @@ void main() {
     // outColor = bloomCol;
 
     // apply crosstalk
-    outColor.rgb += vec3(0.02) * (outColor.r + outColor.g + outColor.b);
+    outColor.rgb += vec3(0.01) * (outColor.r + outColor.g + outColor.b);
 
     if (AutoExposure > 0.5) {
         // apply exposure
