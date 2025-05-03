@@ -16,8 +16,8 @@ out vec4 fragColor;
 
 void main() {
     discard;
-    // discardControlGLPos(gl_FragCoord.xy, glpos);
-    // vec4 outColor = texture(Sampler0, clamp(texCoord0, 0.0, 1.0));
-    // outColor *= vertexColor * ColorModulator;
-    // fragColor = outColor;
+    discardControlGLPos(gl_FragCoord.xy, glpos);
+    vec4 outColor = texture(Sampler0, clamp(texCoord0, 0.0, 1.0));
+    outColor *= vertexColor * ColorModulator;
+    fragColor = outColor;
 }

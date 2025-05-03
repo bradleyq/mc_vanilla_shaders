@@ -2,7 +2,6 @@
 
 in vec4 Position;
 
-uniform sampler2D DataSampler;
 uniform mat4 ProjMat;
 uniform vec2 OutSize;
 

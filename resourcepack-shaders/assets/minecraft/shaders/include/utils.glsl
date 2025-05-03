@@ -41,8 +41,8 @@
 #define DIM_NETHER 3
 
 #define TINT_WATER vec3(0.0 / 255.0, 248.0 / 255.0, 255.0 / 255.0)
-#define FOG_WATER vec3(0.0 / 255.0, 37.0 / 255.0, 38.0 / 255.0)
-#define FOG_END vec3(21.0 / 255.0, 17.0 / 255.0, 21.0 / 255.0)
+#define FOG_WATER vec3(0.0 / 255.0, 42.0 / 255.0, 42.0 / 255.0)
+#define FOG_END vec3(19.0 / 255.0, 16.0 / 255.0, 19.0 / 255.0)
 #define FOG_LAVA vec3(153.0 / 255.0, 25.0 / 255.0, 0.0)
 #define FOG_LAVA_END 2.0
 #define FOG_LAVA_START 0.0
@@ -55,6 +55,8 @@
 #define FOG_DARKNESS vec3(0.0)
 #define FOG_DARKNESS_START 11.25
 #define FOG_DARKNESS_END 15.0
+
+#define VSH_DISCARD vec4(-10.0, -10.0, -10.0, 1.0)
 
 #define FLAG_UNDERWATER 1<<0
 
@@ -94,6 +96,40 @@ Control Map:
 [30] MiscFlags bit0:underwater
 [31] FarClip
 */
+
+// Control Map:
+#define CTL_SUNDIRX         0
+#define CTL_SUNDIRY         1
+#define CTL_SUNDIRZ         2
+#define CTL_ATAN_PMAT00     3
+#define CTL_ATAN_PMAT11     4
+#define CTL_PMAT10          5
+#define CTL_PMAT01          6
+#define CTL_PMAT12          7
+#define CTL_PMAT13          8
+#define CTL_PMAT20          9
+#define CTL_PMAT21          10
+#define CTL_PMAT22          11
+#define CTL_PMAT23          12
+#define CTL_PMAT30          13
+#define CTL_PMAT31          14
+#define CTL_PMAT32          15
+#define CTL_MVMAT00         16
+#define CTL_MVMAT01         17
+#define CTL_MVMAT02         18
+#define CTL_MVMAT10         19
+#define CTL_MVMAT11         20
+#define CTL_MVMAT12         21
+#define CTL_MVMAT20         22
+#define CTL_MVMAT21         23
+#define CTL_MVMAT22         24
+#define CTL_FOGCOLOR        25
+#define CTL_FOGSTART        26
+#define CTL_FOGEND          27 // also FogLambda
+#define CTL_DIM             28
+#define CTL_RAINSTRENGTH    29
+#define CTL_MISCFLAGS       30 // bit0:underwater
+#define CTL_FARCLIP         31
 
 /*
 BA Map:
@@ -321,7 +357,7 @@ vec4 getOutColorPtclRGBLock(vec4 color, vec4 light, vec2 lightmask, int type) {
 }
 
 bool isHand(float fogs, float foge) { // also includes panorama
-    return fogs >= foge;
+    return fogs > foge;
 }
 
 bool notPickup(mat4 mvm) {

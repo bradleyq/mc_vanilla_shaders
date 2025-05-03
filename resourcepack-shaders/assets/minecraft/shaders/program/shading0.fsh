@@ -35,6 +35,10 @@ const vec2 poissonDisk[64] = vec2[64](
     vec2(0.062655, -0.611866), vec2(0.315226, -0.604297), vec2(-0.780145, 0.486251), vec2(-0.371868, 0.882138), vec2(0.200476, 0.494430), vec2(-0.494552, -0.711051), vec2(0.612476, 0.705252), vec2(-0.578845, -0.768792),
     vec2(-0.772454, -0.090976), vec2(0.504440, 0.372295), vec2(0.155736, 0.065157), vec2(0.391522, 0.849605), vec2(-0.620106, -0.328104), vec2(0.789239, -0.419965), vec2(-0.545396, 0.538133), vec2(-0.178564, -0.596057));
 
+float linearstep(float edge0, float edge1, float x) {
+    return  clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+}
+
 vec3 encodeInt(int i) {
     int s = int(i < 0) * 128;
     i = abs(i);
@@ -90,12 +94,13 @@ vec4 backProject(vec4 vec) {
     return tmp / tmp.w;
 }
 
-#define AO_SAMPLES 32
+#define AO_SAMPLES 24
 #define AO_INTENSITY 3.5
 #define AO_SCALE 2.5
-#define AO_BIAS 0.008
+#define AO_BIAS 0.004
 #define AO_SAMPLE_RAD 0.5
 #define AO_MAX_DISTANCE 3.0
+#define AO_GOLDEN_ANGLE 2.4
 
 float hash21(vec2 p) {
 	vec3 p3  = fract(vec3(p.xyx) * 0.1031);
@@ -107,40 +112,37 @@ float doAmbientOcclusion(vec2 tcoord, vec2 uv, vec3 p, vec3 cnorm)
 {
     vec3 diff = backProject(vec4(2.0 * (tcoord + uv - vec2(0.5)), decodeDepth(texture(DiffuseDepthSampler, tcoord + uv)), 1.0)).xyz - p;
     float l = length(diff);
-    vec3 v = diff/(l + 0.0000001);
-    float d = l*AO_SCALE;
-    float ao = max(0.0,dot(cnorm,v))*(1.0/(1.0+d));
-    ao *= smoothstep(AO_MAX_DISTANCE,AO_MAX_DISTANCE * 0.5, l);
+    vec3 v = diff / (l + 0.0000001);
+    float d = l * AO_SCALE;
+    float ao = max(0.0, dot(cnorm, v)) * (1.0 / (1.0 + d));
+    ao *= linearstep(AO_MAX_DISTANCE, AO_MAX_DISTANCE * 0.5, l);
     return ao;
-
 }
 
 float spiralAO(vec2 uv, vec3 p, vec3 n, float rad)
 {
-    float goldenAngle = 2.4;
-    float ao = 0.;
-    float inv = 1. / float(AO_SAMPLES);
-    float radius = 0.;
+    float ao = 0.0;
+    float inv = 1.0 / float(AO_SAMPLES);
+    float radius = 0.0;
 
-    float rotatePhase = hash21( uv*101. + Time * 69. ) * 6.28;
+    float rotatePhase = hash21( uv * 101.0 + Time * 69.0 ) * 6.28;
     float rStep = inv * rad;
-    vec2 spiralUV;
+    vec2 spiralUV = vec2(sin(rotatePhase), cos(rotatePhase));
+    mat2 goldenRot = mat2(cos(AO_GOLDEN_ANGLE), -sin(AO_GOLDEN_ANGLE), sin(AO_GOLDEN_ANGLE), cos(AO_GOLDEN_ANGLE));
 
     p *= 1.0 - AO_BIAS;
 
     for (int i = 0; i < AO_SAMPLES; i++) {
-        spiralUV.x = int(sin(rotatePhase) * OutSize.y) / OutSize.x;
-        spiralUV.y = int(cos(rotatePhase) * OutSize.y) / OutSize.y;
         radius += rStep;
-        ao += doAmbientOcclusion(uv, spiralUV * radius, p, n);
-        rotatePhase += goldenAngle;
+        ao += doAmbientOcclusion(uv, floor(spiralUV * OutSize.y * radius) / OutSize, p, n);
+        spiralUV *= goldenRot;
     }
     ao *= inv;
     return ao * AO_INTENSITY;
 }
 
 #define S_PENUMBRA 0.01
-#define S_TAPS 2
+#define S_TAPS 3
 #define S_SAMPLES 16
 #define S_MAXREFINESAMPLES 1
 #define S_STEPSIZE 0.12
@@ -148,6 +150,8 @@ float spiralAO(vec2 uv, vec3 p, vec3 n, float rad)
 #define S_STEPINCREASE 1.2
 #define S_IGNORETHRESH 6.0
 #define S_BIAS 0.001
+#define S_TRANSITION 200.0
+#define S_FLIP_BIAS -0.2
 
 int xorshift(int value) {
     // Xorshift*32
@@ -162,6 +166,7 @@ float luma(vec3 color) {
 }
 
 vec2 Volumetric(vec3 fragpos, vec3 sundir, float fragdepth, float rand) {
+    float dirConst = 1.0 + 2.0 * clamp(pow(abs(dot(normalize(fragpos), sunDir)), 4.0), 0.0, 1.0);
     float distBias = length(fragpos) / 512.0;
     vec3 rayStart   = fragpos + abs(rand) * sundir * S_STEPSIZE;
     vec3 rayDir     = sundir;
@@ -196,7 +201,7 @@ vec2 Volumetric(vec3 fragpos, vec3 sundir, float fragdepth, float rand) {
         dtmp = linearizeDepth(decodeDepth(texture(DiffuseDepthSampler, 0.5 * pos.xy + vec2(0.5))));
         dist = (linearizeDepth(pos.z) - dtmp);
 
-        if (!enter && dist < distmult * max(length(rayStep) * pow(length(rayRefine), 0.25) * (1.0 + 2.0 * clamp(pow(abs(dot(normalize(fragpos), sunDir)), 4.0), 0.0, 1.0)), 0.2) && dist > distBias) {
+        if (!enter && dist < distmult * max(length(rayStep) * pow(length(rayRefine), 0.25) * dirConst, 0.2) && dist > distBias) {
             strength = strengthaccum;
             enterpos = rayPos;
             enterdist = dist;
@@ -234,7 +239,7 @@ vec2 Volumetric(vec3 fragpos, vec3 sundir, float fragdepth, float rand) {
         volume = max(length(exitpos - enterpos), volume);
     }
 
-    if (enterdist > S_IGNORETHRESH || enterdepth > far * 0.5) {
+    if (enterdist > S_IGNORETHRESH + linearstep(S_TRANSITION, S_TRANSITION * 1.1, length(enterpos)) * 128.0 || length(enterpos) > far * 0.5) {
         strength = 1.0;
     }
     return vec2(strength, volume);
@@ -298,7 +303,8 @@ void main() {
             else {
                 vec3 dir = sunDir; 
                 float ldu = dot(vec3(0.0, 1.0, 0.0), dir);
-                if (ldu < 0.0) {
+                float lduo = ldu;
+                if (ldu <= S_FLIP_BIAS) {
                     dir = normalize(vec3(-sunDir.xy, 0.0));
                     ldu = dot(vec3(0.0, 1.0, 0.0), dir);
                 }
@@ -313,7 +319,8 @@ void main() {
                 }
                 shade /= S_TAPS;
                 shade.x = shade.x * shade.x * shade.x;
-                shade.x = mix(1.0, shade.x, pow(max(ldu, 0.0), 0.25));
+                shade.x = mix(1.0, shade.x, pow(min(abs(lduo - S_FLIP_BIAS), 1.0), 0.25));
+                shade.y = mix(1.0, shade.y, linearstep(0.0, 0.05, min(abs(lduo - S_FLIP_BIAS), 1.0)));
                 outColor.rg = shade;
             }
 

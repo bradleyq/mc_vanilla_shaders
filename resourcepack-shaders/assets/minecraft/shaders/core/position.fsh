@@ -32,7 +32,7 @@ void main() {
             if (isSky > 0.5) {
 
                 // store ProjMat in control pixels
-                if (index >= 5 && index <= 15) {
+                if (index >= CTL_PMAT10 && index <= CTL_PMAT32) {
                     int c = (index - 5) / 4;
                     int r = (index - 5) - c * 4;
                     c = (c == 0 && r == 1) ? c : c + 1;
@@ -40,41 +40,41 @@ void main() {
                 }
 
                 // store ModelViewMat in control pixels
-                else if (index >= 16 && index <= 24) {
+                else if (index >= CTL_MVMAT00 && index <= CTL_MVMAT22) {
                     int c = (index - 16) / 3;
                     int r = (index - 16) - c * 3;
                     fragColor = vec4(encodeFloat(ModelViewMat[c][r]), 1.0);
                 }
 
                 // store ProjMat[0][0] and ProjMat[1][1] in control pixels
-                else if (index >= 3 && index <= 4) {
+                else if (index == CTL_ATAN_PMAT00 || index == CTL_ATAN_PMAT11) {
                     fragColor = vec4(encodeFloat(atan(ProjMat[index - 3][index - 3])), 1.0);
                 } 
 
                 // store FogColor in control pixels
-                else if (index == 25) {
+                else if (index == CTL_FOGCOLOR) {
                     vec4 fc = FogColor;
                     fc.rgb += (1.0 - clamp(length(ColorModulator.rgb), 0.0, 1.0)) * FOG_NIGHT_BOOST;
                     fragColor = vec4(fc.rgb, 1.0);
                 } 
 
                 // store FogStart
-                else if (index == 26) {
+                else if (index == CTL_FOGSTART) {
                     fragColor = vec4(encodeInt(int(round(FogStart))), 1.0);
                 }
 
                 // store FogEnd
-                else if (index == 27) {
+                else if (index == CTL_FOGEND) {
                     fragColor = vec4(encodeInt(int(round(FogEnd))), 1.0);
                 } 
 
                 // store Dimension
-                else if (index == 28) {
+                else if (index == CTL_DIM) {
                     fragColor = vec4(vec3(float(DIM_OVER) / 255.0), 1.0);
                 }
 
                 // store FarClip
-                else if (index == 31) {
+                else if (index == CTL_FARCLIP) {
                     vec4 probe = inverse(ProjMat) * vec4(0.0, 0.0, 1.0, 1.0);
                     probe.xyz /= probe.w;
                     fragColor = vec4(encodeInt(int(round(length(probe.xyz)))), 1.0);

@@ -19,6 +19,7 @@ in float rain;
 in float cave;
 in float cosFOVsq;
 in float aspectRatio;
+in float sdu;
 in mat4 Proj;
 in mat4 ProjInv;
 
@@ -184,11 +185,11 @@ vec3 starField(vec3 pos)
     return col * smoothstep(0.5, 0.6, 1.5 * gNoise(128.0 * pos));
 }
 
-vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog) {
+vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float sdu, float rain, bool fog) {
     float zenith = zenithDensity(p.y, lp.y);
     float ly = lp.y < 0.0 ? lp.y * 0.3 : lp.y;
     float multiScatterPhase = mix(multiScatterPhaseClear, multiScatterPhaseOvercast, rain);
-    float sunPointDistMult =  clamp(length(max(ly + multiScatterPhase - zenithOffset, 0.0)), 0.0, 1.0);
+    float sunPointDistMult = clamp(length(max(ly + multiScatterPhase - zenithOffset, 0.0)), 0.0, 1.0);
     
     float rayleighMult = getRayleigMultiplier(p, lp);
     vec3 sky = mix(skyColorClear, skyColorOvercast, rain);
@@ -207,10 +208,9 @@ vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog
     totalSky *= sunAbsorption * 0.5 + 0.5 * length(sunAbsorption);
     totalSky += srccol;
     
-    float sdu = dot(lp, vec3(0.0, 1.0, 0.0));
     if (sdu < 0.0) {
         vec3 mlp = normalize(vec3(-lp.xy, 0.0));
-        vec3 nightSky = (1.0 - 0.8 * p.y) * mix(skyColorNightClear, skyColorNightOvercast, rain);
+        vec3 nightSky = (1.0 - 0.8 * abs(p.y < 0.0 ? -p.y * 0.5 : p.y)) * mix(skyColorNightClear, skyColorNightOvercast, rain);
         if (!fog) {
             nightSky += srccol + (1.0 - rain) * starField(vec3(dot(p, mlp), dot(p, vec3(0.0, 0.0, 1.0)), dot(p, normalize(cross(mlp, vec3(0.0, 0.0, 1.0))))));
         }
@@ -230,10 +230,10 @@ vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog
 #define NORMRAD 5
 
 #define SSR_TAPS 2
-#define SSR_SAMPLES 40
-#define SSR_MAXREFINESAMPLES 5
+#define SSR_SAMPLES 48
+#define SSR_MAXREFINESAMPLES 8
 #define SSR_STEPSIZE 0.7
-#define SSR_STEPREFINE 0.2
+#define SSR_STEPREFINE 0.25
 #define SSR_STEPINCREASE 1.25
 #define SSR_IGNORETHRESH 2.0
 #define SSR_INVALIDTHRESH 30.0
@@ -294,11 +294,10 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec2 randsam
 
     }
 
-    float sdu = dot(vec3(0.0, 1.0, 0.0), sunDir);
     vec3 skycol = fogColor.rgb;
     if (underWater < 0.5 && abs(dim - DIM_OVER) < 0.01) {
         vec3 moonDir = normalize(vec3(-sunDir.xy, 0.0));
-        skycol = getAtmosphericScattering(vec3(getMoonPoint(rayDir, moonDir)) * (1.0 - rain), rayDir, sunDir, rain, false);
+        skycol = getAtmosphericScattering(vec3(getMoonPoint(rayDir, moonDir)) * (1.0 - rain), rayDir, sunDir, sdu, rain, false);
         skycol = mix(skycol, fogColor.rgb, cave);
     }
     
@@ -328,7 +327,7 @@ vec4 SSR(vec3 fragpos, vec3 dir, float fragdepth, vec3 surfacenorm, vec2 randsam
             if (underWater < 0.5 && abs(dim - DIM_OVER) < 0.01) {
                 rayDir.y = abs(rayDir.y * 0.5);
                 rayDir = normalize(rayDir);
-                fogcol = getAtmosphericScattering(vec3(0.0), rayDir, sunDir, rain, true);
+                fogcol = getAtmosphericScattering(vec3(0.0), rayDir, sunDir, sdu, rain, true);
                 fogcol = mix(fogcol, fogColor.rgb, cave);
             }
             candidate = exponential_fog(candidate, vec4(fogcol, 1.0), length(backProject(vec4(pos.xy, dtmp_nolin, 1.0)).xyz - fragpos), fogLambda);
@@ -370,7 +369,6 @@ void main() {
         float gdepth4 = (texture(DiffuseDepthSampler, texCoord - vec2(0.0, oneTexel.y)).r);
         float gdepth5 = (texture(DiffuseDepthSampler, texCoord - vec2(oneTexel.x, 0.0)).r);
 
-
         vec2 scaledCoord = 2.0 * (texCoord - vec2(0.5));
         vec3 fragpos = backProject(vec4(scaledCoord, ldepth, 1.0)).xyz;
 
@@ -407,6 +405,10 @@ void main() {
             float gdepth7 = (texture(DiffuseDepthSampler, texCoord + vec2(alignedSmoothing.x, 0.0)).r);
             float gdepth8 = (texture(DiffuseDepthSampler, texCoord - vec2(0.0, smoothingNY)).r);
             float gdepth9 = (texture(DiffuseDepthSampler, texCoord - vec2(alignedSmoothing.x, 0.0)).r);
+            float color6 = (texture(TranslucentSampler, texCoord + vec2(0.0, smoothingPY)).a);
+            float color7 = (texture(TranslucentSampler, texCoord + vec2(alignedSmoothing.x, 0.0)).a);
+            float color8 = (texture(TranslucentSampler, texCoord - vec2(0.0, smoothingNY)).a);
+            float color9 = (texture(TranslucentSampler, texCoord - vec2(alignedSmoothing.x, 0.0)).a);
 
             vec3 p6 = backProject(vec4(scaledCoord + 2.0 * vec2(0.0, smoothingPY), ldepth6, 1.0)).xyz;
             p6 = p6 - fragpos;
@@ -417,10 +419,10 @@ void main() {
             vec3 p9 = backProject(vec4(scaledCoord - 2.0 * vec2(alignedSmoothing.x, 0.0), ldepth9, 1.0)).xyz;
             p9 = p9 - fragpos;
 
-            bool p6v = ldepth6 < gdepth6 && length(p6) < length(NORMAL_DEPTH_REJECT * fragpos) && length(p6) > length(NORMAL_DEPTH_REJECT_L * fragpos);
-            bool p7v = ldepth7 < gdepth7 && length(p7) < length(NORMAL_DEPTH_REJECT * fragpos) && length(p7) > length(NORMAL_DEPTH_REJECT_L * fragpos);
-            bool p8v = ldepth8 < gdepth8 && length(p8) < length(NORMAL_DEPTH_REJECT * fragpos) && length(p8) > length(NORMAL_DEPTH_REJECT_L * fragpos);
-            bool p9v = ldepth9 < gdepth9 && length(p9) < length(NORMAL_DEPTH_REJECT * fragpos) && length(p9) > length(NORMAL_DEPTH_REJECT_L * fragpos);
+            bool p6v = int(color6 * 255.0) % 2 == 0 && ldepth6 < gdepth6 && length(p6) < length(NORMAL_DEPTH_REJECT * fragpos) && length(p6) > length(NORMAL_DEPTH_REJECT_L * fragpos);
+            bool p7v = int(color7 * 255.0) % 2 == 0 && ldepth7 < gdepth7 && length(p7) < length(NORMAL_DEPTH_REJECT * fragpos) && length(p7) > length(NORMAL_DEPTH_REJECT_L * fragpos);
+            bool p8v = int(color8 * 255.0) % 2 == 0 && ldepth8 < gdepth8 && length(p8) < length(NORMAL_DEPTH_REJECT * fragpos) && length(p8) > length(NORMAL_DEPTH_REJECT_L * fragpos);
+            bool p9v = int(color9 * 255.0) % 2 == 0 && ldepth9 < gdepth9 && length(p9) < length(NORMAL_DEPTH_REJECT * fragpos) && length(p9) > length(NORMAL_DEPTH_REJECT_L * fragpos);
 
             vec3 normalsmooth = normalize(cross(p6, p7)) * float(p6v && p7v) 
                               + normalize(cross(-p8, p7)) * float(p8v && p7v) 
@@ -430,6 +432,7 @@ void main() {
             if (normalsmooth != vec3(0.0)) {
                 normalsmooth = normalize(-normalsmooth);
                 normal = mix(normal, normalsmooth, clamp(smoothstep(0.7, 0.9, dot(normal, normalsmooth)) + smoothstep(0.0, 0.1, dot(-normalize(fragpos), normal)), 0.0, 1.0));
+                normal = normalize(normal);
             }
         }
 
@@ -444,7 +447,7 @@ void main() {
         float fresnel = 0.0;
         float indexair = 1.0;
         float indexwater = 1.333;
-        float theta = acos(dot(normalize(fragpos), -normal));
+        float theta = acos(clamp(dot(normalize(fragpos), -normal), -1.0, 1.0));
         if (underWater > 0.5) {
             fresnel = getFresnel(indexwater, indexair, theta);
         }

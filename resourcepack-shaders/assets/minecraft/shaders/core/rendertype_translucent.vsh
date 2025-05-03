@@ -49,7 +49,7 @@ void main() {
         }
 
         //water color correction
-        col.rgb = mix(col.rgb, TINT_WATER.rgb, 0.5);
+        col.rgb = mix(col.rgb, TINT_WATER.rgb, 0.4);
     }
 
     gl_Position = ProjMat * ModelViewMat * (vec4(position, 1.0) + vec4(0.0, (a1 + a2 + a3 + a4) / 64.0, 0.0, 0.0));

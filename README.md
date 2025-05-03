@@ -1,5 +1,20 @@
-# Better Environment Shaders for vanilla 1.19
+# Shaders for vanilla 1.20 DEV BRANCH!!!!!
 <img src="images/4.png" /> 
+
+Known issues:
+- shadow jank
+- Alpha-PBR specular, metalness
+- some translucents visible over fog (slime entities)
+- particle and translucent checker when overlapped with solid translucent
+- glow item frame items are lit as if outdoors (unfixable atm)
+- hand item shading is flat
+- lighting changing in caves!!???
+- sun reflection in glass artifacts
+- black outline under some translucents over sky
+- picking up player heads animation not lit correctly
+- picking up tools animation not lit correctly
+- all picked up items are green when picking up xp at the same time
+- visible YUV artifacts in nether in some cases
 
 ## Overview
 Shader that adds as much as possible from OptiFine shaders to the vanilla transparency shader available in "Fabulous" graphics setting. Due to limited material, light, time, and shadow information, some advanced features are not possible. A good number, however, are. I have ported them here. Most samples in credits are heavily modified to fit with the vanilla pipeline. Supports all FOV and render distances.

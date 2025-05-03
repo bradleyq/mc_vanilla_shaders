@@ -25,6 +25,9 @@ in float underWater;
 in float rain;
 in float cave;
 in float dim;
+in float sdu;
+
+#define FPRECISION 4000000.0
 
 #define DIM_UNKNOWN 0
 #define DIM_OVER 1
@@ -38,6 +41,8 @@ in float dim;
 #define BLENDMULT 2u
 #define BLENDADD 4u
 #define HASREFLECT 8u
+#define TRANSLUCENT 16u
+#define ISWATER 32u
 
 vec4 color_layers[NUM_LAYERS];
 float depth_layers[NUM_LAYERS];
@@ -101,9 +106,34 @@ vec4 encodeUInt(uint i) {
     return vec4(float(r) / 255.0, float(g) / 255.0, float(b) / 255.0 , float(a) / 255.0);
 }
 
+vec3 encodeInt(int i) {
+    int s = int(i < 0) * 128;
+    i = abs(i);
+    int r = i % 256;
+    i = i / 256;
+    int g = i % 256;
+    i = i / 256;
+    int b = i % 128;
+    return vec3(float(r) / 255.0, float(g) / 255.0, float(b + s) / 255.0);
+}
+
+int decodeInt(vec3 ivec) {
+    ivec *= 255.0;
+    int s = ivec.b >= 128.0 ? -1 : 1;
+    return s * (int(ivec.r) + int(ivec.g) * 256 + (int(ivec.b) - 64 + s * 64) * 256 * 256);
+}
+
 uint decodeUInt(vec4 ivec) {
     ivec *= 255.0;
     return uint(ivec.r) + (uint(ivec.g) << 8u) + (uint(ivec.b) << 16u) + (uint(ivec.a) << 24u);
+}
+
+vec3 encodeFloat(float f) {
+    return encodeInt(int(f * FPRECISION));
+}
+
+float decodeFloat(vec3 vec) {
+    return decodeInt(vec) / FPRECISION;
 }
 
 vec4 encodeDepth(float depth) {
@@ -175,7 +205,7 @@ vec3 blend(vec3 dst, vec4 src) {
     return mix(dst.rgb, src.rgb, src.a);
 }
 
-#define BLENDMULT_FACTOR 0.5
+#define BLENDMULT_FACTOR 0.75
 
 vec3 blendmult(vec3 dst, vec4 src) {
     return BLENDMULT_FACTOR * dst * mix(vec3(1.0), src.rgb, src.a) + (1.0 - BLENDMULT_FACTOR) * mix(dst.rgb, src.rgb, src.a);
@@ -270,11 +300,11 @@ vec3 starField(vec3 pos)
     return col * smoothstep(0.5, 0.6, 1.5 * gNoise(128.0 * pos));
 }
 
-vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog) {
+vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float sdu, float rain, bool fog) {
     float zenith = zenithDensity(p.y, lp.y);
     float ly = lp.y < 0.0 ? lp.y * 0.3 : lp.y;
     float multiScatterPhase = mix(multiScatterPhaseClear, multiScatterPhaseOvercast, rain);
-    float sunPointDistMult =  clamp(length(max(ly + multiScatterPhase - zenithOffset, 0.0)), 0.0, 1.0);
+    float sunPointDistMult = clamp(length(max(ly + multiScatterPhase - zenithOffset, 0.0)), 0.0, 1.0);
     
     float rayleighMult = getRayleigMultiplier(p, lp);
     vec3 sky = mix(skyColorClear, skyColorOvercast, rain);
@@ -293,10 +323,9 @@ vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog
     totalSky *= sunAbsorption * 0.5 + 0.5 * length(sunAbsorption);
     totalSky += srccol;
     
-    float sdu = dot(lp, vec3(0.0, 1.0, 0.0));
     if (sdu < 0.0) {
         vec3 mlp = normalize(vec3(-lp.xy, 0.0));
-        vec3 nightSky = (1.0 - 0.8 * p.y) * mix(skyColorNightClear, skyColorNightOvercast, rain);
+        vec3 nightSky = (1.0 - 0.8 * abs(p.y < 0.0 ? -p.y * 0.5 : p.y)) * mix(skyColorNightClear, skyColorNightOvercast, rain);
         if (!fog) {
             nightSky += srccol + (1.0 - rain) * starField(vec3(dot(p, mlp), dot(p, vec3(0.0, 0.0, 1.0)), dot(p, normalize(cross(mlp, vec3(0.0, 0.0, 1.0))))));
         }
@@ -308,7 +337,6 @@ vec3 getAtmosphericScattering(vec3 srccol, vec3 p, vec3 lp, float rain, bool fog
 
 void main() {
     vec3 fragpos = backProject(vec4(scaledCoord, 1.0, 1.0)).xyz;
-    float sdu = dot(vec3(0.0, 1.0, 0.0), sunDir);
 
     fragpos = normalize(fragpos);
     fragpos.y = abs(fragpos.y * 0.5);
@@ -318,7 +346,7 @@ void main() {
 
     vec3 color = fogColor.rgb;
     if (abs(dim - DIM_OVER) < 0.01 && fogColor.a == 1.0) {
-        color = getAtmosphericScattering(vec3(0.0), fragpos, sunDir, rain, true);
+        color = getAtmosphericScattering(vec3(0.0), fragpos, sunDir, sdu, rain, true);
     }
     if (underWater > 0.5) {
         calculatedFog.rgb = fogColor.rgb;
@@ -347,22 +375,28 @@ void main() {
 
     float clouddepth = texture(CloudsDepthSampler, texCoord).r;
     vec4 cloudcolor = texture(CloudsSampler, texCoord);
+    cloudcolor.r = decodeFloat(cloudcolor.rgb);
     if( cloudcolor.a > 0.0) {
         cloudcolor.a *= 1.0 - rain;
         if (abs(dim - DIM_OVER) < 0.01 && fogColor.a == 1.0) {
-            cloudcolor.rgb = mix(getAtmosphericScattering(vec3(0.0), vec3(fragpos.x, -fragpos.y, fragpos.z), sunDir, rain, true), 
-                                getAtmosphericScattering(vec3(0.0), sunDir, sunDir, rain, false) / 20.0 + vec3(0.2), cloudcolor.r);
+            cloudcolor.rgb = mix(getAtmosphericScattering(vec3(0.0), vec3(fragpos.x, -fragpos.y, fragpos.z), sunDir, sdu, rain, true), 
+                                getAtmosphericScattering(vec3(0.0), sunDir, sunDir, sdu, rain, false) + vec3(2.0), cloudcolor.r);
         }
         else {
             cloudcolor.rgb = fogColor.rgb;
         }
 
-        cloudcolor.rgb = mix(cloudcolor.rgb, normalize(vec3(1.0)) * length(cloudcolor.rgb), 0.4);
+        cloudcolor.rgb = mix(cloudcolor.rgb, normalize(vec3(1.0)) * length(cloudcolor.rgb), 0.5);
         try_insert( linear_fog(cloudcolor, cylindricalDistance(vec4(scaledCoord, clouddepth, 1.0)), 400.0, 512.0, vec4(cloudcolor.rgb, 0.0)), clouddepth, FOGFADE);
     }
 
     // glass, water
-    try_insert( texture(TranslucentSampler, texCoord), texture(TranslucentDepthSampler, texCoord).r, BLENDMULT | HASREFLECT); 
+    uint flags = BLENDMULT | HASREFLECT | TRANSLUCENT;
+    vec4 translucentcolor = texture(TranslucentSampler, texCoord);
+    if (int(translucentcolor.a * 255.0) % 2 == 0) {
+        flags |= ISWATER;
+    }
+    try_insert( translucentcolor, texture(TranslucentDepthSampler, texCoord).r, flags); 
     // rain, snow, tripwire
     try_insert( decodeHDR_1(texture(ParticlesWeatherSampler, texCoord)), decodeDepth(texture(ParticlesWeatherDepthSampler, texCoord)), DEFAULT);
     // translucent_moving_block, lines, item_entity_translucent_cull
@@ -373,11 +407,12 @@ void main() {
         int index = index_layers[ii];
         uint flags = op_layers[index];
         float dist = euclidianDistance(vec4(scaledCoord, depth_layers[index], 1.0));
-        // if (!sky || underWater > 0.5) texelAccum = exponential_fog(texelAccum, calculatedFog, currdist - dist, fogLambda); // sky will be shaded by water fog
-        if (!sky) texelAccum = exponential_fog(texelAccum, calculatedFog, currdist - dist, fogLambda);
+        if (!sky || (underWater > 0.5 && (flags & (TRANSLUCENT | ISWATER)) == (TRANSLUCENT))) {
+            texelAccum = exponential_fog(texelAccum, calculatedFog, currdist - dist, fogLambda);
+        }
+        currdist = dist;
         if ((flags & FOGFADE) == 0u) {
             sky = false;
-            currdist = dist;
         }
         if ((flags & BLENDMULT) > 0u) {
             texelAccum.rgb = blendmult( texelAccum.rgb, color_layers[index]);

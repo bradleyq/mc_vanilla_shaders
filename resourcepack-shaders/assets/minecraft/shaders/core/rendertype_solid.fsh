@@ -19,7 +19,7 @@ in vec4 glpos;
 out vec4 fragColor;
 
 void main() {
-    if (inControl(gl_FragCoord.xy, round(gl_FragCoord.x * 2.0 / (glpos.x / glpos.w + 1.0))) == 28) {
+    if (inControl(gl_FragCoord.xy, round(gl_FragCoord.x * 2.0 / (glpos.x / glpos.w + 1.0))) == CTL_DIM) {
         fragColor = vec4(vec3(float(getDim(Sampler2)) / 255.0), 1.0);
     }
     else {

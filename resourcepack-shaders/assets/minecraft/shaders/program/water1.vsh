@@ -49,6 +49,59 @@ float decodeFloat(vec3 vec) {
     return decodeInt(vec) / FPRECISION;
 }
 
+// Control Map:
+#define CTL_SUNDIRX         0
+#define CTL_SUNDIRY         1
+#define CTL_SUNDIRZ         2
+#define CTL_ATAN_PMAT00     3
+#define CTL_ATAN_PMAT11     4
+#define CTL_PMAT10          5
+#define CTL_PMAT01          6
+#define CTL_PMAT12          7
+#define CTL_PMAT13          8
+#define CTL_PMAT20          9
+#define CTL_PMAT21          10
+#define CTL_PMAT22          11
+#define CTL_PMAT23          12
+#define CTL_PMAT30          13
+#define CTL_PMAT31          14
+#define CTL_PMAT32          15
+#define CTL_MVMAT00         16
+#define CTL_MVMAT01         17
+#define CTL_MVMAT02         18
+#define CTL_MVMAT10         19
+#define CTL_MVMAT11         20
+#define CTL_MVMAT12         21
+#define CTL_MVMAT20         22
+#define CTL_MVMAT21         23
+#define CTL_MVMAT22         24
+#define CTL_FOGCOLOR        25
+#define CTL_FOGSTART        26
+#define CTL_FOGEND          27 // also FogLambda
+#define CTL_DIM             28
+#define CTL_RAINSTRENGTH    29
+#define CTL_MISCFLAGS       30 // bit0:underwater
+#define CTL_FARCLIP         31
+
+// Additional Post Map:
+#define CTL_EXP0            47
+#define CTL_EXP1            48
+#define CTL_EXP2            49
+#define CTL_EXP3            50
+#define CTL_EXP4            51
+#define CTL_EXP5            52
+#define CTL_EXP6            53
+#define CTL_EXP7            54
+#define CTL_EXP8            55
+#define CTL_EXPAVG          56
+#define CTL_APPLYLIGHT0     57
+#define CTL_APPLYLIGHT1     58
+#define CTL_APPLYLIGHT2     59
+#define CTL_APPLYLIGHT3     60
+#define CTL_APPLYLIGHT4     61
+#define CTL_APPLYLIGHTAVG   62
+#define CTL_CAVE            63
+
 void main(){
     vec4 outPos = ProjMat * vec4(Position.xy, 0.0, 1.0);
     gl_Position = vec4(outPos.xy, 0.2, 1.0);
@@ -60,18 +113,11 @@ void main(){
     vec2 start = getControl(0, AuxSize0);
     vec2 inc = vec2(1.0 / AuxSize0.x, 0.0);
 
-
-    // ProjMat constructed fully
-    mat4 ProjMat = mat4(tan(decodeFloat(texture(DataSampler, start + 3.0 * inc).xyz)), decodeFloat(texture(DataSampler, start + 6.0 * inc).xyz), 0.0, 0.0,
-                            decodeFloat(texture(DataSampler, start + 5.0 * inc).xyz), tan(decodeFloat(texture(DataSampler, start + 4.0 * inc).xyz)), decodeFloat(texture(DataSampler, start + 7.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 8.0 * inc).xyz),
-                            decodeFloat(texture(DataSampler, start + 9.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 10.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 11.0 * inc).xyz),  decodeFloat(texture(DataSampler, start + 12.0 * inc).xyz),
-                            decodeFloat(texture(DataSampler, start + 13.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 14.0 * inc).xyz), decodeFloat(texture(DataSampler, start + 15.0 * inc).xyz), 0.0);
- 
     near = PROJNEAR;
-    far = float(decodeInt(texture(DataSampler, start + 31.0 * inc).xyz));
+    far = float(decodeInt(texture(DataSampler, start + CTL_FARCLIP * inc).xyz));
     
-    rain = texture(DataSampler, start + 29.0 * inc).r;
+    rain = texture(DataSampler, start + CTL_RAINSTRENGTH * inc).r;
 
-    int flags = int(texture(DataSampler, start + 30.0 * inc).r * 255.0);
+    int flags = int(texture(DataSampler, start + CTL_MISCFLAGS * inc).r * 255.0);
     underWater = float((flags & FLAG_UNDERWATER) > 0);
 }

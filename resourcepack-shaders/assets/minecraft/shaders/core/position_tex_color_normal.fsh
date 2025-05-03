@@ -15,13 +15,13 @@ out vec4 fragColor;
 
 #define CLOUD_W 12.0
 #define CLOUD_H 8.0
-#define ABSORPTION 0.1
-#define SCATTER 0.1
+#define ABSORPTION 0.4
+#define SCATTER 0.01
 #define ATTENUATION (ABSORPTION + SCATTER)
 #define MAX_VOXELS 4
 #define FUDGE 0.000001
-#define WRAP_RADIUS (CLOUD_W * 0.1)
-#define WRAP_AMOUNT 0.1
+#define WRAP_RADIUS (CLOUD_W * 0.2)
+#define WRAP_AMOUNT 0.002
 
 bool inCloud(vec3 pos) {
     return pos.x >= 0.0 && pos.y >= 0.0 && pos.z >= 0.0 && pos.x <= CLOUD_W &&  pos.y <= CLOUD_H &&  pos.z <= CLOUD_W;
@@ -106,7 +106,7 @@ void main() {
         distatt = dist;
         float edgedist = 0.0;
 
-        if (dot(normal, vec3(0.0, 1.0, 0.0)) < -0.99) {
+        if (dot(normal, vec3(0.0, 1.0, 0.0)) < -0.99 || lpos.y <= 0.1) {
             float edgedistx = CLOUD_W * 0.5;
             float edgedistz = CLOUD_W * 0.5;
 
@@ -213,13 +213,13 @@ void main() {
         float hd = he - hs;
         float ld = sqrt(hd * hd + dist * dist);
         float m = hd / ld;
-        float scatter = SCATTER / (-ATTENUATION * (m + 1)) * (exp(-ATTENUATION * ((m + 1) * dist + hs)) - exp(-ATTENUATION * hs));
+        float scatter = SCATTER / (-ATTENUATION * (m + 1)) * (exp(-ATTENUATION * ((m + 1) * distatt + hs)) - exp(-ATTENUATION * hs));
         if (!incloud) {
-            scatter = (1.0 - WRAP_AMOUNT) * yval + WRAP_AMOUNT * smoothstep(WRAP_RADIUS, 0.0, edgedist);
+            scatter += WRAP_AMOUNT * smoothstep(WRAP_RADIUS, 0.0, edgedist);
         }
-        vec4 noise = 2 * vec4(vec3(hash21(gl_FragCoord.xy * 1.1 + 0.1)) - 0.5, hash21(gl_FragCoord.xy * 1.12 + 0.12) - 0.5) / 255.0;
+        float noise = 4.0 * (hash21(gl_FragCoord.xy * 1.12 + 0.12) - 0.5) / 255.0;
 
-        fragColor = vec4(vec3(scatter), 1.0 - exp(-ATTENUATION * distatt)) + noise;
+        fragColor = vec4(encodeFloat(scatter), 1.0 - exp(-ATTENUATION * distatt) + noise);
     }
     else {
         discard;

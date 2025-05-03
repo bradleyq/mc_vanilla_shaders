@@ -38,7 +38,8 @@ void main() {
     vec4 c0 = decodeHDR_1(texture(DiffuseSampler, texCoord));
     float d0 = texture(DiffuseDepthSampler, texCoord).r;
 
-    vec4 c1 = texture(WeatherSampler, texCoord); 
+    vec4 c1 = texture(WeatherSampler, texCoord);
+    c1.rgb *= 2.0; // match particle emissive 
     float d1 = texture(WeatherDepthSampler, texCoord).r;
 
     if (d1 < d0) {
