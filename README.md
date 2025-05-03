@@ -1,4 +1,4 @@
-# Shaders for vanilla 1.20
+# Shaders for vanilla 1.20 (1.20.4)
 <img src="images/4.png" /> 
 
 ## Overview
