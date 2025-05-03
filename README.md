@@ -1,8 +1,6 @@
 # Shaders for vanilla 1.20 DEV BRANCH!!!!!
 <img src="images/4.png" /> 
 
-## TIS HOT DEV BRANCH!!! STUFF MAY NOT WORK!!!
-
 Known issues:
 - shadow jank
 - Alpha-PBR specular, metalness
